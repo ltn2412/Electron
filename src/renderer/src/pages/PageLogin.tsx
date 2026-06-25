@@ -6,18 +6,22 @@ export default function PageLogin(): React.JSX.Element {
   const navigate = useNavigate();
   const [password, setPassword] = useState("");
 
-  // Trích xuất trong PageLogin.tsx:
   const handleLogin = async (): Promise<void> => {
-    if (password) {
-      // ở đây giả lập password là swipe card code
+    if (!password) return;
+
+    try {
+      // Bật hiệu ứng loading ở đây nếu có
       const result = await window.api.getEmployeeBySwipe(password);
 
-      if (result.success && result.data) {
-        console.log("Đăng nhập thành công, nhân viên:", result.data.EMPNAME);
+      if (result?.success) {
         navigate("/menu");
       } else {
-        alert("Đăng nhập thất bại hoặc không tìm thấy nhân viên!");
+        alert(result?.message || "Nhân viên không tồn tại!");
       }
+    } catch (err: any) {
+      // Chỗ này bắt toàn bộ lỗi từ backend truyền sang
+      console.error("Login process error:", err);
+      alert(`Lỗi hệ thống: ${err.message}`);
     }
   };
 
