@@ -1,18 +1,32 @@
-name: Build Electron App
-on: [push]
+name: Build and Auto Release
+on:
+  push:
+    branches:
+      - main
+
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 18
+
       - run: npm install
       - run: npm run build
       - run: npx electron-builder --win
 
-      - uses: actions/upload-artifact@v4
+      - name: Publish to GitHub Releases
+        uses: softprops/action-gh-release@v2
         with:
-          name: windows-executable
-          path: dist/*.exe
+          tag_name: latest-build
+          name: "Bản Build Tự Động Mới Nhất"
+          body: "Bản cài đặt này được máy chủ tự động build mỗi khi có code mới."
+          files: dist/*.exe
+          prerelease: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
