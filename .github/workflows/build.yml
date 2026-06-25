@@ -20,6 +20,14 @@ jobs:
       - run: npm run build
       - run: npx electron-builder --win
 
+      - name: Delete old release
+        uses: dev-drprasad/delete-tag-and-release@v1.1
+        with:
+          tag_name: latest-build
+          delete_release: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Publish to GitHub Releases
         uses: softprops/action-gh-release@v2
         with:
