@@ -31,65 +31,66 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
     const isActive = activeKey === key;
 
     let baseBg = "#ffffff";
-    let baseColor = "#334155";
-    let baseBorder = "#e2e8f0";
+    let baseColor = "#1e293b";
+    let baseBorder = "transparent";
+    let baseShadow = "0 2px 10px rgba(0,0,0,0.05), inset 0 -2px 0 rgba(0,0,0,0.05)";
 
     if (key === "C") {
-      baseBg = isHovered || isActive ? "#fecaca" : "#fee2e2";
+      baseBg = isHovered || isActive ? "#fee2e2" : "#fef2f2";
       baseColor = "#ef4444";
-      baseBorder = "#fecaca";
+      baseShadow = "0 2px 10px rgba(239,68,68,0.1), inset 0 -2px 0 rgba(239,68,68,0.05)";
     } else if (key === "⌫") {
-      baseBg = isHovered || isActive ? "#fef08a" : "#fef9c3";
-      baseColor = "#ca8a04";
-      baseBorder = "#fef08a";
+      baseBg = isHovered || isActive ? "#fef3c7" : "#fffbeb";
+      baseColor = "#d97706";
+      baseShadow = "0 2px 10px rgba(217,119,6,0.1), inset 0 -2px 0 rgba(217,119,6,0.05)";
     } else {
       if (isActive) baseBg = "#f1f5f9";
       else if (isHovered) baseBg = "#f8fafc";
     }
 
+    if (isActive) {
+      baseShadow = "inset 0 2px 4px rgba(0,0,0,0.1)";
+    }
+
     return {
-      height: "72px",
-      fontSize: "26px",
-      fontWeight: 600,
-      borderRadius: "16px",
+      width: "84px",
+      height: "84px",
+      fontSize: "32px",
+      fontWeight: 500,
+      borderRadius: "50%", // Circular buttons
       border: `1px solid ${baseBorder}`,
       backgroundColor: baseBg,
       color: baseColor,
       cursor: "pointer",
-      boxShadow: isActive
-        ? "0 2px 4px rgba(0, 0, 0, 0.02)"
-        : isHovered
-          ? "0 6px 12px rgba(0, 0, 0, 0.05)"
-          : "0 4px 6px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0,0,0,0.05)",
-      transform: isActive
-        ? "translateY(1px)"
-        : isHovered
-          ? "translateY(-2px)"
-          : "none",
-      transition: "all 0.15s ease",
+      boxShadow: baseShadow,
+      transform: isActive ? "scale(0.96)" : isHovered ? "translateY(-2px)" : "none",
+      transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
+      margin: "0 auto",
+      userSelect: "none"
     };
   };
 
   return (
     <div style={styles.grid}>
       {keys.map((key, index) => (
-        <button
-          key={index}
-          style={getButtonStyle(key)}
-          onClick={() => handleKeyClick(key)}
-          onMouseEnter={() => setHoverKey(key)}
-          onMouseLeave={() => {
-            setHoverKey(null);
-            setActiveKey(null);
-          }}
-          onMouseDown={() => setActiveKey(key)}
-          onMouseUp={() => setActiveKey(null)}
-        >
-          {key === "⌫" ? <Delete size={28} /> : key}
-        </button>
+        <div key={index} style={styles.keyWrapper}>
+          <button
+            style={getButtonStyle(key)}
+            onClick={() => handleKeyClick(key)}
+            onMouseEnter={() => setHoverKey(key)}
+            onMouseLeave={() => {
+              setHoverKey(null);
+              setActiveKey(null);
+            }}
+            onMouseDown={() => setActiveKey(key)}
+            onMouseUp={() => setActiveKey(null)}
+          >
+            {key === "⌫" ? <Delete size={32} strokeWidth={2.5} /> : key}
+          </button>
+        </div>
       ))}
     </div>
   );
@@ -99,11 +100,16 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "16px",
+    gap: "16px 24px",
     width: "100%",
-    maxWidth: "320px",
+    maxWidth: "340px",
     margin: "0 auto",
   } as React.CSSProperties,
+  keyWrapper: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+  } as React.CSSProperties
 };
 
 export default KeypadControl;
