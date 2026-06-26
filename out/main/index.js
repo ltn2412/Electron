@@ -4,14 +4,16 @@ const path = require("path");
 const utils = require("@electron-toolkit/utils");
 const odbc = require("odbc");
 const icon = path.join(__dirname, "../../resources/icon.png");
-const CONNECTION_STRING = "DSN=PixelSqlbase;UID=DBA;ENP=28f3cd0c3ddcfc32";
+const CONNECTION_STRING = "DSN=PixelSqlbase_vvk_uat;UID=DBA;PWD=banana1;";
 async function getConnection() {
   try {
     const connection = await odbc.connect(CONNECTION_STRING);
     return connection;
   } catch (error) {
-    console.error("Database connection failed:", error);
-    throw error;
+    console.error("Database connection failed details:", error.message);
+    throw new Error(
+      `Không thể kết nối DB: ${error.message || "Kiểm tra lại cấu hình DSN/Server"}`
+    );
   }
 }
 class EmployeeService {

@@ -1,13 +1,13 @@
 import odbc from "odbc";
 
-const CONNECTION_STRING = "DSN=PixelSqlbase_vvk_uat;UID=DBA;PWD=banana1;";
+const CONNECTION_STRING =
+  "DSN=PixelSqlbase_vvk_uat;UID=DBA;ENP=28f3cd0c3ddcfc32;";
 
 export async function getConnection(): Promise<odbc.Connection> {
   try {
     const connection = await odbc.connect(CONNECTION_STRING);
     return connection;
   } catch (error: any) {
-    // Log chi tiết để xem trong file log của Electron
     console.error("Database connection failed details:", error.message);
 
     // Ném lỗi với message dễ hiểu hơn để frontend nhận được
