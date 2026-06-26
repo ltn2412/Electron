@@ -1,7 +1,6 @@
 import odbc from "odbc";
 
-const CONNECTION_STRING =
-  "DSN=PixelSqlbase_vvk_uat;UID=DBA;ENP=28f3cd0c3ddcfc32;";
+const CONNECTION_STRING = "DSN=PixelSqlbase;UID=DBA;ENP=28f3cd0c3ddcfc32;";
 
 export async function getConnection(): Promise<odbc.Connection> {
   try {
