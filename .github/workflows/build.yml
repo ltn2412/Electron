@@ -15,9 +15,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          architecture: x86
 
       - run: npm install
+      - run: npx electron-builder install-app-deps --arch=ia32
       - run: npm run build
       - run: npx electron-builder --win --ia32
 
