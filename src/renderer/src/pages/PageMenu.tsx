@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Settings, RefreshCw, FileText } from "lucide-react";
+import { Settings, RefreshCw, FileText, Search, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
 import KeypadControl from "@/components/KeypadControl";
@@ -11,6 +11,7 @@ export default function PageMenu(): React.JSX.Element {
   const [products, setProducts] = useState<ProductPOSAudio[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const fetchData = useCallback(async (): Promise<void> => {
     try {
@@ -46,6 +47,7 @@ export default function PageMenu(): React.JSX.Element {
 
   const handleSearchTransact = (): void => {
     if (transactId) {
+      setIsSearchOpen(false);
       handleTransactionClick(transactId);
     }
   };
@@ -53,7 +55,7 @@ export default function PageMenu(): React.JSX.Element {
   const getStatusColor = (statusName: string): string => {
     switch (statusName) {
       case "New":
-        return "#3b82f6";
+        return "#1e3a8a"; // Darker blue to match WPF
       case "Out":
         return "#f59e0b";
       case "Return":
@@ -73,6 +75,13 @@ export default function PageMenu(): React.JSX.Element {
             <p style={styles.subtitle}>Manage your audio rentals</p>
           </div>
           <div style={{ display: "flex", gap: "12px" }}>
+            <button
+              style={styles.iconBtn}
+              onClick={() => setIsSearchOpen(true)}
+              title="Find Transaction"
+            >
+              <Search size={20} />
+            </button>
             <button style={styles.iconBtn} onClick={fetchData} title="Refresh">
               <RefreshCw size={20} />
             </button>
@@ -90,7 +99,7 @@ export default function PageMenu(): React.JSX.Element {
           {/* Left Column: Transactions */}
           <div style={styles.card}>
             <div style={styles.cardHeader}>
-              <h2 style={styles.cardTitle}>Recent Transactions</h2>
+              <h2 style={styles.cardTitle}>Transactions</h2>
               <span style={styles.badge}>{transactions.length}</span>
             </div>
 
@@ -107,7 +116,7 @@ export default function PageMenu(): React.JSX.Element {
                   No active transactions
                 </div>
               ) : (
-                <div style={styles.grid}>
+                <div style={styles.txList}>
                   {transactions.map((tx, idx: number) => (
                     <div
                       key={idx}
@@ -116,22 +125,30 @@ export default function PageMenu(): React.JSX.Element {
                         handleTransactionClick(tx.TRANSACT.toString())
                       }
                     >
-                      <div style={styles.txHeader}>
-                        <span style={styles.txId}>#{tx.TRANSACT}</span>
+                      <div style={styles.txLeft}>
+                        <div style={styles.txId}>Trans#: {tx.TRANSACT}</div>
+                        <div style={styles.txTotal}>
+                          Final Total: {tx.FINALTOTAL.toLocaleString()}
+                        </div>
+                      </div>
+                      <div style={styles.txRight}>
                         <span
                           style={{
-                            ...styles.statusBadge,
-                            backgroundColor:
-                              getStatusColor(tx.POSAudioStatusName) + "20",
+                            fontWeight: 600,
+                            color: "#475569",
+                            marginRight: "4px",
+                          }}
+                        >
+                          Status:
+                        </span>
+                        <span
+                          style={{
+                            fontWeight: 700,
                             color: getStatusColor(tx.POSAudioStatusName),
                           }}
                         >
                           {tx.POSAudioStatusName}
                         </span>
-                      </div>
-                      <div style={styles.txBody}>
-                        <div>{new Date(tx.TIMEEND).toLocaleString()}</div>
-                        <div style={styles.txTotal}>${tx.FINALTOTAL}</div>
                       </div>
                     </div>
                   ))}
@@ -140,14 +157,45 @@ export default function PageMenu(): React.JSX.Element {
             </div>
           </div>
 
-          {/* Right Column: Keypad & Products */}
+          {/* Right Column: Products */}
           <div style={styles.rightColumn}>
-            {/* Search Card */}
             <div style={styles.card}>
               <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>Find Transaction</h2>
+                <h2 style={styles.cardTitle}>Products</h2>
+                <Settings size={20} color="#64748b" />
               </div>
-              <div style={{ padding: "20px" }}>
+              <div style={{ padding: "24px 24px" }}>
+                {products.length === 0 ? (
+                  <div style={styles.emptyState}>No products</div>
+                ) : (
+                  <div style={styles.productList}>
+                    {products.map((p, idx: number) => (
+                      <div key={idx} style={styles.productItem}>
+                        {p.DESCRIPT} :{" "}
+                        <span style={{ marginLeft: "4px" }}>{p.STORAGE}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Search Modal */}
+        {isSearchOpen && (
+          <div style={styles.modalOverlay}>
+            <div style={styles.modalContent}>
+              <div style={styles.modalHeader}>
+                <h2 style={styles.cardTitle}>Find Transaction</h2>
+                <button
+                  style={{ ...styles.iconBtn, border: "none" }}
+                  onClick={() => setIsSearchOpen(false)}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div style={{ padding: "24px" }}>
                 <input
                   type="text"
                   value={transactId}
@@ -163,7 +211,7 @@ export default function PageMenu(): React.JSX.Element {
                 <button
                   style={{
                     ...styles.primaryBtn,
-                    marginTop: "20px",
+                    marginTop: "24px",
                     opacity: transactId ? 1 : 0.5,
                     cursor: transactId ? "pointer" : "not-allowed",
                   }}
@@ -174,41 +222,8 @@ export default function PageMenu(): React.JSX.Element {
                 </button>
               </div>
             </div>
-
-            {/* Inventory Card */}
-            <div style={{ ...styles.card, flex: 1, marginTop: "20px" }}>
-              <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>Inventory Status</h2>
-              </div>
-              <div style={styles.listContainer}>
-                {products.length === 0 ? (
-                  <div style={styles.emptyState}>No products</div>
-                ) : (
-                  <div style={styles.productList}>
-                    {products.map((p, idx: number) => (
-                      <div key={idx} style={styles.productItem}>
-                        <div style={styles.prodInfo}>
-                          <div style={styles.prodName}>{p.DESCRIPT}</div>
-                          <div style={styles.prodRef}>{p.REFCODE}</div>
-                        </div>
-                        <div style={styles.prodStats}>
-                          <div style={styles.statBox}>
-                            <div style={styles.statLabel}>Available</div>
-                            <div style={styles.statValue}>{p.STORAGE}</div>
-                          </div>
-                          <div style={styles.statBox}>
-                            <div style={styles.statLabel}>Total</div>
-                            <div style={styles.statValue}>{p.QUANTITY}</div>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
-        </div>
+        )}
       </div>
     </>
   );
@@ -218,11 +233,11 @@ const styles = {
   container: {
     width: "100vw",
     height: "100vh",
-    padding: "60px 32px 32px 32px", // padding top for titlebar
+    padding: "60px 32px 32px 32px",
     boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#ffffff",
     fontFamily: "'Inter', 'Segoe UI', sans-serif",
   } as React.CSSProperties,
   header: {
@@ -262,30 +277,29 @@ const styles = {
     overflow: "hidden",
   } as React.CSSProperties,
   card: {
-    backgroundColor: "white",
-    borderRadius: "24px",
-    boxShadow:
-      "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
+    backgroundColor: "#f8fafc", // Light grey background like WPF
+    borderRadius: "12px",
+    border: "1px solid #cbd5e1",
     display: "flex",
     flexDirection: "column",
     overflow: "hidden",
+    flex: 1,
   } as React.CSSProperties,
   cardHeader: {
-    padding: "20px 24px",
-    borderBottom: "1px solid #f1f5f9",
+    padding: "16px 24px",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
   } as React.CSSProperties,
   cardTitle: {
     margin: 0,
-    fontSize: "18px",
-    fontWeight: 600,
+    fontSize: "20px",
+    fontWeight: 700,
     color: "#1e293b",
   } as React.CSSProperties,
   badge: {
-    backgroundColor: "#eff6ff",
-    color: "#3b82f6",
+    backgroundColor: "#e2e8f0",
+    color: "#475569",
     padding: "4px 12px",
     borderRadius: "999px",
     fontSize: "14px",
@@ -294,7 +308,7 @@ const styles = {
   listContainer: {
     flex: 1,
     overflowY: "auto",
-    padding: "20px",
+    padding: "0 24px 24px 24px",
   } as React.CSSProperties,
   emptyState: {
     height: "100%",
@@ -305,53 +319,83 @@ const styles = {
     color: "#94a3b8",
     fontSize: "16px",
   } as React.CSSProperties,
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: "16px",
+  txList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "12px",
   } as React.CSSProperties,
   txItem: {
-    padding: "20px",
-    borderRadius: "16px",
-    border: "1px solid #e2e8f0",
-    backgroundColor: "#f8fafc",
-    cursor: "pointer",
-    transition: "all 0.2s",
-  } as React.CSSProperties,
-  txHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: "12px",
+    padding: "16px 20px",
+    borderRadius: "12px",
+    border: "1px solid #cbd5e1",
+    backgroundColor: "white",
+    cursor: "pointer",
+    transition: "all 0.2s",
+  } as React.CSSProperties,
+  txLeft: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "4px",
+  } as React.CSSProperties,
+  txRight: {
+    display: "flex",
+    alignItems: "center",
+    fontSize: "16px",
   } as React.CSSProperties,
   txId: {
     fontSize: "16px",
     fontWeight: 700,
     color: "#0f172a",
   } as React.CSSProperties,
-  statusBadge: {
-    padding: "4px 10px",
-    borderRadius: "8px",
-    fontSize: "12px",
-    fontWeight: 700,
-    textTransform: "uppercase",
+  txTotal: {
+    fontSize: "15px",
+    fontWeight: 600,
+    color: "#0f172a",
   } as React.CSSProperties,
-  txBody: {
+  rightColumn: {
+    width: "340px",
+    display: "flex",
+    flexDirection: "column",
+  } as React.CSSProperties,
+  productList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  } as React.CSSProperties,
+  productItem: {
+    fontSize: "18px",
+    color: "#1e293b",
+    fontWeight: 500,
+  } as React.CSSProperties,
+  modalOverlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(15, 23, 42, 0.4)",
+    backdropFilter: "blur(4px)",
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1000,
+  } as React.CSSProperties,
+  modalContent: {
+    width: "400px",
+    backgroundColor: "white",
+    borderRadius: "24px",
+    boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    overflow: "hidden",
+  } as React.CSSProperties,
+  modalHeader: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    color: "#64748b",
-    fontSize: "14px",
-  } as React.CSSProperties,
-  txTotal: {
-    fontSize: "16px",
-    fontWeight: 600,
-    color: "#10b981",
-  } as React.CSSProperties,
-  rightColumn: {
-    width: "380px",
-    display: "flex",
-    flexDirection: "column",
+    padding: "20px 24px",
+    borderBottom: "1px solid #e2e8f0",
   } as React.CSSProperties,
   searchInput: {
     width: "100%",
@@ -364,7 +408,7 @@ const styles = {
     border: "2px solid #e2e8f0",
     backgroundColor: "#f8fafc",
     outline: "none",
-    marginBottom: "20px",
+    marginBottom: "24px",
     boxSizing: "border-box",
   } as React.CSSProperties,
   primaryBtn: {
@@ -377,51 +421,5 @@ const styles = {
     fontSize: "18px",
     fontWeight: 600,
     transition: "all 0.2s",
-  } as React.CSSProperties,
-  productList: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "12px",
-  } as React.CSSProperties,
-  productItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px",
-    borderRadius: "12px",
-    border: "1px solid #e2e8f0",
-  } as React.CSSProperties,
-  prodInfo: {
-    display: "flex",
-    flexDirection: "column",
-  } as React.CSSProperties,
-  prodName: {
-    fontSize: "15px",
-    fontWeight: 600,
-    color: "#0f172a",
-    marginBottom: "4px",
-  } as React.CSSProperties,
-  prodRef: {
-    fontSize: "12px",
-    color: "#64748b",
-  } as React.CSSProperties,
-  prodStats: {
-    display: "flex",
-    gap: "12px",
-  } as React.CSSProperties,
-  statBox: {
-    textAlign: "center",
-  } as React.CSSProperties,
-  statLabel: {
-    fontSize: "11px",
-    color: "#94a3b8",
-    textTransform: "uppercase",
-    fontWeight: 600,
-    marginBottom: "2px",
-  } as React.CSSProperties,
-  statValue: {
-    fontSize: "16px",
-    fontWeight: 700,
-    color: "#0f172a",
   } as React.CSSProperties,
 };
