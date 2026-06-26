@@ -3,13 +3,17 @@ import { join } from "path";
 import { electronApp, optimizer, is } from "@electron-toolkit/utils";
 import icon from "../../resources/icon.png?asset";
 import { EmployeeService } from "./services/EmployeeService";
+import { TransactionService } from "./services/TransactionService";
+import { ProductService } from "./services/ProductService";
+import { TransactionPOSAudioService } from "./services/TransactionPOSAudioService";
 
 function createWindow(): void {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 900,
     height: 670,
     show: false,
+    frame: false,
+    resizable: false,
     autoHideMenuBar: true,
     ...(process.platform === "linux" ? { icon } : {}),
     webPreferences: {
@@ -19,6 +23,7 @@ function createWindow(): void {
   });
 
   mainWindow.on("ready-to-show", () => {
+    mainWindow.maximize();
     mainWindow.show();
   });
 
@@ -34,6 +39,14 @@ function createWindow(): void {
   } else {
     mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
   }
+
+  ipcMain.on("window:minimize", () => {
+    mainWindow.minimize();
+  });
+
+  ipcMain.on("window:close", () => {
+    mainWindow.close();
+  });
 }
 
 // This method will be called when Electron has finished
@@ -55,11 +68,54 @@ app.whenReady().then(() => {
     try {
       const employee = await EmployeeService.getEmployeeBySwipe(swipe);
       return { success: true, data: employee };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (error: any) {
-      return { success: false, error: error.message };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
     }
   });
+
+  ipcMain.handle("transaction:get", async () => {
+    try {
+      const data = await TransactionService.getTransaction();
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("transaction:getByTransact", async (_, transact: string) => {
+    try {
+      const data = await TransactionService.getTransactionByTransact(transact);
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("product:getPOSAudio", async () => {
+    try {
+      const data = await ProductService.getProductPOSAudio();
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle(
+    "posAudio:createUpdate",
+    async (_, data: import("@/shared/types").TransactionPOSAudioPayload) => {
+      try {
+        await TransactionPOSAudioService.createUpdateTransaction(data);
+        return { success: true };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
 
   createWindow();
 

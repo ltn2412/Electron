@@ -1,4 +1,4 @@
-import { getConnection } from "../config/database";
+import { getConnection } from "@/main/config/database";
 
 export class EmployeeService {
   static async getEmployeeBySwipe(swipe: string): Promise<unknown> {

@@ -1,163 +1,433 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import KeypadControl from "../components/KeypadControl";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, Package, Clock, CheckCircle } from "lucide-react";
+import TitleBar from "@/components/TitleBar";
+import { POSHEADER, POSDETAIL } from "@shared/types";
 
 export default function PageOrder(): React.JSX.Element {
   const navigate = useNavigate();
-  const [inputValue, setInputValue] = useState("0");
+  const [searchParams] = useSearchParams();
+  const transactId = searchParams.get("id");
+
+  const [transaction, setTransaction] = useState<POSHEADER | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+
+  const fetchData = useCallback(async (): Promise<void> => {
+    if (!transactId) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const res = await window.api.getTransactionByTransact(transactId);
+      if (res.success && res.data) {
+        setTransaction(res.data);
+      } else {
+        alert("Transaction not found!");
+        navigate("/menu");
+      }
+    } catch (error) {
+      console.error("Error fetching transaction details:", error);
+      alert("Error loading transaction.");
+      navigate("/menu");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [transactId, navigate]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchData();
+  }, [fetchData]);
+
+  const handleAction = async (action: "Out" | "Return"): Promise<void> => {
+    if (!transaction || !transaction.POSDETAILS) return;
+    setIsProcessing(true);
+
+    try {
+      const details = transaction.POSDETAILS.map((d: POSDETAIL) => ({
+        PRODNUM: d.PRODNUM,
+        QuantityOut: action === "Out" ? d.QUAN : 0,
+        QuantityReturn: action === "Return" ? d.QUAN : 0,
+      }));
+
+      const payload = {
+        Transact: transaction.TRANSACT,
+        Status: action === "Out" ? 1 : 2, // 1 = Out, 2 = Return
+        PhoneNumber: transactId, // Fallback if they searched by phone
+        TransactionDetailPOSAudios: details,
+      };
+
+      const res = await window.api.createUpdatePOSAudio(payload);
+      if (res.success) {
+        navigate("/menu");
+      } else {
+        alert(res.error || "Failed to update transaction.");
+      }
+    } catch (error: unknown) {
+      const err = error as Error;
+      alert(`System error: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div style={styles.loadingContainer}>
+        <TitleBar />
+        <h2>Loading transaction...</h2>
+      </div>
+    );
+  }
+
+  if (!transaction) return <></>;
+
+  const statusName = transaction.POSAudioStatusName;
+  const isNew = statusName === "New";
+  const isOut = statusName === "Out";
+  const isReturn = statusName === "Return";
 
   return (
-    <div style={styles.container}>
-      <div style={styles.titleBar}>
-        <h2>Order View</h2>
-        <button onClick={() => navigate("/menu")} style={styles.logoutBtn}>
-          Back
-        </button>
-      </div>
-
-      <div style={styles.content}>
-        {/* Left Column */}
-        <div style={styles.leftCol}>
-          <div style={styles.ticketList}>{/* List products */}</div>
-          <div style={styles.divider} />
-          <div style={styles.storageList}>{/* List storage */}</div>
+    <>
+      <TitleBar />
+      <div style={styles.container}>
+        <div style={styles.header}>
+          <button style={styles.backBtn} onClick={() => navigate("/menu")}>
+            <ArrowLeft size={24} />
+            <span>Back</span>
+          </button>
+          <div style={styles.headerInfo}>
+            <h1 style={styles.title}>Order #{transaction.TRANSACT}</h1>
+            <span
+              style={{
+                ...styles.badge,
+                backgroundColor: isNew
+                  ? "#eff6ff"
+                  : isOut
+                    ? "#fef3c7"
+                    : "#d1fae5",
+                color: isNew ? "#3b82f6" : isOut ? "#d97706" : "#059669",
+              }}
+            >
+              {statusName}
+            </span>
+          </div>
         </div>
 
-        {/* Right Column: Keypad & Actions */}
-        <div style={styles.rightCol}>
-          <div style={styles.actionPanel}>
-            <input
-              type="text"
-              value={inputValue}
-              readOnly
-              style={styles.inputBox}
-            />
-
-            <div style={{ margin: "20px 0" }}>
-              <KeypadControl
-                onKeyPress={(key) =>
-                  setInputValue((prev) => (prev === "0" ? key : prev + key))
-                }
-                onBackspace={() =>
-                  setInputValue((prev) =>
-                    prev.length > 1 ? prev.slice(0, -1) : "0",
-                  )
-                }
-                onClear={() => setInputValue("0")}
-              />
+        <div style={styles.content}>
+          {/* Left Col: Details */}
+          <div style={styles.leftCol}>
+            <div style={styles.card}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>Customer Info</h2>
+              </div>
+              <div style={styles.cardBody}>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Time:</span>
+                  <span style={styles.infoValue}>
+                    {new Date(transaction.TIMEEND).toLocaleString()}
+                  </span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Cashier:</span>
+                  <span style={styles.infoValue}>{transaction.EMPNAME}</span>
+                </div>
+                <div style={styles.infoRow}>
+                  <span style={styles.infoLabel}>Total:</span>
+                  <span
+                    style={{
+                      ...styles.infoValue,
+                      color: "#10b981",
+                      fontWeight: 700,
+                    }}
+                  >
+                    ${transaction.FINALTOTAL}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div style={styles.buttonGroup}>
-              <button
-                style={styles.cancelBtn}
-                onClick={() => setInputValue("0")}
-              >
-                Cancel
-              </button>
-              <button style={styles.confirmBtn}>Confirm</button>
+            <div style={{ ...styles.card, marginTop: "24px", flex: 1 }}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>
+                  Items ({transaction.POSDETAILS?.length || 0})
+                </h2>
+              </div>
+              <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
+                {transaction.POSDETAILS?.map((item: POSDETAIL, idx: number) => (
+                  <div key={idx} style={styles.itemRow}>
+                    <div style={styles.itemLeft}>
+                      <div style={styles.itemQuantity}>{item.QUAN}x</div>
+                      <div style={styles.itemName}>{item.DESCRIPT}</div>
+                    </div>
+                    <div style={styles.itemPrice}>${item.PRICE}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Right Col: Actions */}
+          <div style={styles.rightCol}>
+            <div
+              style={{
+                ...styles.card,
+                height: "100%",
+                justifyContent: "center",
+                alignItems: "center",
+                padding: "40px",
+              }}
+            >
+              {isNew && (
+                <div style={styles.actionBlock}>
+                  <Package
+                    size={64}
+                    color="#3b82f6"
+                    style={{ marginBottom: "24px" }}
+                  />
+                  <h3 style={styles.actionTitle}>Ready for Handover</h3>
+                  <p style={styles.actionDesc}>
+                    Hand the devices to the customer and confirm below.
+                  </p>
+                  <button
+                    style={{ ...styles.actionBtn, backgroundColor: "#3b82f6" }}
+                    onClick={() => handleAction("Out")}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? "Processing..." : "Confirm Handover (OUT)"}
+                  </button>
+                </div>
+              )}
+
+              {isOut && (
+                <div style={styles.actionBlock}>
+                  <Clock
+                    size={64}
+                    color="#f59e0b"
+                    style={{ marginBottom: "24px" }}
+                  />
+                  <h3 style={styles.actionTitle}>Waiting for Return</h3>
+                  <p style={styles.actionDesc}>
+                    The customer is currently using the devices. Click below
+                    when they return them.
+                  </p>
+                  <button
+                    style={{ ...styles.actionBtn, backgroundColor: "#f59e0b" }}
+                    onClick={() => handleAction("Return")}
+                    disabled={isProcessing}
+                  >
+                    {isProcessing ? "Processing..." : "Confirm Return"}
+                  </button>
+                </div>
+              )}
+
+              {isReturn && (
+                <div style={styles.actionBlock}>
+                  <CheckCircle
+                    size={64}
+                    color="#10b981"
+                    style={{ marginBottom: "24px" }}
+                  />
+                  <h3 style={styles.actionTitle}>Completed</h3>
+                  <p style={styles.actionDesc}>
+                    This transaction has been successfully completed and devices
+                    returned.
+                  </p>
+                  <button
+                    style={{
+                      ...styles.actionBtn,
+                      backgroundColor: "#cbd5e1",
+                      color: "#64748b",
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    Already Returned
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
 const styles = {
-  container: {
+  loadingContainer: {
     width: "100vw",
     height: "100vh",
     display: "flex",
-    flexDirection: "column" as const,
-    backgroundColor: "#ffffff",
-  },
-  titleBar: {
-    height: "48px",
-    backgroundColor: "#1e293b",
-    color: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
+    fontFamily: "'Inter', sans-serif",
+    color: "#64748b",
+  } as React.CSSProperties,
+  container: {
+    width: "100vw",
+    height: "100vh",
+    padding: "60px 32px 32px 32px",
+    boxSizing: "border-box",
+    display: "flex",
+    flexDirection: "column",
+    backgroundColor: "#f1f5f9",
+    fontFamily: "'Inter', 'Segoe UI', sans-serif",
+  } as React.CSSProperties,
+  header: {
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
-    padding: "0 20px",
-  },
-  logoutBtn: {
-    background: "none",
-    color: "#fff",
-    fontWeight: "bold",
-  },
+    marginBottom: "24px",
+    gap: "24px",
+  } as React.CSSProperties,
+  backBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    padding: "12px 20px",
+    backgroundColor: "white",
+    border: "1px solid #e2e8f0",
+    borderRadius: "12px",
+    color: "#0f172a",
+    fontSize: "16px",
+    fontWeight: 600,
+    cursor: "pointer",
+    boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+  } as React.CSSProperties,
+  headerInfo: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+  } as React.CSSProperties,
+  title: {
+    margin: 0,
+    fontSize: "28px",
+    fontWeight: 800,
+    color: "#0f172a",
+  } as React.CSSProperties,
+  badge: {
+    padding: "6px 16px",
+    borderRadius: "999px",
+    fontSize: "14px",
+    fontWeight: 700,
+    textTransform: "uppercase",
+  } as React.CSSProperties,
   content: {
     flex: 1,
     display: "flex",
-  },
+    gap: "24px",
+    overflow: "hidden",
+  } as React.CSSProperties,
   leftCol: {
-    width: "850px",
-    padding: "24px",
+    width: "480px",
     display: "flex",
-    flexDirection: "column" as const,
-  },
-  ticketList: {
-    height: "400px",
-    backgroundColor: "#f8f9fa",
-    borderRadius: "8px",
-    marginBottom: "20px",
-  },
-  divider: {
-    height: "2px",
-    backgroundColor: "#000",
-    width: "600px",
-    marginLeft: "12px",
-    marginBottom: "20px",
-  },
-  storageList: {
-    flex: 1,
-    backgroundColor: "#f8f9fa",
-    borderRadius: "8px",
-  },
+    flexDirection: "column",
+  } as React.CSSProperties,
   rightCol: {
-    width: "430px",
-    backgroundColor: "#f1f2f6",
+    flex: 1,
+  } as React.CSSProperties,
+  card: {
+    backgroundColor: "white",
+    borderRadius: "24px",
+    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
     display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  actionPanel: {
-    width: "100%",
-    padding: "20px",
+    flexDirection: "column",
+    overflow: "hidden",
+  } as React.CSSProperties,
+  cardHeader: {
+    padding: "20px 24px",
+    borderBottom: "1px solid #f1f5f9",
+  } as React.CSSProperties,
+  cardTitle: {
+    margin: 0,
+    fontSize: "18px",
+    fontWeight: 600,
+    color: "#1e293b",
+  } as React.CSSProperties,
+  cardBody: {
+    padding: "20px 24px",
     display: "flex",
-    flexDirection: "column" as const,
+    flexDirection: "column",
+    gap: "16px",
+  } as React.CSSProperties,
+  infoRow: {
+    display: "flex",
+    justifyContent: "space-between",
     alignItems: "center",
-  },
-  inputBox: {
-    width: "310px",
-    height: "48px",
+  } as React.CSSProperties,
+  infoLabel: {
+    color: "#64748b",
+    fontSize: "15px",
+  } as React.CSSProperties,
+  infoValue: {
+    color: "#0f172a",
+    fontSize: "16px",
+    fontWeight: 500,
+  } as React.CSSProperties,
+  itemRow: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px",
+    backgroundColor: "#f8fafc",
+    borderRadius: "12px",
+    marginBottom: "12px",
+  } as React.CSSProperties,
+  itemLeft: {
+    display: "flex",
+    alignItems: "center",
+    gap: "16px",
+  } as React.CSSProperties,
+  itemQuantity: {
+    backgroundColor: "#e2e8f0",
+    color: "#334155",
+    padding: "4px 10px",
+    borderRadius: "8px",
+    fontWeight: 700,
+    fontSize: "14px",
+  } as React.CSSProperties,
+  itemName: {
+    fontSize: "16px",
+    fontWeight: 600,
+    color: "#0f172a",
+  } as React.CSSProperties,
+  itemPrice: {
+    fontSize: "16px",
+    fontWeight: 700,
+    color: "#64748b",
+  } as React.CSSProperties,
+  actionBlock: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    textAlign: "center",
+    maxWidth: "400px",
+  } as React.CSSProperties,
+  actionTitle: {
     fontSize: "24px",
-    textAlign: "center" as const,
-    borderRadius: "8px",
-    border: "2px solid #3b82f6",
-    marginBottom: "20px",
-  },
-  buttonGroup: {
-    display: "flex",
-    gap: "20px",
-    marginTop: "20px",
-  },
-  cancelBtn: {
-    width: "125px",
-    height: "60px",
-    border: "2px solid #3b82f6",
-    backgroundColor: "transparent",
-    color: "#3b82f6",
-    fontSize: "18px",
-    fontWeight: "bold",
-    borderRadius: "8px",
-  },
-  confirmBtn: {
-    width: "125px",
-    height: "60px",
-    backgroundColor: "#3b82f6",
+    fontWeight: 800,
+    color: "#0f172a",
+    margin: "0 0 12px 0",
+  } as React.CSSProperties,
+  actionDesc: {
+    fontSize: "16px",
+    color: "#64748b",
+    lineHeight: "1.5",
+    margin: "0 0 32px 0",
+  } as React.CSSProperties,
+  actionBtn: {
+    width: "100%",
+    height: "64px",
     color: "white",
-    fontSize: "18px",
-    fontWeight: "bold",
-    borderRadius: "8px",
-  },
+    border: "none",
+    borderRadius: "16px",
+    fontSize: "20px",
+    fontWeight: 700,
+    cursor: "pointer",
+    boxShadow: "0 4px 14px rgba(0,0,0,0.1)",
+    transition: "all 0.2s",
+  } as React.CSSProperties,
 };

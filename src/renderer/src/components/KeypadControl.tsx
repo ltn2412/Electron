@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Delete } from "lucide-react";
 
 interface KeypadControlProps {
   onKeyPress: (key: string) => void;
@@ -47,8 +48,8 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
     }
 
     return {
-      height: "64px",
-      fontSize: "24px",
+      height: "72px",
+      fontSize: "26px",
       fontWeight: 600,
       borderRadius: "16px",
       border: `1px solid ${baseBorder}`,
@@ -58,9 +59,13 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
       boxShadow: isActive
         ? "0 2px 4px rgba(0, 0, 0, 0.02)"
         : isHovered
-        ? "0 6px 12px rgba(0, 0, 0, 0.05)"
-        : "0 4px 6px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0,0,0,0.05)",
-      transform: isActive ? "translateY(1px)" : isHovered ? "translateY(-2px)" : "none",
+          ? "0 6px 12px rgba(0, 0, 0, 0.05)"
+          : "0 4px 6px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0,0,0,0.05)",
+      transform: isActive
+        ? "translateY(1px)"
+        : isHovered
+          ? "translateY(-2px)"
+          : "none",
       transition: "all 0.15s ease",
       display: "flex",
       justifyContent: "center",
@@ -76,11 +81,14 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
           style={getButtonStyle(key)}
           onClick={() => handleKeyClick(key)}
           onMouseEnter={() => setHoverKey(key)}
-          onMouseLeave={() => { setHoverKey(null); setActiveKey(null); }}
+          onMouseLeave={() => {
+            setHoverKey(null);
+            setActiveKey(null);
+          }}
           onMouseDown={() => setActiveKey(key)}
           onMouseUp={() => setActiveKey(null)}
         >
-          {key}
+          {key === "⌫" ? <Delete size={28} /> : key}
         </button>
       ))}
     </div>

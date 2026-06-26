@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import KeypadControl from "@/components/KeypadControl";
+import TitleBar from "@/components/TitleBar";
 
 export default function PageLogin(): React.JSX.Element {
   const navigate = useNavigate();
@@ -16,14 +17,19 @@ export default function PageLogin(): React.JSX.Element {
     try {
       const result = await window.api.getEmployeeBySwipe(password);
 
-      if (result?.success && result?.data) navigate("/menu");
-      else {
+      if (result?.success && result?.data) {
+        navigate("/menu");
+      } else {
         alert(result?.message || result?.error || "Nhân viên không tồn tại!");
         setPassword("");
       }
-    } catch (err) {
-      if (err instanceof Error) alert(`Lỗi hệ thống: ${err.message}`);
-      else alert("Lỗi hệ thống không xác định.");
+    } catch (err: unknown) {
+      console.error("Login process error:", err);
+      if (err instanceof Error) {
+        alert(`Lỗi hệ thống: ${err.message}`);
+      } else {
+        alert("Lỗi hệ thống không xác định.");
+      }
       setPassword("");
     } finally {
       setIsLoading(false);
@@ -50,13 +56,13 @@ export default function PageLogin(): React.JSX.Element {
   const btnStyle: React.CSSProperties = {
     width: "100%",
     maxWidth: "320px",
-    height: "60px",
+    height: "64px",
     background:
       isLoading || password.length === 0
         ? "#cbd5e1"
         : "linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)",
     color: "white",
-    fontSize: "18px",
+    fontSize: "20px",
     fontWeight: 600,
     borderRadius: "16px",
     border: "none",
@@ -81,45 +87,47 @@ export default function PageLogin(): React.JSX.Element {
   };
 
   return (
-    <div style={styles.container}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>POS System</h1>
-        <p style={styles.subtitle}>Please enter your PIN to continue</p>
+    <>
+      <TitleBar />
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <h1 style={styles.title}>POS System</h1>
+          <p style={styles.subtitle}>Please enter your PIN to continue</p>
 
-        <div style={styles.inputWrapper}>
-          <input
-            type="password"
-            value={password}
-            readOnly
-            placeholder="• • •"
-            style={styles.input}
-          />
+          <div style={styles.inputWrapper}>
+            <input
+              type="password"
+              value={password}
+              readOnly
+              style={styles.input}
+            />
+          </div>
+
+          <div style={styles.keypadWrapper}>
+            <KeypadControl
+              onKeyPress={(key) => setPassword((prev) => prev + key)}
+              onBackspace={() => setPassword((prev) => prev.slice(0, -1))}
+              onClear={() => setPassword("")}
+            />
+          </div>
+
+          <button
+            style={btnStyle}
+            onClick={handleLogin}
+            disabled={isLoading || password.length === 0}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => {
+              setIsHovered(false);
+              setIsActive(false);
+            }}
+            onMouseDown={() => setIsActive(true)}
+            onMouseUp={() => setIsActive(false)}
+          >
+            {isLoading ? "Authenticating..." : "Login"}
+          </button>
         </div>
-
-        <div style={styles.keypadWrapper}>
-          <KeypadControl
-            onKeyPress={(key) => setPassword((prev) => prev + key)}
-            onBackspace={() => setPassword((prev) => prev.slice(0, -1))}
-            onClear={() => setPassword("")}
-          />
-        </div>
-
-        <button
-          style={btnStyle}
-          onClick={handleLogin}
-          disabled={isLoading || password.length === 0}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => {
-            setIsHovered(false);
-            setIsActive(false);
-          }}
-          onMouseDown={() => setIsActive(true)}
-          onMouseUp={() => setIsActive(false)}
-        >
-          {isLoading ? "Authenticating..." : "Login"}
-        </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -134,40 +142,40 @@ const styles = {
     fontFamily: "'Inter', 'Segoe UI', sans-serif",
   } as React.CSSProperties,
   card: {
-    width: "450px",
+    width: "480px",
     background: "rgba(255, 255, 255, 0.85)",
     backdropFilter: "blur(12px)",
     WebkitBackdropFilter: "blur(12px)",
-    borderRadius: "24px",
+    borderRadius: "32px",
     border: "1px solid rgba(255, 255, 255, 0.5)",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
-    padding: "48px 32px",
+    padding: "56px 40px",
     boxShadow: "0 20px 40px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.05)",
   } as React.CSSProperties,
   title: {
     color: "#1e293b",
-    fontSize: "32px",
+    fontSize: "36px",
     fontWeight: 800,
-    marginBottom: "8px",
+    marginBottom: "12px",
     letterSpacing: "-0.5px",
   } as React.CSSProperties,
   subtitle: {
     color: "#64748b",
-    fontSize: "15px",
-    marginBottom: "40px",
+    fontSize: "16px",
+    marginBottom: "48px",
   } as React.CSSProperties,
   inputWrapper: {
     position: "relative",
     width: "100%",
     maxWidth: "320px",
-    marginBottom: "32px",
+    marginBottom: "36px",
   } as React.CSSProperties,
   input: {
     width: "100%",
-    height: "60px",
-    fontSize: "28px",
+    height: "64px",
+    fontSize: "32px",
     fontWeight: 600,
     color: "#0f172a",
     textAlign: "center",
@@ -183,6 +191,6 @@ const styles = {
     width: "100%",
     display: "flex",
     justifyContent: "center",
-    marginBottom: "32px",
+    marginBottom: "36px",
   } as React.CSSProperties,
 };

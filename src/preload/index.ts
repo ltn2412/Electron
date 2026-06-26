@@ -4,6 +4,15 @@ const api = {
   // Định nghĩa hàm gọi xuống main process
   getEmployeeBySwipe: (swipe: string) =>
     ipcRenderer.invoke("employee:getBySwipe", swipe),
+  minimize: () => ipcRenderer.send("window:minimize"),
+  close: () => ipcRenderer.send("window:close"),
+  getTransactions: () => ipcRenderer.invoke("transaction:get"),
+  getTransactionByTransact: (transact: string) =>
+    ipcRenderer.invoke("transaction:getByTransact", transact),
+  getProductPOSAudio: () => ipcRenderer.invoke("product:getPOSAudio"),
+  createUpdatePOSAudio: (
+    data: import("../../src/shared/types").TransactionPOSAudioPayload,
+  ) => ipcRenderer.invoke("posAudio:createUpdate", data),
 };
 
 // Expose api ra đối tượng window

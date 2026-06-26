@@ -1,4 +1,9 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
+import {
+  POSHEADER,
+  ProductPOSAudio,
+  TransactionPOSAudioPayload,
+} from "@/shared/types";
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -17,6 +22,16 @@ declare global {
     electron: ElectronAPI;
     api: {
       getEmployeeBySwipe: (swipe: string) => Promise<ApiResponse<EmployeeData>>;
+      minimize: () => void;
+      close: () => void;
+      getTransactions: () => Promise<ApiResponse<POSHEADER[]>>;
+      getTransactionByTransact: (
+        transact: string,
+      ) => Promise<ApiResponse<POSHEADER>>;
+      getProductPOSAudio: () => Promise<ApiResponse<ProductPOSAudio[]>>;
+      createUpdatePOSAudio: (
+        data: TransactionPOSAudioPayload,
+      ) => Promise<ApiResponse<void>>;
     };
   }
 }
