@@ -13,10 +13,14 @@ export default function PageLogin(): React.JSX.Element {
       // Bật hiệu ứng loading ở đây nếu có
       const result = await window.api.getEmployeeBySwipe(password);
 
+      // In toàn bộ kết quả trả về ra để Debug
+      alert("DEBUG RESULT: " + JSON.stringify(result));
+
       if (result?.success) {
         navigate("/menu");
       } else {
-        alert(result?.message || "Nhân viên không tồn tại!");
+        // Lấy error hoặc message từ backend truyền sang
+        alert(result?.error || result?.message || "Nhân viên không tồn tại!");
       }
     } catch (err: any) {
       // Chỗ này bắt toàn bộ lỗi từ backend truyền sang
