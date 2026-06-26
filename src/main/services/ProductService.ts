@@ -27,7 +27,7 @@ export class ProductService {
         WHERE POAP.ISPRIMARY = 1
       `;
       const result = await connection.query(query);
-      return result as ProductPOSAudio[];
+      return JSON.parse(JSON.stringify(result)) as ProductPOSAudio[];
     } catch (error) {
       console.error("Lỗi khi lấy danh sách Product POS Audio:", error);
       throw error;

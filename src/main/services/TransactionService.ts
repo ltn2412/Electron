@@ -50,7 +50,7 @@ export class TransactionService {
         ]);
 
         posHeader.POSDETAILS = detailResult;
-        return posHeader;
+        return JSON.parse(JSON.stringify(posHeader));
       }
 
       return null;
@@ -91,7 +91,7 @@ export class TransactionService {
         ORDER BY PH.TIMEEND DESC
       `;
       const result = await connection.query(query);
-      return result as unknown[];
+      return JSON.parse(JSON.stringify(result)) as unknown[];
     } catch (error) {
       console.error("Lỗi khi lấy thông tin Transaction list:", error);
       throw error;

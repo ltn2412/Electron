@@ -48,7 +48,7 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
     }
 
     return {
-      height: "64px", // Reduced from 72px to save vertical space
+      height: "56px", // Reduced from 64px
       fontSize: "24px",
       fontWeight: 600,
       borderRadius: "16px",
