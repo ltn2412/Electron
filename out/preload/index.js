@@ -9,6 +9,8 @@ const api = {
   getProductPOSAudio: () => electron.ipcRenderer.invoke("product:getPOSAudio"),
   resetProduct: (products) => electron.ipcRenderer.invoke("reset-product", products),
   getHoangVanSlots: (date) => electron.ipcRenderer.invoke("hoangvan:getSlots", date),
+  checkOrder: (orderNo) => electron.ipcRenderer.invoke("hoangvan:checkOrder", orderNo),
+  useOrder: (payload) => electron.ipcRenderer.invoke("hoangvan:useOrder", payload),
   createUpdatePOSAudio: (data) => electron.ipcRenderer.invoke("posAudio:createUpdate", data),
   createOrder: (payload) => electron.ipcRenderer.invoke("order:create", payload)
 };

@@ -12,7 +12,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
 import KeypadControl from "@/components/KeypadControl";
-import { POSHEADER, ProductPOSAudio, HoangVanSlot } from "@shared/types";
+import { POSHEADER, ProductPOSAudio, HoangVanSlot, HoangVanOrder } from "@shared/types";
 
 export default function PageMenu(): React.JSX.Element {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function PageMenu(): React.JSX.Element {
   // HoangVan Search State
   const [searchTab, setSearchTab] = useState<"pos" | "hoangvan">("pos");
   const [hvOrderNo, setHvOrderNo] = useState("");
-  const [hvOrderInfo, setHvOrderInfo] = useState<any>(null);
+  const [hvOrderInfo, setHvOrderInfo] = useState<HoangVanOrder | null>(null);
   const [hvChecking, setHvChecking] = useState(false);
   const [hvCheckError, setHvCheckError] = useState("");
   const [hvUsing, setHvUsing] = useState(false);
@@ -473,17 +473,95 @@ export default function PageMenu(): React.JSX.Element {
                   )}
 
                   {hvOrderInfo && (
-                    <div style={{ marginTop: "16px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
-                      <p><strong>Khách hàng:</strong> {hvOrderInfo.buyerName} - {hvOrderInfo.buyerPhone}</p>
-                      <p><strong>Trạng thái:</strong> <span style={{ color: hvOrderInfo.orderStatus === "ChuaSuDung" ? "green" : "red" }}>{hvOrderInfo.orderStatus}</span></p>
-                      <p><strong>Ngày tham quan:</strong> {hvOrderInfo.visitDate}</p>
-                      
-                      <div style={{ marginTop: "12px", borderTop: "1px dashed #cbd5e1", paddingTop: "12px" }}>
-                        {hvOrderInfo.services?.map((svc: any, idx: number) => (
-                          <div key={idx} style={{ marginBottom: "8px" }}>
-                            - {svc.serviceName} (SL: <b>{svc.quantity}</b>) - {svc.unitPrice}đ
+                    <div style={{ 
+                      marginTop: "24px", 
+                      backgroundColor: "#ffffff", 
+                      borderRadius: "12px", 
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                      overflow: "hidden"
+                    }}>
+                      {/* Header Section */}
+                      <div style={{ 
+                        backgroundColor: "#f8fafc", 
+                        padding: "16px 20px", 
+                        borderBottom: "1px solid #e2e8f0",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                      }}>
+                        <div>
+                          <div style={{ fontSize: "14px", color: "#64748b", marginBottom: "4px" }}>Order No.</div>
+                          <div style={{ fontSize: "18px", fontWeight: "bold", color: "#0f172a" }}>{hvOrderInfo.orderNo}</div>
+                        </div>
+                        {(() => {
+                          const statusMap: Record<string, { text: string; color: string; bg: string }> = {
+                            "ChuaSuDung": { text: "Unused", color: "#059669", bg: "#d1fae5" },
+                            "DaSuDung": { text: "Used", color: "#2563eb", bg: "#dbeafe" },
+                            "HetHan": { text: "Expired", color: "#dc2626", bg: "#fee2e2" },
+                            "DaHuy": { text: "Cancelled", color: "#475569", bg: "#f1f5f9" }
+                          };
+                          const st = statusMap[hvOrderInfo.orderStatus] || { text: hvOrderInfo.orderStatus, color: "#475569", bg: "#f1f5f9" };
+                          return (
+                            <div style={{ 
+                              backgroundColor: st.bg, 
+                              color: st.color, 
+                              padding: "6px 12px", 
+                              borderRadius: "999px", 
+                              fontWeight: 600,
+                              fontSize: "14px"
+                            }}>
+                              {st.text}
+                            </div>
+                          );
+                        })()}
+                      </div>
+
+                      {/* Body Section */}
+                      <div style={{ padding: "20px" }}>
+                        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                          <div>
+                            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Customer Name</div>
+                            <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{hvOrderInfo.buyerName || "N/A"}</div>
                           </div>
-                        ))}
+                          <div>
+                            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Phone Number</div>
+                            <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{hvOrderInfo.buyerPhone || "N/A"}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Visit Date</div>
+                            <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{hvOrderInfo.visitDate}</div>
+                          </div>
+                          <div>
+                            <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Total Amount</div>
+                            <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(hvOrderInfo.totalAmount)}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Services Section */}
+                        <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "16px" }}>
+                          <div style={{ fontSize: "14px", fontWeight: "bold", color: "#334155", marginBottom: "12px" }}>Purchased Services</div>
+                          {hvOrderInfo.services?.map((svc, idx: number) => (
+                            <div key={idx} style={{ 
+                              display: "flex", 
+                              justifyContent: "space-between", 
+                              alignItems: "center",
+                              backgroundColor: "#f8fafc",
+                              padding: "12px 16px",
+                              borderRadius: "8px",
+                              marginBottom: "8px"
+                            }}>
+                              <div>
+                                <div style={{ fontSize: "15px", fontWeight: 500, color: "#0f172a" }}>{svc.serviceName}</div>
+                                <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>Time: {svc.timeSlot?.name}</div>
+                              </div>
+                              <div style={{ textAlign: "right" }}>
+                                <div style={{ fontSize: "15px", fontWeight: "bold", color: "#0f172a" }}>x{svc.quantity}</div>
+                                <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(svc.unitPrice)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
 
                       {hvOrderInfo.orderStatus === "ChuaSuDung" && (

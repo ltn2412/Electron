@@ -56,3 +56,37 @@ export interface HoangVanSlot {
   bookedMachines: number;
   availableMachines: number;
 }
+
+export interface HoangVanServiceItem {
+  serviceBookingId: string;
+  serviceCode: string;
+  serviceName: string;
+  quantity: number;
+  unitPrice: number;
+  totalAmount: number;
+  timeSlot: {
+    slotId: number;
+    name: string;
+    startTime: string;
+    endTime: string;
+  };
+  status: string;
+  usedAt: string | null;
+  usedByStaffId: string | null;
+}
+
+export interface HoangVanOrder {
+  orderNo: string;
+  buyerName: string;
+  buyerEmail: string;
+  buyerPhone: string;
+  visitDate: string;
+  orderStatus: "ChuaSuDung" | "DaSuDung" | "HetHan" | "DaHuy" | string;
+  totalAmount: number;
+  serviceTypeCount: number;
+  createdAt: string;
+  paidAt: string;
+  usedAt: string | null;
+  cancelledAt: string | null;
+  services: HoangVanServiceItem[];
+}

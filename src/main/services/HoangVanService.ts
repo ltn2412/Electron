@@ -1,5 +1,5 @@
 import axios from "axios";
-import { HoangVanSlot } from "../../shared/types";
+import { HoangVanSlot, HoangVanOrder } from "../../shared/types";
 
 class HoangVanService {
   private baseURL = "https://demobtctct.soatvetudong.vn/api/speedpos";
@@ -57,7 +57,7 @@ class HoangVanService {
     }
   }
 
-  async checkOrder(orderNo: string, isRetry = false): Promise<any> {
+  async checkOrder(orderNo: string, isRetry = false): Promise<HoangVanOrder> {
     if (!this.token) {
       await this.login();
     }
@@ -66,7 +66,7 @@ class HoangVanService {
         headers: { Authorization: `Bearer ${this.token}` },
       });
       if (res.data.success && res.data.data) {
-        return res.data.data;
+        return res.data.data as HoangVanOrder;
       } else {
         throw new Error(res.data.message || "Failed to check order");
       }
@@ -87,7 +87,7 @@ class HoangVanService {
     staffId: string,
     note?: string,
     isRetry = false,
-  ): Promise<any> {
+  ): Promise<HoangVanOrder> {
     if (!this.token) {
       await this.login();
     }
