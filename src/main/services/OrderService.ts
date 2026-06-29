@@ -108,7 +108,7 @@ export class OrderService {
       if (stationResult.length === 0)
         throw new Error(`Station not found for StatNum: ${STATNUM}`);
 
-      const stationRow = (stationResult as StationResult[])[0];
+      const stationRow = (stationResult as unknown as StationResult[])[0];
       const TABLENUM = stationRow.QuickOrderTable || 0;
       const SALETYPEINDEX = stationRow.SaleTypeIndex || 0;
       const REVCENTER = stationRow.RevCenter || 0;
@@ -118,10 +118,7 @@ export class OrderService {
       );
       if (openDateResult.length === 0) throw new Error("No open day found");
 
-      const fullDate = (openDateResult as OpenDateResult[])[0].OpenDate;
-      const OPENDATE = new Date(fullDate).toISOString().split("T")[0];
-
-      // Kết quả: "2026-06-29"
+      const OPENDATE = (openDateResult as OpenDateResult[])[0].OpenDate;
 
       const sysInfoResult = await connection.query(`
         SELECT ISNULL(TAXRATE1, 0) AS TaxRate1, ISNULL(TAXRATE2, 0) AS TaxRate2, 
