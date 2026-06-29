@@ -24,6 +24,14 @@ export default function PageMenu(): React.JSX.Element {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  // HoangVan Search State
+  const [searchTab, setSearchTab] = useState<"pos" | "hoangvan">("pos");
+  const [hvOrderNo, setHvOrderNo] = useState("");
+  const [hvOrderInfo, setHvOrderInfo] = useState<any>(null);
+  const [hvChecking, setHvChecking] = useState(false);
+  const [hvCheckError, setHvCheckError] = useState("");
+  const [hvUsing, setHvUsing] = useState(false);
+
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [setupProducts, setSetupProducts] = useState<ProductPOSAudio[]>([]);
   const [editingProduct, setEditingProduct] = useState<ProductPOSAudio | null>(
@@ -37,7 +45,7 @@ export default function PageMenu(): React.JSX.Element {
       const [txRes, prodRes, slotRes] = await Promise.all([
         window.api.getTransactions(),
         window.api.getProductPOSAudio(),
-        (window.api as any).getHoangVanSlots(today), // Using cast to avoid TS error if not yet typed
+        window.api.getHoangVanSlots(today),
       ]);
 
       if (txRes.success && txRes.data) {
@@ -72,6 +80,70 @@ export default function PageMenu(): React.JSX.Element {
     if (transactId) {
       setIsSearchOpen(false);
       handleTransactionClick(transactId);
+    }
+  };
+
+  const handleCheckHoangVanOrder = async (): Promise<void> => {
+    if (!hvOrderNo) return;
+    setHvChecking(true);
+    setHvCheckError("");
+    setHvOrderInfo(null);
+    try {
+      const res = await window.api.checkOrder(hvOrderNo);
+      if (res.success && res.data) {
+        setHvOrderInfo(res.data);
+      } else {
+        setHvCheckError(res.error || "Không tìm thấy đơn hàng");
+      }
+    } catch (err: any) {
+      setHvCheckError(err.message || "Lỗi hệ thống");
+    } finally {
+      setHvChecking(false);
+    }
+  };
+
+  const handleUseHoangVanOrder = async (): Promise<void> => {
+    if (!hvOrderInfo) return;
+    setHvUsing(true);
+    try {
+      // 1. Call Use API
+      const useRes = await window.api.useOrder({ orderNo: hvOrderInfo.orderNo, staffId: "NV001" });
+      if (!useRes.success) {
+        alert("Lỗi sử dụng đơn Hoàng Vân: " + useRes.error);
+        return;
+      }
+
+      // 2. Extract services (e.g., AG-VI)
+      const services = hvOrderInfo.services || [];
+      if (services.length === 0) {
+        alert("Đơn hàng không có dịch vụ nào.");
+        return;
+      }
+      const svc = services[0]; // Assuming we use the first service or loop them. We'll use the first one based on previous logic.
+      
+      // 3. Post to our local DB
+      // Swipe from login? Assuming logged in user has a swipe. For now, hardcode or fetch from context.
+      // Wait, earlier user said "swipe là mình truyền xuống luôn lấy từ cái api login á", let's assume "221278" for now or read from local storage if available.
+      const swipe = localStorage.getItem("employeeSwipe") || "221278";
+      
+      const createRes = await window.api.createOrder({
+        refCode: svc.serviceCode, // "AG-VI"
+        quantity: svc.quantity,
+        costEach: svc.unitPrice,
+        swipe: swipe
+      });
+
+      if (createRes.success) {
+        alert("Đã chốt bill thành công! Transact: " + createRes.data?.transact);
+        setIsSearchOpen(false);
+        fetchData(); // Refresh UI
+      } else {
+        alert("Lỗi tạo bill nội bộ: " + createRes.error);
+      }
+    } catch (err: any) {
+      alert("Lỗi: " + err.message);
+    } finally {
+      setHvUsing(false);
     }
   };
 
@@ -237,9 +309,28 @@ export default function PageMenu(): React.JSX.Element {
                           </div>
                         </div>
                         <div style={styles.txRight}>
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-                            <span style={{ fontSize: "14px", color: "#64748b" }}>Available</span>
-                            <span style={{ fontSize: "18px", fontWeight: 700, color: s.availableMachines > 0 ? "#10b981" : "#ef4444" }}>
+                          <div
+                            style={{
+                              display: "flex",
+                              flexDirection: "column",
+                              alignItems: "flex-end",
+                            }}
+                          >
+                            <span
+                              style={{ fontSize: "14px", color: "#64748b" }}
+                            >
+                              Available
+                            </span>
+                            <span
+                              style={{
+                                fontSize: "18px",
+                                fontWeight: 700,
+                                color:
+                                  s.availableMachines > 0
+                                    ? "#10b981"
+                                    : "#ef4444",
+                              }}
+                            >
                               {s.availableMachines}/{s.maxMachines}
                             </span>
                           </div>
@@ -295,7 +386,7 @@ export default function PageMenu(): React.JSX.Element {
           <div style={styles.modalOverlay}>
             <div style={styles.modalContent}>
               <div style={styles.modalHeader}>
-                <h2 style={styles.cardTitle}>Find Transaction</h2>
+                <h2 style={styles.cardTitle}>Search</h2>
                 <button
                   style={{ ...styles.iconBtn, border: "none" }}
                   onClick={() => setIsSearchOpen(false)}
@@ -303,34 +394,116 @@ export default function PageMenu(): React.JSX.Element {
                   <X size={24} />
                 </button>
               </div>
-              <div style={{ padding: "24px" }}>
-                <input
-                  type="text"
-                  value={transactId}
-                  onChange={(e) =>
-                    setTransactId(e.target.value.replace(/[^0-9]/g, ""))
-                  }
-                  autoFocus
-                  style={styles.searchInput}
-                />
-                <KeypadControl
-                  onKeyPress={(key) => setTransactId((prev) => prev + key)}
-                  onBackspace={() => setTransactId((prev) => prev.slice(0, -1))}
-                  onClear={() => setTransactId("")}
-                />
-                <button
-                  style={{
-                    ...styles.primaryBtn,
-                    marginTop: "24px",
-                    opacity: transactId ? 1 : 0.5,
-                    cursor: transactId ? "pointer" : "not-allowed",
-                  }}
-                  onClick={handleSearchTransact}
-                  disabled={!transactId}
+
+              {/* Tabs */}
+              <div style={{ display: "flex", borderBottom: "1px solid #e2e8f0", marginBottom: "16px" }}>
+                <button 
+                  style={{...styles.tabBtn, borderBottom: searchTab === "pos" ? "2px solid #1e3a8a" : "none", color: searchTab === "pos" ? "#1e3a8a" : "#64748b"}}
+                  onClick={() => setSearchTab("pos")}
                 >
-                  Search
+                  POS Transaction
+                </button>
+                <button 
+                  style={{...styles.tabBtn, borderBottom: searchTab === "hoangvan" ? "2px solid #1e3a8a" : "none", color: searchTab === "hoangvan" ? "#1e3a8a" : "#64748b"}}
+                  onClick={() => setSearchTab("hoangvan")}
+                >
+                  HoangVan Order
                 </button>
               </div>
+
+              {searchTab === "pos" && (
+                <div style={{ padding: "8px 24px 24px" }}>
+                  <input
+                    type="text"
+                    value={transactId}
+                    onChange={(e) =>
+                      setTransactId(e.target.value.replace(/[^0-9]/g, ""))
+                    }
+                    autoFocus
+                    placeholder="Nhập mã Transaction"
+                    style={styles.searchInput}
+                  />
+                  <KeypadControl
+                    onKeyPress={(key) => setTransactId((prev) => prev + key)}
+                    onBackspace={() => setTransactId((prev) => prev.slice(0, -1))}
+                    onClear={() => setTransactId("")}
+                  />
+                  <button
+                    style={{
+                      ...styles.primaryBtn,
+                      marginTop: "24px",
+                      opacity: transactId ? 1 : 0.5,
+                      cursor: transactId ? "pointer" : "not-allowed",
+                    }}
+                    onClick={handleSearchTransact}
+                    disabled={!transactId}
+                  >
+                    Tìm POS Transaction
+                  </button>
+                </div>
+              )}
+
+              {searchTab === "hoangvan" && (
+                <div style={{ padding: "8px 24px 24px" }}>
+                  <input
+                    type="text"
+                    value={hvOrderNo}
+                    onChange={(e) => setHvOrderNo(e.target.value)}
+                    autoFocus
+                    placeholder="VD: ORD-20260410-001"
+                    style={styles.searchInput}
+                  />
+                  <button
+                    style={{
+                      ...styles.primaryBtn,
+                      marginTop: "16px",
+                      opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
+                      cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
+                    }}
+                    onClick={handleCheckHoangVanOrder}
+                    disabled={!hvOrderNo || hvChecking}
+                  >
+                    {hvChecking ? "Đang kiểm tra..." : "Kiểm tra Đơn Hoàng Vân"}
+                  </button>
+
+                  {hvCheckError && (
+                    <div style={{ color: "red", marginTop: "16px", textAlign: "center" }}>
+                      {hvCheckError}
+                    </div>
+                  )}
+
+                  {hvOrderInfo && (
+                    <div style={{ marginTop: "16px", padding: "16px", backgroundColor: "#f8fafc", borderRadius: "8px", border: "1px solid #e2e8f0" }}>
+                      <p><strong>Khách hàng:</strong> {hvOrderInfo.buyerName} - {hvOrderInfo.buyerPhone}</p>
+                      <p><strong>Trạng thái:</strong> <span style={{ color: hvOrderInfo.orderStatus === "ChuaSuDung" ? "green" : "red" }}>{hvOrderInfo.orderStatus}</span></p>
+                      <p><strong>Ngày tham quan:</strong> {hvOrderInfo.visitDate}</p>
+                      
+                      <div style={{ marginTop: "12px", borderTop: "1px dashed #cbd5e1", paddingTop: "12px" }}>
+                        {hvOrderInfo.services?.map((svc: any, idx: number) => (
+                          <div key={idx} style={{ marginBottom: "8px" }}>
+                            - {svc.serviceName} (SL: <b>{svc.quantity}</b>) - {svc.unitPrice}đ
+                          </div>
+                        ))}
+                      </div>
+
+                      {hvOrderInfo.orderStatus === "ChuaSuDung" && (
+                        <button
+                          style={{
+                            ...styles.primaryBtn,
+                            backgroundColor: "#10b981",
+                            marginTop: "16px",
+                            opacity: hvUsing ? 0.5 : 1,
+                          }}
+                          onClick={handleUseHoangVanOrder}
+                          disabled={hvUsing}
+                        >
+                          {hvUsing ? "Đang xử lý..." : "Xác nhận Sử dụng & Xuất Bill"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -668,10 +841,20 @@ const styles = {
     flex: 1,
   } as React.CSSProperties,
   cardHeader: {
-    padding: "16px 24px",
+    padding: "16px",
+    borderBottom: "1px solid #e2e8f0",
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  tabBtn: {
+    flex: 1,
+    padding: "12px",
+    background: "none",
+    fontSize: "15px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    outline: "none"
   } as React.CSSProperties,
   cardTitle: {
     margin: 0,

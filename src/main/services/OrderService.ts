@@ -297,6 +297,24 @@ export class OrderService {
         ],
       );
 
+      // 11. Insert TransactionPOSAudio
+      await connection.query(
+        `
+        INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
+        VALUES (?, '', 1, GETDATE(), NULL)
+        `,
+        [TRANSACT],
+      );
+
+      // 12. Insert TransactionDetailPOSAudio
+      await connection.query(
+        `
+        INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
+        VALUES (?, ?, ?, 0)
+        `,
+        [TRANSACT, PRODNUM, quantity],
+      );
+
       await connection.commit();
 
       return {

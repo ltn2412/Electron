@@ -130,6 +130,26 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle("hoangvan:checkOrder", async (_, orderNo: string) => {
+    try {
+      const data = await HoangVanService.checkOrder(orderNo);
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("hoangvan:useOrder", async (_, { orderNo, staffId }: { orderNo: string, staffId: string }) => {
+    try {
+      const data = await HoangVanService.useOrder(orderNo, staffId);
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle(
     "posAudio:createUpdate",
     async (_, data: import("@/shared/types").TransactionPOSAudioPayload) => {

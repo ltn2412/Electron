@@ -13,6 +13,10 @@ const api = {
     ipcRenderer.invoke("reset-product", products),
   getHoangVanSlots: (date: string) =>
     ipcRenderer.invoke("hoangvan:getSlots", date),
+  checkOrder: (orderNo: string) =>
+    ipcRenderer.invoke("hoangvan:checkOrder", orderNo),
+  useOrder: (payload: { orderNo: string; staffId: string }) =>
+    ipcRenderer.invoke("hoangvan:useOrder", payload),
   createUpdatePOSAudio: (
     data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
