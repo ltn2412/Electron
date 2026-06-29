@@ -1,8 +1,16 @@
 "use strict";
 const electron = require("electron");
 const api = {
-  // Định nghĩa hàm gọi xuống main process
-  getEmployeeBySwipe: (swipe) => electron.ipcRenderer.invoke("employee:getBySwipe", swipe)
+  getEmployeeBySwipe: (swipe) => electron.ipcRenderer.invoke("employee:getBySwipe", swipe),
+  minimize: () => electron.ipcRenderer.send("window:minimize"),
+  close: () => electron.ipcRenderer.send("window:close"),
+  getTransactions: () => electron.ipcRenderer.invoke("transaction:get"),
+  getTransactionByTransact: (transact) => electron.ipcRenderer.invoke("transaction:getByTransact", transact),
+  getProductPOSAudio: () => electron.ipcRenderer.invoke("product:getPOSAudio"),
+  resetProduct: (products) => electron.ipcRenderer.invoke("reset-product", products),
+  getHoangVanSlots: (date) => electron.ipcRenderer.invoke("hoangvan:getSlots", date),
+  createUpdatePOSAudio: (data) => electron.ipcRenderer.invoke("posAudio:createUpdate", data),
+  createOrder: (payload) => electron.ipcRenderer.invoke("order:create", payload)
 };
 if (process.contextIsolated) {
   try {

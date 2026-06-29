@@ -39,6 +39,20 @@ export interface TransactionDetailPOSAudio {
 export interface TransactionPOSAudioPayload {
   Transact: number;
   Status: number;
-  PhoneNumber: string;
-  TransactionDetailPOSAudios: TransactionDetailPOSAudio[];
+  PhoneNumber: string | null;
+  TransactionDetailPOSAudios: {
+    PRODNUM: number;
+    QuantityOut: number;
+    QuantityReturn: number;
+  }[];
+}
+
+export interface HoangVanSlot {
+  slotId: number;
+  name: string;
+  startTime: string;
+  endTime: string;
+  maxMachines: number;
+  bookedMachines: number;
+  availableMachines: number;
 }

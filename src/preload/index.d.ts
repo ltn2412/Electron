@@ -33,6 +33,8 @@ declare global {
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
       resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
+      getHoangVanSlots: (date: string) => Promise<ApiResponse<any>>;
+      createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string }) => Promise<ApiResponse<any>>;
     };
   }
 }

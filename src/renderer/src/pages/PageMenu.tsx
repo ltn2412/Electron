@@ -12,12 +12,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
 import KeypadControl from "@/components/KeypadControl";
-import { POSHEADER, ProductPOSAudio } from "@shared/types";
+import { POSHEADER, ProductPOSAudio, HoangVanSlot } from "@shared/types";
 
 export default function PageMenu(): React.JSX.Element {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<POSHEADER[]>([]);
   const [products, setProducts] = useState<ProductPOSAudio[]>([]);
+  const [slots, setSlots] = useState<HoangVanSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -32,9 +33,11 @@ export default function PageMenu(): React.JSX.Element {
 
   const fetchData = useCallback(async (): Promise<void> => {
     try {
-      const [txRes, prodRes] = await Promise.all([
+      const today = new Date().toISOString().split("T")[0];
+      const [txRes, prodRes, slotRes] = await Promise.all([
         window.api.getTransactions(),
         window.api.getProductPOSAudio(),
+        (window.api as any).getHoangVanSlots(today), // Using cast to avoid TS error if not yet typed
       ]);
 
       if (txRes.success && txRes.data) {
@@ -42,6 +45,9 @@ export default function PageMenu(): React.JSX.Element {
       }
       if (prodRes.success && prodRes.data) {
         setProducts(prodRes.data);
+      }
+      if (slotRes && slotRes.success && slotRes.data) {
+        setSlots(slotRes.data);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -133,7 +139,7 @@ export default function PageMenu(): React.JSX.Element {
 
         <div style={styles.content}>
           {/* Left Column: Transactions */}
-          <div style={styles.card}>
+          <div style={{ ...styles.card, flex: 2 }}>
             <div style={styles.cardHeader}>
               <h2 style={styles.cardTitle}>Transactions</h2>
               <span style={styles.badge}>{transactions.length}</span>
@@ -205,6 +211,44 @@ export default function PageMenu(): React.JSX.Element {
                   ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Middle Column: Slots */}
+          <div style={styles.middleColumn}>
+            <div style={styles.card}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>Time Slots</h2>
+                <span style={styles.badge}>{slots.length}</span>
+              </div>
+              <div style={styles.listContainer}>
+                {isLoading && slots.length === 0 ? (
+                  <div style={styles.emptyState}>Loading...</div>
+                ) : slots.length === 0 ? (
+                  <div style={styles.emptyState}>No slots found</div>
+                ) : (
+                  <div style={styles.txList}>
+                    {slots.map((s, idx) => (
+                      <div key={idx} style={styles.txItem}>
+                        <div style={styles.txLeft}>
+                          <div style={styles.txId}>{s.name}</div>
+                          <div style={{ ...styles.txTotal, color: "#64748b" }}>
+                            {s.startTime} - {s.endTime}
+                          </div>
+                        </div>
+                        <div style={styles.txRight}>
+                          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+                            <span style={{ fontSize: "14px", color: "#64748b" }}>Available</span>
+                            <span style={{ fontSize: "18px", fontWeight: 700, color: s.availableMachines > 0 ? "#10b981" : "#ef4444" }}>
+                              {s.availableMachines}/{s.maxMachines}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -695,6 +739,11 @@ const styles = {
   } as React.CSSProperties,
   rightColumn: {
     width: "340px",
+    display: "flex",
+    flexDirection: "column",
+  } as React.CSSProperties,
+  middleColumn: {
+    flex: 1.5,
     display: "flex",
     flexDirection: "column",
   } as React.CSSProperties,

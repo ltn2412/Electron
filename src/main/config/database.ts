@@ -8,9 +8,8 @@ export async function getConnection(): Promise<odbc.Connection> {
     return connection;
   } catch (error) {
     const err = error as Error;
-    console.error("Database connection failed details:", err.message);
     throw new Error(
-      `Không thể kết nối DB: ${err.message || "Kiểm tra lại cấu hình DSN/Server"}`,
+      `Cannot connect to database: ${err.message || "Check DSN/Server configuration"}`,
     );
   }
 }

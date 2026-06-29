@@ -1,0 +1,315 @@
+import { getConnection } from "../config/database";
+
+interface EmpResult {
+  EmpNum: number;
+  PunchIndex: number;
+}
+
+interface ProdResult {
+  ProdNum: number;
+  ProdType: number;
+  CountDown: number;
+  Descript: string;
+  PrepTemp: number;
+  PrintLoc: number;
+  Tax1: number;
+  Tax2: number;
+  Tax3: number;
+  Tax4: number;
+  Tax5: number;
+}
+
+interface StationResult {
+  QuickOrderTable: number;
+  SaleTypeIndex: number;
+  RevCenter: number;
+}
+
+interface OpenDateResult {
+  OpenDate: string | Date;
+}
+
+interface SysInfoResult {
+  TaxRate1: number;
+  TaxRate2: number;
+  TaxRate3: number;
+  TaxRate4: number;
+  TaxRate5: number;
+  UseVAT: number;
+}
+
+interface NextNumResult {
+  NEXTNUM: number;
+}
+
+interface RecPosResult {
+  RECPOS: number;
+}
+
+export class OrderService {
+  public async createOrder(
+    refCode: string,
+    quantity: number,
+    costEach: number,
+    swipe: string,
+  ): Promise<{
+    success: boolean;
+    transact?: number;
+    message?: string;
+    error?: string;
+  }> {
+    const connection = await getConnection();
+
+    try {
+      await connection.beginTransaction();
+
+      const STATNUM = 1;
+
+      const empResult = await connection.query(
+        `SELECT EmpNum, ISNULL(PunchIndex, 0) as PunchIndex FROM dba.employee WHERE SWIPE = ? AND IsActive = 1`,
+        [swipe],
+      );
+      if (empResult.length === 0)
+        throw new Error(`Employee not found for swipe: ${swipe}`);
+
+      const empRow = (empResult as unknown as EmpResult[])[0];
+      const WHOSTART = empRow.EmpNum;
+      const PUNCHINDEX = empRow.PunchIndex;
+
+      const prodResult = await connection.query(
+        `
+        SELECT Product.ProdNum, Product.ProdType, Product.CountDown, Product.Descript, ISNULL(Product.PrepTemp, 0) AS PrepTemp,
+               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.PRINTLOC ELSE PRODUCT.PRINTLOC END) AS PrintLoc,
+               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX1 ELSE PRODUCT.TAX1 END) AS Tax1,
+               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX2 ELSE PRODUCT.TAX2 END) AS Tax2,
+               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX3 ELSE PRODUCT.TAX3 END) AS Tax3,
+               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX4 ELSE PRODUCT.TAX4 END) AS Tax4,
+               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX5 ELSE PRODUCT.TAX5 END) AS Tax5
+        FROM dba.Product
+        LEFT JOIN dba.ReportCat ON (Product.ReportNo = ReportCat.ReportNo)
+        WHERE Product.IsActive = 1 AND Product.RefCode = ?
+      `,
+        [refCode],
+      );
+      if (prodResult.length === 0)
+        throw new Error(`Product not found for refCode: ${refCode}`);
+
+      const product = (prodResult as unknown as ProdResult[])[0];
+      const PRODNUM = product.ProdNum;
+      const LineDes = product.Descript;
+
+      const stationResult = await connection.query(
+        `
+        SELECT QuickOrderTable, MAX(SaleTypeIndex) as SaleTypeIndex, MAX(RevCenter) as RevCenter
+        FROM dba.StationInfo WHERE StatNum = ? AND IsActive = 1 GROUP BY QuickOrderTable
+      `,
+        [STATNUM],
+      );
+      if (stationResult.length === 0)
+        throw new Error(`Station not found for StatNum: ${STATNUM}`);
+
+      const stationRow = (stationResult as unknown as StationResult[])[0];
+      const TABLENUM = stationRow.QuickOrderTable || 0;
+      const SALETYPEINDEX = stationRow.SaleTypeIndex || 0;
+      const REVCENTER = stationRow.RevCenter || 0;
+
+      const openDateResult = await connection.query(
+        `SELECT OpenDate FROM dba.CurrentOpenDay WHERE CurDayStatus = 1`,
+      );
+      if (openDateResult.length === 0) throw new Error("No open day found");
+
+      const dateObj = new Date(
+        (openDateResult as unknown as OpenDateResult[])[0].OpenDate,
+      );
+      const OPENDATE = dateObj.toISOString().split("T")[0];
+
+      const sysInfoResult = await connection.query(`
+        SELECT ISNULL(TAXRATE1, 0) AS TaxRate1, ISNULL(TAXRATE2, 0) AS TaxRate2, 
+               ISNULL(TAXRATE3, 0) AS TaxRate3, ISNULL(TAXRATE4, 0) AS TaxRate4, 
+               ISNULL(TAXRATE5, 0) AS TaxRate5, UseVAT
+        FROM dba.SysInfo
+      `);
+      const sysInfo = (sysInfoResult as unknown as SysInfoResult[])[0];
+
+      let tax1 = 0,
+        tax2 = 0,
+        tax3 = 0,
+        tax4 = 0,
+        tax5 = 0;
+      const useVat = sysInfo.UseVAT === 1;
+
+      const calcTax = (
+        rate: number,
+        amount: number,
+        hasTax: boolean,
+      ): number => {
+        if (!hasTax || rate === 0) return 0;
+        if (useVat) {
+          return amount - amount / (1 + rate / 100);
+        } else {
+          return amount * (rate / 100);
+        }
+      };
+
+      const finalTotalAmount = costEach * quantity;
+      let netTotalAmount = finalTotalAmount;
+
+      const t1 = calcTax(
+        sysInfo.TaxRate1,
+        finalTotalAmount,
+        product.Tax1 === 1,
+      );
+      const t2 = calcTax(
+        sysInfo.TaxRate2,
+        finalTotalAmount,
+        product.Tax2 === 1,
+      );
+      const t3 = calcTax(
+        sysInfo.TaxRate3,
+        finalTotalAmount,
+        product.Tax3 === 1,
+      );
+      const t4 = calcTax(
+        sysInfo.TaxRate4,
+        finalTotalAmount,
+        product.Tax4 === 1,
+      );
+      const t5 = calcTax(
+        sysInfo.TaxRate5,
+        finalTotalAmount,
+        product.Tax5 === 1,
+      );
+
+      if (useVat) netTotalAmount = finalTotalAmount - (t1 + t2 + t3 + t4 + t5);
+      else netTotalAmount = finalTotalAmount;
+
+      tax1 = t1;
+      tax2 = t2;
+      tax3 = t3;
+      tax4 = t4;
+      tax5 = t5;
+      const FINALTOTAL = useVat
+        ? finalTotalAmount
+        : netTotalAmount + tax1 + tax2 + tax3 + tax4 + tax5;
+      const NETTOTAL = netTotalAmount;
+
+      const nextHeaderRes = await connection.query(
+        `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_POSHEADER'`,
+      );
+      const TRANSACT =
+        (nextHeaderRes as unknown as NextNumResult[])[0].NEXTNUM + 1;
+
+      await connection.query(
+        `
+        INSERT INTO DBA.POSHEADER(
+          TRANSACT, TABLENUM, TIMESTART, TIMEEND, NUMCUST, TAX1, TAX2, TAX3, TAX4, TAX5, 
+          TAX1ABLE, TAX2ABLE, TAX3ABLE, TAX4ABLE, TAX5ABLE, NETTOTAL, WHOSTART, WHOCLOSE, 
+          ISSPLIT, SALETYPEINDEX, STATNUM, STATUS, FINALTOTAL, PUNCHINDEX, Gratuity, OPENDATE, 
+          MemCode, TotalPoints, PointsApplied, UpdateStatus, ISDelivery, ScheduleDate, 
+          Tax1Exempt, Tax2Exempt, Tax3Exempt, Tax4Exempt, Tax5Exempt, MEMRATE, MealTime, 
+          IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum, GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId
+        ) VALUES (
+          ?, ?, GETDATE(), GETDATE(), 1, ?, ?, ?, ?, ?, 
+          0, 0, 0, 0, 0, ?, ?, 0, 
+          1, ?, ?, 0, ?, ?, 0, ?, 
+          0, 0, 0, 1, 0, '1899-12-30 00:00:00.000', 
+          0, 0, 0, 0, 0, 0, 1, 
+          0, ?, ?, ?, 0, 0, 0, 0, 0, ?
+        )`,
+        [
+          TRANSACT,
+          TABLENUM,
+          tax1,
+          tax2,
+          tax3,
+          tax4,
+          tax5,
+          NETTOTAL,
+          WHOSTART,
+          SALETYPEINDEX,
+          STATNUM,
+          FINALTOTAL,
+          PUNCHINDEX,
+          OPENDATE,
+          REVCENTER,
+          PUNCHINDEX,
+          STATNUM,
+          refCode,
+        ],
+      );
+
+      await connection.query(
+        `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_POSHEADER'`,
+        [TRANSACT],
+      );
+
+      const nextDetailRes = await connection.query(
+        `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_POSDETAIL'`,
+      );
+      const UNIQUEID =
+        (nextDetailRes as unknown as NextNumResult[])[0].NEXTNUM + 1;
+
+      await connection.query(
+        `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_POSDETAIL'`,
+        [UNIQUEID],
+      );
+
+      const recPosRes = await connection.query(
+        `SELECT ISNULL(MAX(RECPOS), -1) as RECPOS FROM DBA.POSDETAIL WHERE TRANSACT = ?`,
+        [TRANSACT],
+      );
+      const RECPOS = (recPosRes as unknown as RecPosResult[])[0].RECPOS + 1;
+
+      await connection.query(
+        `
+        INSERT INTO DBA.POSDETAIL (
+          TRANSACT, UNIQUEID, PRODNUM, PRODTYPE, COSTEACH, QUAN, ORIGCOSTEACH,
+          WHOORDER, STATNUM, PRINTLOC, TAX1, TAX2, TAX3, TAX4, TAX5,
+          LINEDES, TIMEORD, STATUS, RECPOS, STORENUM, MASTERITEM, NETCOSTEACH,
+          DISCAMOUNT, IsWeight, UpdateStatus, HASPREP, REASON
+        ) VALUES (
+          ?, ?, ?, ?, ?, ?, ?,
+          ?, ?, ?, ?, ?, ?, ?, ?,
+          ?, GETDATE(), 0, ?, 0, ?, ?,
+          0, 0, 1, 0, 0
+        )
+      `,
+        [
+          TRANSACT,
+          UNIQUEID,
+          PRODNUM,
+          product.ProdType,
+          costEach,
+          quantity,
+          costEach,
+          WHOSTART,
+          STATNUM,
+          product.PrintLoc,
+          tax1,
+          tax2,
+          tax3,
+          tax4,
+          tax5,
+          LineDes,
+          RECPOS,
+          UNIQUEID,
+          useVat ? netTotalAmount / quantity : costEach,
+        ],
+      );
+
+      await connection.commit();
+
+      return {
+        success: true,
+        transact: TRANSACT,
+        message: "Order inserted successfully",
+      };
+    } catch (error) {
+      await connection.rollback();
+      console.error("Error creating order:", error);
+      throw error;
+    }
+  }
+}
+
+export default new OrderService();

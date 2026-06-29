@@ -11,9 +11,13 @@ const api = {
   getProductPOSAudio: () => ipcRenderer.invoke("product:getPOSAudio"),
   resetProduct: (products: import("@/shared/types").ProductPOSAudio[]) =>
     ipcRenderer.invoke("reset-product", products),
+  getHoangVanSlots: (date: string) =>
+    ipcRenderer.invoke("hoangvan:getSlots", date),
   createUpdatePOSAudio: (
     data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
+  createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string }) =>
+    ipcRenderer.invoke("order:create", payload),
 };
 
 // Expose api ra đối tượng window

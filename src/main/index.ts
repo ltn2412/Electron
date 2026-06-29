@@ -7,6 +7,9 @@ import { TransactionService } from "./services/TransactionService";
 import { ProductService } from "./services/ProductService";
 import { TransactionPOSAudioService } from "./services/TransactionPOSAudioService";
 
+import HoangVanService from "./services/HoangVanService";
+import OrderService from "./services/OrderService";
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 900,
@@ -117,12 +120,35 @@ app.whenReady().then(() => {
     },
   );
 
+  ipcMain.handle("hoangvan:getSlots", async (_, date: string) => {
+    try {
+      const data = await HoangVanService.getSlots(date);
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle(
     "posAudio:createUpdate",
     async (_, data: import("@/shared/types").TransactionPOSAudioPayload) => {
       try {
         await TransactionPOSAudioService.createUpdateTransaction(data);
         return { success: true };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle(
+    "order:create",
+    async (_, { refCode, quantity, costEach, swipe }: { refCode: string; quantity: number; costEach: number; swipe: string }) => {
+      try {
+        const result = await OrderService.createOrder(refCode, quantity, costEach, swipe);
+        return result;
       } catch (error: unknown) {
         const err = error as Error;
         return { success: false, error: err.message };
