@@ -108,7 +108,7 @@ export class OrderService {
       if (stationResult.length === 0)
         throw new Error(`Station not found for StatNum: ${STATNUM}`);
 
-      const stationRow = (stationResult as unknown as StationResult[])[0];
+      const stationRow = (stationResult as StationResult[])[0];
       const TABLENUM = stationRow.QuickOrderTable || 0;
       const SALETYPEINDEX = stationRow.SaleTypeIndex || 0;
       const REVCENTER = stationRow.RevCenter || 0;
@@ -118,10 +118,10 @@ export class OrderService {
       );
       if (openDateResult.length === 0) throw new Error("No open day found");
 
-      const dateObj = new Date(
-        (openDateResult as unknown as OpenDateResult[])[0].OpenDate,
-      );
-      const OPENDATE = dateObj.toISOString().split("T")[0];
+      const fullDate = (openDateResult as OpenDateResult[])[0].OpenDate;
+      const OPENDATE = new Date(fullDate).toISOString().split("T")[0];
+
+      // Kết quả: "2026-06-29"
 
       const sysInfoResult = await connection.query(`
         SELECT ISNULL(TAXRATE1, 0) AS TaxRate1, ISNULL(TAXRATE2, 0) AS TaxRate2, 
@@ -212,11 +212,11 @@ export class OrderService {
         ) VALUES (
           ?, ?, GETDATE(), GETDATE(), 1, ?, ?, ?, ?, ?, 
           0, 0, 0, 0, 0, ?, ?, ?, 
-          1, ?, NULL, NULL, ?, 3, ?, NULL, 
+          1, ?, 1, NULL, ?, 3, ?, NULL, 
           ?, 0, ?, 0, 0, 0, 1, 
-          0, '1899-12-30 00:00:00.000', 0, 0, 0, 0, 0, 
-          0, 1, 0, ?, ?, ?, 0, 
-          0, 0, 0, 0, ?, NULL
+          1, '1899-12-30 00:00:00.000', 0, 0, 0, 0, 0, 
+          0, 3, 0, ?, ?, ?, 0, 
+          0, 0, 0, 1, ?, NULL
         )`,
         [
           TRANSACT,
@@ -268,7 +268,7 @@ export class OrderService {
         INSERT INTO DBA.POSDETAIL (
           UNIQUEID, TRANSACT, PRODNUM, WHOORDER, WHOAUTH, COSTEACH, QUAN, TIMEORD, PRINTLOC, SEATNUM, Minutes, NOTAX, HOWORDERED, STATUS, NEXTPOS, PRIORPOS, RECPOS, PRODTYPE, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5, ReduceInventory, StoreNum, STATNUM, RecipeCostEach, OpenDate, MealTime, LineDes, REVCENTER, MasterItem, QuestionId, OrigCostEach, NetCostEach, Discount, UpdateStatus, GratExempt, AuthCode
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
+          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 3, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
       `,
         [

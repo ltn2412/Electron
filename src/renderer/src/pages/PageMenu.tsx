@@ -146,7 +146,7 @@ export default function PageMenu(): React.JSX.Element {
         return;
       }
 
-      alert("Đã chốt bill thành công! Transact: " + createRes.data?.transact);
+      alert("Đã chốt bill thành công! Transact: " + createRes.transact);
       setIsHoangVanSearchOpen(false);
       fetchData(); // Refresh UI
     } catch (err: unknown) {
