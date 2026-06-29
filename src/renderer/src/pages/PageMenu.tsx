@@ -8,12 +8,17 @@ import {
   MinusCircle,
   PlusCircle,
   LogOut,
-  CloudDownload,
+  Globe,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
 import KeypadControl from "@/components/KeypadControl";
-import { POSHEADER, ProductPOSAudio, HoangVanSlot, HoangVanOrder } from "@shared/types";
+import {
+  POSHEADER,
+  ProductPOSAudio,
+  HoangVanSlot,
+  HoangVanOrder,
+} from "@shared/types";
 
 export default function PageMenu(): React.JSX.Element {
   const navigate = useNavigate();
@@ -108,7 +113,10 @@ export default function PageMenu(): React.JSX.Element {
     setHvUsing(true);
     try {
       // 1. Call Use API
-      const useRes = await window.api.useOrder({ orderNo: hvOrderInfo.orderNo, staffId: "NV001" });
+      const useRes = await window.api.useOrder({
+        orderNo: hvOrderInfo.orderNo,
+        staffId: "NV001",
+      });
       if (!useRes.success) {
         alert("Lỗi sử dụng đơn Hoàng Vân: " + useRes.error);
         return;
@@ -121,17 +129,17 @@ export default function PageMenu(): React.JSX.Element {
         return;
       }
       const svc = services[0]; // Assuming we use the first service or loop them. We'll use the first one based on previous logic.
-      
+
       // 3. Post to our local DB
       // Swipe from login? Assuming logged in user has a swipe. For now, hardcode or fetch from context.
       // Wait, earlier user said "swipe là mình truyền xuống luôn lấy từ cái api login á", let's assume "221278" for now or read from local storage if available.
       const swipe = localStorage.getItem("employeeSwipe") || "221278";
-      
+
       const createRes = await window.api.createOrder({
-        refCode: svc.serviceCode, // "AG-VI"
+        refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
         quantity: svc.quantity,
         costEach: svc.unitPrice,
-        swipe: swipe
+        swipe: swipe,
       });
 
       if (createRes.success) {
@@ -187,7 +195,7 @@ export default function PageMenu(): React.JSX.Element {
               }}
               title="Online Order Search"
             >
-              <CloudDownload size={20} />
+              <Globe size={20} />
             </button>
             <button
               style={styles.iconBtn}
@@ -442,14 +450,17 @@ export default function PageMenu(): React.JSX.Element {
         {/* HoangVan Search Modal */}
         {isHoangVanSearchOpen && (
           <div style={styles.modalOverlay}>
-            <div style={{ 
-              ...styles.modalContent, 
-              width: "650px", 
-              maxWidth: "95vw", 
-              maxHeight: "90vh", 
-              display: "flex", 
-              flexDirection: "column" 
-            }}>
+            <div
+              style={{
+                ...styles.modalContent,
+                width: "650px",
+                maxWidth: "95vw",
+                maxHeight: "90vh",
+                display: "flex",
+                flexDirection: "column",
+                margin: "auto",
+              }}
+            >
               <style>
                 {`
                   .hide-scroll::-webkit-scrollbar {
@@ -457,18 +468,22 @@ export default function PageMenu(): React.JSX.Element {
                   }
                 `}
               </style>
-              
-              <div style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "20px 24px",
-                borderBottom: "1px solid #e2e8f0",
-                backgroundColor: "white",
-                zIndex: 10,
-              }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                  <CloudDownload size={20} color="#1e3a8a" />
+
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "20px 24px",
+                  borderBottom: "1px solid #e2e8f0",
+                  backgroundColor: "white",
+                  zIndex: 10,
+                }}
+              >
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
+                >
+                  <Globe size={20} color="#1e3a8a" />
                   <h2 style={styles.cardTitle}>Online Order Search</h2>
                 </div>
                 <button
@@ -479,13 +494,16 @@ export default function PageMenu(): React.JSX.Element {
                 </button>
               </div>
 
-              <div className="hide-scroll" style={{ 
-                padding: "24px", 
-                overflowY: "auto", 
-                flex: 1, 
-                scrollbarWidth: "none", 
-                msOverflowStyle: "none" 
-              }}>
+              <div
+                className="hide-scroll"
+                style={{
+                  padding: "24px",
+                  overflowY: "auto",
+                  flex: 1,
+                  scrollbarWidth: "none",
+                  msOverflowStyle: "none",
+                }}
+              >
                 {!hvOrderInfo && (
                   <>
                     <input
@@ -501,7 +519,8 @@ export default function PageMenu(): React.JSX.Element {
                         ...styles.primaryBtn,
                         marginTop: "16px",
                         opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
-                        cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
+                        cursor:
+                          hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
                       }}
                       onClick={handleCheckHoangVanOrder}
                       disabled={!hvOrderNo || hvChecking}
@@ -512,59 +531,107 @@ export default function PageMenu(): React.JSX.Element {
                 )}
 
                 {hvCheckError && (
-                  <div style={{ 
-                    color: "#dc2626", 
-                    marginTop: "16px", 
-                    textAlign: "center", 
-                    fontWeight: 500,
-                    padding: "16px",
-                    backgroundColor: "#fee2e2",
-                    borderRadius: "8px",
-                    border: "1px solid #f87171"
-                  }}>
+                  <div
+                    style={{
+                      color: "#dc2626",
+                      marginTop: "16px",
+                      textAlign: "center",
+                      fontWeight: 500,
+                      padding: "16px",
+                      backgroundColor: "#fee2e2",
+                      borderRadius: "8px",
+                      border: "1px solid #f87171",
+                    }}
+                  >
                     {hvCheckError}
                   </div>
                 )}
 
                 {hvOrderInfo && (
-                  <div style={{ 
-                    marginTop: "24px", 
-                    backgroundColor: "#ffffff", 
-                    borderRadius: "12px", 
-                    border: "1px solid #e2e8f0",
-                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                    overflow: "hidden"
-                  }}>
+                  <div
+                    style={{
+                      marginTop: "24px",
+                      backgroundColor: "#ffffff",
+                      borderRadius: "12px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow:
+                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                      overflow: "hidden",
+                    }}
+                  >
                     {/* Header Section */}
-                    <div style={{ 
-                      backgroundColor: "#f8fafc", 
-                      padding: "16px 20px", 
-                      borderBottom: "1px solid #e2e8f0",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center"
-                    }}>
+                    <div
+                      style={{
+                        backgroundColor: "#f8fafc",
+                        padding: "16px 20px",
+                        borderBottom: "1px solid #e2e8f0",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
                       <div>
-                        <div style={{ fontSize: "14px", color: "#64748b", marginBottom: "4px" }}>Order No.</div>
-                        <div style={{ fontSize: "18px", fontWeight: "bold", color: "#0f172a" }}>{hvOrderInfo.orderNo}</div>
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            color: "#64748b",
+                            marginBottom: "4px",
+                          }}
+                        >
+                          Order No.
+                        </div>
+                        <div
+                          style={{
+                            fontSize: "18px",
+                            fontWeight: "bold",
+                            color: "#0f172a",
+                          }}
+                        >
+                          {hvOrderInfo.orderNo}
+                        </div>
                       </div>
                       {(() => {
-                        const statusMap: Record<string, { text: string; color: string; bg: string }> = {
-                          "ChuaSuDung": { text: "Unused", color: "#059669", bg: "#d1fae5" },
-                          "DaSuDung": { text: "Used", color: "#2563eb", bg: "#dbeafe" },
-                          "HetHan": { text: "Expired", color: "#dc2626", bg: "#fee2e2" },
-                          "DaHuy": { text: "Cancelled", color: "#475569", bg: "#f1f5f9" }
+                        const statusMap: Record<
+                          string,
+                          { text: string; color: string; bg: string }
+                        > = {
+                          ChuaSuDung: {
+                            text: "Unused",
+                            color: "#059669",
+                            bg: "#d1fae5",
+                          },
+                          DaSuDung: {
+                            text: "Used",
+                            color: "#2563eb",
+                            bg: "#dbeafe",
+                          },
+                          HetHan: {
+                            text: "Expired",
+                            color: "#dc2626",
+                            bg: "#fee2e2",
+                          },
+                          DaHuy: {
+                            text: "Cancelled",
+                            color: "#475569",
+                            bg: "#f1f5f9",
+                          },
                         };
-                        const st = statusMap[hvOrderInfo.orderStatus] || { text: hvOrderInfo.orderStatus, color: "#475569", bg: "#f1f5f9" };
+                        const st = statusMap[hvOrderInfo.orderStatus] || {
+                          text: hvOrderInfo.orderStatus,
+                          color: "#475569",
+                          bg: "#f1f5f9",
+                        };
                         return (
-                          <div style={{ 
-                            backgroundColor: st.bg, 
-                            color: st.color, 
-                            padding: "6px 12px", 
-                            borderRadius: "999px", 
-                            fontWeight: 600,
-                            fontSize: "14px"
-                          }}>
+                          <div
+                            style={{
+                              backgroundColor: st.bg,
+                              color: st.color,
+                              padding: "6px 12px",
+                              borderRadius: "999px",
+                              fontWeight: 600,
+                              fontSize: "14px",
+                            }}
+                          >
                             {st.text}
                           </div>
                         );
@@ -573,45 +640,171 @@ export default function PageMenu(): React.JSX.Element {
 
                     {/* Body Section */}
                     <div style={{ padding: "20px" }}>
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginBottom: "20px" }}>
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr 1fr",
+                          gap: "16px",
+                          marginBottom: "20px",
+                        }}
+                      >
                         <div>
-                          <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Customer Name</div>
-                          <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{hvOrderInfo.buyerName || "N/A"}</div>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              color: "#64748b",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            Customer Name
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "15px",
+                              color: "#1e293b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {hvOrderInfo.buyerName || "N/A"}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Phone Number</div>
-                          <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{hvOrderInfo.buyerPhone || "N/A"}</div>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              color: "#64748b",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            Phone Number
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "15px",
+                              color: "#1e293b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {hvOrderInfo.buyerPhone || "N/A"}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Visit Date</div>
-                          <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{hvOrderInfo.visitDate}</div>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              color: "#64748b",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            Visit Date
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "15px",
+                              color: "#1e293b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {hvOrderInfo.visitDate}
+                          </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: "13px", color: "#64748b", marginBottom: "4px" }}>Total Amount</div>
-                          <div style={{ fontSize: "15px", color: "#1e293b", fontWeight: 500 }}>{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(hvOrderInfo.totalAmount)}</div>
+                          <div
+                            style={{
+                              fontSize: "13px",
+                              color: "#64748b",
+                              marginBottom: "4px",
+                            }}
+                          >
+                            Total Amount
+                          </div>
+                          <div
+                            style={{
+                              fontSize: "15px",
+                              color: "#1e293b",
+                              fontWeight: 500,
+                            }}
+                          >
+                            {new Intl.NumberFormat("vi-VN", {
+                              style: "currency",
+                              currency: "VND",
+                            }).format(hvOrderInfo.totalAmount)}
+                          </div>
                         </div>
                       </div>
-                      
+
                       {/* Services Section */}
-                      <div style={{ borderTop: "1px dashed #cbd5e1", paddingTop: "16px" }}>
-                        <div style={{ fontSize: "14px", fontWeight: "bold", color: "#334155", marginBottom: "12px" }}>Purchased Services</div>
+                      <div
+                        style={{
+                          borderTop: "1px dashed #cbd5e1",
+                          paddingTop: "16px",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: "14px",
+                            fontWeight: "bold",
+                            color: "#334155",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          Purchased Services
+                        </div>
                         {hvOrderInfo.services?.map((svc, idx: number) => (
-                          <div key={idx} style={{ 
-                            display: "flex", 
-                            justifyContent: "space-between", 
-                            alignItems: "center",
-                            backgroundColor: "#f8fafc",
-                            padding: "12px 16px",
-                            borderRadius: "8px",
-                            marginBottom: "8px"
-                          }}>
+                          <div
+                            key={idx}
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              backgroundColor: "#f8fafc",
+                              padding: "12px 16px",
+                              borderRadius: "8px",
+                              marginBottom: "8px",
+                            }}
+                          >
                             <div>
-                              <div style={{ fontSize: "15px", fontWeight: 500, color: "#0f172a" }}>{svc.serviceName}</div>
-                              <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>Time: {svc.timeSlot?.name}</div>
+                              <div
+                                style={{
+                                  fontSize: "15px",
+                                  fontWeight: 500,
+                                  color: "#0f172a",
+                                }}
+                              >
+                                {svc.serviceName}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "13px",
+                                  color: "#64748b",
+                                  marginTop: "4px",
+                                }}
+                              >
+                                Time: {svc.timeSlot?.name}
+                              </div>
                             </div>
                             <div style={{ textAlign: "right" }}>
-                              <div style={{ fontSize: "15px", fontWeight: "bold", color: "#0f172a" }}>x{svc.quantity}</div>
-                              <div style={{ fontSize: "13px", color: "#64748b", marginTop: "4px" }}>{new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(svc.unitPrice)}</div>
+                              <div
+                                style={{
+                                  fontSize: "15px",
+                                  fontWeight: "bold",
+                                  color: "#0f172a",
+                                }}
+                              >
+                                x{svc.quantity}
+                              </div>
+                              <div
+                                style={{
+                                  fontSize: "13px",
+                                  color: "#64748b",
+                                  marginTop: "4px",
+                                }}
+                              >
+                                {new Intl.NumberFormat("vi-VN", {
+                                  style: "currency",
+                                  currency: "VND",
+                                }).format(svc.unitPrice)}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -629,29 +822,13 @@ export default function PageMenu(): React.JSX.Element {
                           onClick={handleUseHoangVanOrder}
                           disabled={hvUsing}
                         >
-                          {hvUsing ? "Processing..." : "Confirm Usage & Print Bill"}
+                          {hvUsing
+                            ? "Processing..."
+                            : "Confirm Usage & Print Bill"}
                         </button>
                       </div>
                     )}
                   </div>
-                )}
-                
-                {hvOrderInfo && (
-                  <button
-                    style={{
-                      ...styles.primaryBtn,
-                      backgroundColor: "transparent",
-                      color: "#64748b",
-                      border: "1px solid #cbd5e1",
-                      marginTop: "16px"
-                    }}
-                    onClick={() => {
-                      setHvOrderInfo(null);
-                      setHvOrderNo("");
-                    }}
-                  >
-                    Search Another Order
-                  </button>
                 )}
               </div>
             </div>
@@ -1004,7 +1181,7 @@ const styles = {
     fontSize: "15px",
     fontWeight: "bold",
     cursor: "pointer",
-    outline: "none"
+    outline: "none",
   } as React.CSSProperties,
   cardTitle: {
     margin: 0,
