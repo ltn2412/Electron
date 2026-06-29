@@ -3,6 +3,8 @@ import PageLogin from "./pages/PageLogin";
 import PageMenu from "./pages/PageMenu";
 import PageOrder from "./pages/PageOrder";
 
+import PageExpiredOrders from "./pages/PageExpiredOrders";
+
 function App(): React.JSX.Element {
   return (
     <HashRouter>
@@ -11,6 +13,7 @@ function App(): React.JSX.Element {
         <Route path="/login" element={<PageLogin />} />
         <Route path="/menu" element={<PageMenu />} />
         <Route path="/order" element={<PageOrder />} />
+        <Route path="/expired" element={<PageExpiredOrders />} />
       </Routes>
     </HashRouter>
   );

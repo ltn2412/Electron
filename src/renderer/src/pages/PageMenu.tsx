@@ -9,6 +9,7 @@ import {
   PlusCircle,
   LogOut,
   Globe,
+  Archive,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
@@ -209,6 +210,13 @@ export default function PageMenu(): React.JSX.Element {
             </button>
             <button
               style={styles.iconBtn}
+              onClick={() => navigate("/expired")}
+              title="Expired Orders"
+            >
+              <Archive size={20} />
+            </button>
+            <button
+              style={styles.iconBtn}
               onClick={handleRefresh}
               title="Refresh"
             >
@@ -391,8 +399,19 @@ export default function PageMenu(): React.JSX.Element {
                   <div style={styles.productList}>
                     {products.map((p, idx: number) => (
                       <div key={idx} style={styles.productItem}>
-                        {p.DESCRIPT} :{" "}
-                        <span style={{ marginLeft: "4px" }}>{p.STORAGE}</span>
+                        <span>{p.DESCRIPT}</span>
+                        <span
+                          style={{
+                            backgroundColor: "#e0f2fe",
+                            color: "#0369a1",
+                            padding: "4px 12px",
+                            borderRadius: "999px",
+                            fontSize: "14px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          {p.STORAGE}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -511,7 +530,6 @@ export default function PageMenu(): React.JSX.Element {
                       value={hvOrderNo}
                       onChange={(e) => setHvOrderNo(e.target.value)}
                       autoFocus
-                      placeholder="VD: ORD-20260410-001"
                       style={styles.searchInput}
                     />
                     <button
@@ -1200,7 +1218,7 @@ const styles = {
   listContainer: {
     flex: 1,
     overflowY: "auto",
-    padding: "0 24px 24px 24px",
+    padding: "16px 24px 24px 24px",
   } as React.CSSProperties,
   emptyState: {
     height: "100%",
@@ -1263,9 +1281,16 @@ const styles = {
     gap: "16px",
   } as React.CSSProperties,
   productItem: {
-    fontSize: "18px",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px",
+    borderRadius: "12px",
+    backgroundColor: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    fontSize: "16px",
     color: "#1e293b",
-    fontWeight: 500,
+    fontWeight: 600,
   } as React.CSSProperties,
   modalOverlay: {
     position: "fixed",
