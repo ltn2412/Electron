@@ -204,17 +204,19 @@ export class OrderService {
         INSERT INTO DBA.POSHEADER(
           TRANSACT, TABLENUM, TIMESTART, TIMEEND, NUMCUST, TAX1, TAX2, TAX3, TAX4, TAX5, 
           TAX1ABLE, TAX2ABLE, TAX3ABLE, TAX4ABLE, TAX5ABLE, NETTOTAL, WHOSTART, WHOCLOSE, 
-          ISSPLIT, SALETYPEINDEX, STATNUM, STATUS, FINALTOTAL, PUNCHINDEX, Gratuity, OPENDATE, 
-          MemCode, TotalPoints, PointsApplied, UpdateStatus, ISDelivery, ScheduleDate, 
-          Tax1Exempt, Tax2Exempt, Tax3Exempt, Tax4Exempt, Tax5Exempt, MEMRATE, MealTime, 
-          IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum, GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId
+          ISSPLIT, SALETYPEINDEX, EXP, WAITINGAUTH, STATNUM, STATUS, FINALTOTAL, StoreNum, 
+          PUNCHINDEX, Gratuity, OPENDATE, MemCode, TotalPoints, PointsApplied, UpdateStatus, 
+          ISDelivery, ScheduleDate, Tax1Exempt, Tax2Exempt, Tax3Exempt, Tax4Exempt, Tax5Exempt, 
+          MEMRATE, MealTime, IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum, 
+          GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId, RstOrdNum
         ) VALUES (
           ?, ?, GETDATE(), GETDATE(), 1, ?, ?, ?, ?, ?, 
-          0, 0, 0, 0, 0, ?, ?, 0, 
-          1, ?, ?, 0, ?, ?, 0, ?, 
-          0, 0, 0, 1, 0, '1899-12-30 00:00:00.000', 
-          0, 0, 0, 0, 0, 0, 1, 
-          0, ?, ?, ?, 0, 0, 0, 0, 0, ?
+          0, 0, 0, 0, 0, ?, ?, ?, 
+          1, ?, NULL, NULL, ?, 3, ?, NULL, 
+          ?, 0, ?, 0, 0, 0, 1, 
+          0, '1899-12-30 00:00:00.000', 0, 0, 0, 0, 0, 
+          0, 1, 0, ?, ?, ?, 0, 
+          0, 0, 0, 0, ?, NULL
         )`,
         [
           TRANSACT,
@@ -225,6 +227,7 @@ export class OrderService {
           tax4,
           tax5,
           NETTOTAL,
+          WHOSTART,
           WHOSTART,
           SALETYPEINDEX,
           STATNUM,
@@ -263,36 +266,33 @@ export class OrderService {
       await connection.query(
         `
         INSERT INTO DBA.POSDETAIL (
-          TRANSACT, UNIQUEID, PRODNUM, PRODTYPE, COSTEACH, QUAN, OrigCostEach,
-          WHOORDER, STATNUM, PRINTLOC, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5,
-          LineDes, TIMEORD, STATUS, RECPOS, StoreNum, MasterItem, NetCostEach,
-          Discount, UpdateStatus
+          UNIQUEID, TRANSACT, PRODNUM, WHOORDER, WHOAUTH, COSTEACH, QUAN, TIMEORD, PRINTLOC, SEATNUM, Minutes, NOTAX, HOWORDERED, STATUS, NEXTPOS, PRIORPOS, RECPOS, PRODTYPE, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5, ReduceInventory, StoreNum, STATNUM, RecipeCostEach, OpenDate, MealTime, LineDes, REVCENTER, MasterItem, QuestionId, OrigCostEach, NetCostEach, Discount, UpdateStatus, GratExempt, AuthCode
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, GETDATE(), 0, ?, 0, ?, ?,
-          0, 1
+          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
       `,
         [
-          TRANSACT,
           UNIQUEID,
+          TRANSACT,
           PRODNUM,
-          product.ProdType,
+          WHOSTART,
+          WHOSTART,
           costEach,
           quantity,
-          costEach,
-          WHOSTART,
-          STATNUM,
           product.PrintLoc,
+          RECPOS,
+          product.ProdType,
           product.Tax1,
           product.Tax2,
           product.Tax3,
           product.Tax4,
           product.Tax5,
+          STATNUM,
+          OPENDATE,
           LineDes,
-          RECPOS,
+          REVCENTER,
           UNIQUEID,
+          costEach,
           useVat ? netTotalAmount / quantity : costEach,
         ],
       );
@@ -313,6 +313,53 @@ export class OrderService {
         VALUES (?, ?, ?, 0)
         `,
         [TRANSACT, PRODNUM, quantity],
+      );
+
+      // 13. Payment: Insert into Howpaid
+      const methodRes = await connection.query(
+        `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1`,
+      );
+      if (methodRes.length === 0) throw new Error("No payment method found");
+      const methodNum = (methodRes as unknown as any[])[0].METHODNUM;
+
+      const nextHowPaidRes = await connection.query(
+        `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_HowPaid'`,
+      );
+      const HowPaidLink =
+        (nextHowPaidRes as unknown as NextNumResult[])[0].NEXTNUM + 1;
+
+      await connection.query(
+        `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_HowPaid'`,
+        [HowPaidLink],
+      );
+
+      await connection.query(
+        `
+        INSERT INTO DBA.Howpaid(
+          HowPaidLink, TRANSDATE, EMPNUM, TENDER, METHODNUM, CHANGE,
+          AUTHORIZED, AUTHCODE, MEMCODE, ExchangeRate, TRANSACT, PayType, OPENDATE,
+          PUNCHINDEX, UpdateStatus, Settled, Status, Approved, STATNUM, IsPayInOut,
+          PayReason, MealTime, RevCenter, Voided, VoidedLink, LCUDiff, EnforcedGrat,
+          GratAmount, OrigMethodNum, CardType
+        ) VALUES (
+          ?, GETDATE(), ?, ?, ?, 0,
+          199, '', 0, 1, ?, 101, ?,
+          ?, 1, 1, 3, 1, ?, 0,
+          '', 1, 999, 0, 0, 0, 0,
+          0, ?, ''
+        )
+        `,
+        [
+          HowPaidLink,
+          WHOSTART,
+          FINALTOTAL,
+          methodNum,
+          TRANSACT,
+          OPENDATE,
+          PUNCHINDEX,
+          STATNUM,
+          methodNum,
+        ],
       );
 
       await connection.commit();
