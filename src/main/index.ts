@@ -104,15 +104,18 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle("reset-product", async (_, products: any) => {
-    try {
-      const result = await ProductService.resetProduct(products);
-      return { success: true, data: result };
-    } catch (error: unknown) {
-      const err = error as Error;
-      return { success: false, error: err.message };
-    }
-  });
+  ipcMain.handle(
+    "reset-product",
+    async (_, products: import("@/shared/types").ProductPOSAudio[]) => {
+      try {
+        const result = await ProductService.resetProduct(products);
+        return { success: true, data: result };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
 
   ipcMain.handle(
     "posAudio:createUpdate",

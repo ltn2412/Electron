@@ -1,7 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 
 const api = {
-  // Định nghĩa hàm gọi xuống main process
   getEmployeeBySwipe: (swipe: string) =>
     ipcRenderer.invoke("employee:getBySwipe", swipe),
   minimize: () => ipcRenderer.send("window:minimize"),
@@ -9,10 +8,11 @@ const api = {
   getTransactions: () => ipcRenderer.invoke("transaction:get"),
   getTransactionByTransact: (transact: string) =>
     ipcRenderer.invoke("transaction:getByTransact", transact),
-  getProductPOSAudio: () => ipcRenderer.invoke("get-product-pos-audio"),
-  resetProduct: (products: any) => ipcRenderer.invoke("reset-product", products),
+  getProductPOSAudio: () => ipcRenderer.invoke("product:getPOSAudio"),
+  resetProduct: (products: import("@/shared/types").ProductPOSAudio[]) =>
+    ipcRenderer.invoke("reset-product", products),
   createUpdatePOSAudio: (
-    data: import("../../src/shared/types").TransactionPOSAudioPayload,
+    data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
 };
 

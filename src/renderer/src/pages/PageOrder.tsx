@@ -37,6 +37,7 @@ export default function PageOrder(): React.JSX.Element {
   }, [transactId, navigate]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
   }, [fetchData]);
 
