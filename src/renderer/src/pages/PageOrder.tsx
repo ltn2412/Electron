@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Package, Clock, CheckCircle } from "lucide-react";
 import TitleBar from "@/components/TitleBar";
-import { POSHEADER, POSDETAIL } from "@shared/types";
+import { POSDETAIL, POSHEADER } from "@shared/types";
+import { ArrowLeft, CheckCircle, Clock, Package } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function PageOrder(): React.JSX.Element {
   const navigate = useNavigate();
@@ -13,33 +13,34 @@ export default function PageOrder(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const fetchData = useCallback(async (): Promise<void> => {
-    if (!transactId) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const res = await window.api.getTransactionByTransact(transactId);
-      if (res.success && res.data) {
-        setTransaction(res.data);
-      } else {
-        alert("Transaction not found!");
-        navigate("/menu");
-      }
-    } catch (error) {
-      console.error("Error fetching transaction details:", error);
-      alert("Error loading transaction.");
-      navigate("/menu");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [transactId, navigate]);
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    fetchData();
-  }, [fetchData]);
+    let isMounted = true;
+    const fetchTx = async (): Promise<void> => {
+      if (!transactId) {
+        if (isMounted) setIsLoading(false);
+        return;
+      }
+      try {
+        const res = await window.api.getTransactionByTransact(transactId);
+        if (res.success && res.data) {
+          if (isMounted) setTransaction(res.data);
+        } else {
+          alert("Transaction not found!");
+          navigate("/menu");
+        }
+      } catch (error) {
+        console.error("Error fetching transaction details:", error);
+        alert("Error loading transaction.");
+        navigate("/menu");
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+    fetchTx();
+    return () => {
+      isMounted = false;
+    };
+  }, [transactId, navigate]);
 
   const handleAction = async (action: "Out" | "Return"): Promise<void> => {
     if (!transaction || !transaction.POSDETAILS) return;
@@ -99,7 +100,7 @@ export default function PageOrder(): React.JSX.Element {
             <span>Back</span>
           </button>
           <div style={styles.headerInfo}>
-            <h1 style={styles.title}>Order #{transaction.TRANSACT}</h1>
+            <h1 style={styles.title}>Transaction #{transaction.TRANSACT}</h1>
             <span
               style={{
                 ...styles.badge,
@@ -143,7 +144,7 @@ export default function PageOrder(): React.JSX.Element {
                       fontWeight: 700,
                     }}
                   >
-                    ${transaction.FINALTOTAL}
+                    {transaction.FINALTOTAL.toLocaleString("en-US")} đ
                   </span>
                 </div>
               </div>
@@ -162,7 +163,11 @@ export default function PageOrder(): React.JSX.Element {
                       <div style={styles.itemQuantity}>{item.QUAN}x</div>
                       <div style={styles.itemName}>{item.DESCRIPT}</div>
                     </div>
-                    <div style={styles.itemPrice}>${item.PRICE}</div>
+                    <div style={styles.itemPrice}>
+                      {item.PRICE > 0
+                        ? `${item.PRICE.toLocaleString("en-US")} đ`
+                        : ""}
+                    </div>
                   </div>
                 ))}
               </div>

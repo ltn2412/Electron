@@ -20,15 +20,15 @@ export default function PageLogin(): React.JSX.Element {
       if (result?.success && result?.data) {
         navigate("/menu");
       } else {
-        alert(result?.message || result?.error || "Nhân viên không tồn tại!");
+        alert(result?.message || result?.error || "Employee not found!");
         setPassword("");
       }
     } catch (err: unknown) {
       console.error("Login process error:", err);
       if (err instanceof Error) {
-        alert(`Lỗi hệ thống: ${err.message}`);
+        alert(`System error: ${err.message}`);
       } else {
-        alert("Lỗi hệ thống không xác định.");
+        alert("Undefined system error.");
       }
       setPassword("");
     } finally {

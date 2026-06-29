@@ -7,6 +7,7 @@ import {
   X,
   MinusCircle,
   PlusCircle,
+  LogOut,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
@@ -20,8 +21,8 @@ export default function PageMenu(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Setup Modal State
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [setupProducts, setSetupProducts] = useState<ProductPOSAudio[]>([]);
   const [editingProduct, setEditingProduct] = useState<ProductPOSAudio | null>(
@@ -68,10 +69,16 @@ export default function PageMenu(): React.JSX.Element {
     }
   };
 
+  const handleRefresh = async (): Promise<void> => {
+    setIsRefreshing(true);
+    await fetchData();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
   const getStatusColor = (statusName: string): string => {
     switch (statusName) {
       case "New":
-        return "#1e3a8a"; // Darker blue to match WPF
+        return "#1e3a8a";
       case "Out":
         return "#f59e0b";
       case "Return":
@@ -101,15 +108,25 @@ export default function PageMenu(): React.JSX.Element {
             >
               <Search size={20} />
             </button>
-            <button style={styles.iconBtn} onClick={fetchData} title="Refresh">
-              <RefreshCw size={20} />
+            <button
+              style={styles.iconBtn}
+              onClick={handleRefresh}
+              title="Refresh"
+            >
+              <RefreshCw
+                size={20}
+                style={{
+                  transform: isRefreshing ? "rotate(180deg)" : "none",
+                  transition: "transform 0.5s ease",
+                }}
+              />
             </button>
             <button
               style={styles.iconBtn}
               onClick={() => navigate("/login")}
               title="Logout"
             >
-              <Settings size={20} />
+              <LogOut size={20} />
             </button>
           </div>
         </div>
@@ -287,7 +304,6 @@ export default function PageMenu(): React.JSX.Element {
                     Setup
                   </h2>
                 </div>
-                <Settings size={20} color="#cbd5e1" />
               </div>
               <div style={{ padding: "24px" }}>
                 <div
@@ -329,7 +345,7 @@ export default function PageMenu(): React.JSX.Element {
                             background: "none",
                             border: "none",
                             cursor: "pointer",
-                            color: "#cbd5e1",
+                            color: "#1e3a8a",
                             padding: 0,
                             display: "flex",
                           }}
