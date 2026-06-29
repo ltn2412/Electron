@@ -263,15 +263,15 @@ export class OrderService {
       await connection.query(
         `
         INSERT INTO DBA.POSDETAIL (
-          TRANSACT, UNIQUEID, PRODNUM, PRODTYPE, COSTEACH, QUAN, ORIGCOSTEACH,
-          WHOORDER, STATNUM, PRINTLOC, TAX1, TAX2, TAX3, TAX4, TAX5,
-          LINEDES, TIMEORD, STATUS, RECPOS, STORENUM, MASTERITEM, NETCOSTEACH,
-          DISCAMOUNT, IsWeight, UpdateStatus, HASPREP, REASON
+          TRANSACT, UNIQUEID, PRODNUM, PRODTYPE, COSTEACH, QUAN, OrigCostEach,
+          WHOORDER, STATNUM, PRINTLOC, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5,
+          LineDes, TIMEORD, STATUS, RECPOS, StoreNum, MasterItem, NetCostEach,
+          Discount, UpdateStatus
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?,
           ?, ?, ?, ?, ?, ?, ?, ?,
           ?, GETDATE(), 0, ?, 0, ?, ?,
-          0, 0, 1, 0, 0
+          0, 1
         )
       `,
         [
@@ -285,11 +285,11 @@ export class OrderService {
           WHOSTART,
           STATNUM,
           product.PrintLoc,
-          tax1,
-          tax2,
-          tax3,
-          tax4,
-          tax5,
+          product.Tax1,
+          product.Tax2,
+          product.Tax3,
+          product.Tax4,
+          product.Tax5,
           LineDes,
           RECPOS,
           UNIQUEID,
@@ -324,7 +324,8 @@ export class OrderService {
       };
     } catch (error: any) {
       await connection.rollback();
-      const detailedError = error.odbcErrors?.[0]?.message || error.message || "Unknown error";
+      const detailedError =
+        error.odbcErrors?.[0]?.message || error.message || "Unknown error";
       console.error("Error creating order:", detailedError);
       throw new Error(`[odbc] ${detailedError}`);
     }
