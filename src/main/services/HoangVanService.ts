@@ -77,6 +77,9 @@ class HoangVanService {
         await this.login();
         return this.checkOrder(orderNo, true);
       }
+      if (status === 404) {
+        throw new Error("Không tìm thấy đơn hàng");
+      }
       console.error("HoangVanAPI checkOrder Error:", error);
       throw error;
     }

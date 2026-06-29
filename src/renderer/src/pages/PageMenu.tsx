@@ -442,8 +442,31 @@ export default function PageMenu(): React.JSX.Element {
         {/* HoangVan Search Modal */}
         {isHoangVanSearchOpen && (
           <div style={styles.modalOverlay}>
-            <div style={{ ...styles.modalContent, width: "650px", maxWidth: "95vw", maxHeight: "90vh", overflowY: "auto" }}>
-              <div style={styles.modalHeader}>
+            <div style={{ 
+              ...styles.modalContent, 
+              width: "650px", 
+              maxWidth: "95vw", 
+              maxHeight: "90vh", 
+              display: "flex", 
+              flexDirection: "column" 
+            }}>
+              <style>
+                {`
+                  .hide-scroll::-webkit-scrollbar {
+                    display: none;
+                  }
+                `}
+              </style>
+              
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "20px 24px",
+                borderBottom: "1px solid #e2e8f0",
+                backgroundColor: "white",
+                zIndex: 10,
+              }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <CloudDownload size={20} color="#1e3a8a" />
                   <h2 style={styles.cardTitle}>Online Order Search</h2>
@@ -456,30 +479,49 @@ export default function PageMenu(): React.JSX.Element {
                 </button>
               </div>
 
-              <div style={{ padding: "24px" }}>
-                <input
-                  type="text"
-                  value={hvOrderNo}
-                  onChange={(e) => setHvOrderNo(e.target.value)}
-                  autoFocus
-                  placeholder="VD: ORD-20260410-001"
-                  style={styles.searchInput}
-                />
-                <button
-                  style={{
-                    ...styles.primaryBtn,
-                    marginTop: "16px",
-                    opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
-                    cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
-                  }}
-                  onClick={handleCheckHoangVanOrder}
-                  disabled={!hvOrderNo || hvChecking}
-                >
-                  {hvChecking ? "Checking..." : "Check Online Order"}
-                </button>
+              <div className="hide-scroll" style={{ 
+                padding: "24px", 
+                overflowY: "auto", 
+                flex: 1, 
+                scrollbarWidth: "none", 
+                msOverflowStyle: "none" 
+              }}>
+                {!hvOrderInfo && (
+                  <>
+                    <input
+                      type="text"
+                      value={hvOrderNo}
+                      onChange={(e) => setHvOrderNo(e.target.value)}
+                      autoFocus
+                      placeholder="VD: ORD-20260410-001"
+                      style={styles.searchInput}
+                    />
+                    <button
+                      style={{
+                        ...styles.primaryBtn,
+                        marginTop: "16px",
+                        opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
+                        cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
+                      }}
+                      onClick={handleCheckHoangVanOrder}
+                      disabled={!hvOrderNo || hvChecking}
+                    >
+                      {hvChecking ? "Checking..." : "Check Online Order"}
+                    </button>
+                  </>
+                )}
 
                 {hvCheckError && (
-                  <div style={{ color: "#dc2626", marginTop: "16px", textAlign: "center", fontWeight: 500 }}>
+                  <div style={{ 
+                    color: "#dc2626", 
+                    marginTop: "16px", 
+                    textAlign: "center", 
+                    fontWeight: 500,
+                    padding: "16px",
+                    backgroundColor: "#fee2e2",
+                    borderRadius: "8px",
+                    border: "1px solid #f87171"
+                  }}>
                     {hvCheckError}
                   </div>
                 )}
@@ -592,6 +634,24 @@ export default function PageMenu(): React.JSX.Element {
                       </div>
                     )}
                   </div>
+                )}
+                
+                {hvOrderInfo && (
+                  <button
+                    style={{
+                      ...styles.primaryBtn,
+                      backgroundColor: "transparent",
+                      color: "#64748b",
+                      border: "1px solid #cbd5e1",
+                      marginTop: "16px"
+                    }}
+                    onClick={() => {
+                      setHvOrderInfo(null);
+                      setHvOrderNo("");
+                    }}
+                  >
+                    Search Another Order
+                  </button>
                 )}
               </div>
             </div>
