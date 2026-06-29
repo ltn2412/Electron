@@ -32,6 +32,7 @@ declare global {
       createUpdatePOSAudio: (
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
+      resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
     };
   }
 }

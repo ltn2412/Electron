@@ -9,7 +9,8 @@ const api = {
   getTransactions: () => ipcRenderer.invoke("transaction:get"),
   getTransactionByTransact: (transact: string) =>
     ipcRenderer.invoke("transaction:getByTransact", transact),
-  getProductPOSAudio: () => ipcRenderer.invoke("product:getPOSAudio"),
+  getProductPOSAudio: () => ipcRenderer.invoke("get-product-pos-audio"),
+  resetProduct: (products: any) => ipcRenderer.invoke("reset-product", products),
   createUpdatePOSAudio: (
     data: import("../../src/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
