@@ -322,10 +322,11 @@ export class OrderService {
         transact: TRANSACT,
         message: "Order inserted successfully",
       };
-    } catch (error) {
+    } catch (error: any) {
       await connection.rollback();
-      console.error("Error creating order:", error);
-      throw error;
+      const detailedError = error.odbcErrors?.[0]?.message || error.message || "Unknown error";
+      console.error("Error creating order:", detailedError);
+      throw new Error(`[odbc] ${detailedError}`);
     }
   }
 }

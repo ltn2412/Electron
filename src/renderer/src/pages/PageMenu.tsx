@@ -112,27 +112,15 @@ export default function PageMenu(): React.JSX.Element {
     if (!hvOrderInfo) return;
     setHvUsing(true);
     try {
-      // 1. Call Use API
-      const useRes = await window.api.useOrder({
-        orderNo: hvOrderInfo.orderNo,
-        staffId: "NV001",
-      });
-      if (!useRes.success) {
-        alert("Lỗi sử dụng đơn Hoàng Vân: " + useRes.error);
-        return;
-      }
-
-      // 2. Extract services (e.g., AG-VI)
+      // 1. Extract services
       const services = hvOrderInfo.services || [];
       if (services.length === 0) {
         alert("Đơn hàng không có dịch vụ nào.");
         return;
       }
-      const svc = services[0]; // Assuming we use the first service or loop them. We'll use the first one based on previous logic.
+      const svc = services[0];
 
-      // 3. Post to our local DB
-      // Swipe from login? Assuming logged in user has a swipe. For now, hardcode or fetch from context.
-      // Wait, earlier user said "swipe là mình truyền xuống luôn lấy từ cái api login á", let's assume "221278" for now or read from local storage if available.
+      // 2. Post to our local DB first
       const swipe = localStorage.getItem("employeeSwipe") || "221278";
 
       const createRes = await window.api.createOrder({
@@ -142,15 +130,27 @@ export default function PageMenu(): React.JSX.Element {
         swipe: swipe,
       });
 
-      if (createRes.success) {
-        alert("Đã chốt bill thành công! Transact: " + createRes.data?.transact);
-        setIsHoangVanSearchOpen(false);
-        fetchData(); // Refresh UI
-      } else {
+      if (!createRes.success) {
         alert("Lỗi tạo bill nội bộ: " + createRes.error);
+        return;
       }
-    } catch (err: any) {
-      alert("Lỗi: " + err.message);
+
+      // 3. If local DB insert succeeds, call HoangVan Use API
+      const useRes = await window.api.useOrder({
+        orderNo: hvOrderInfo.orderNo,
+        staffId: "NV001",
+      });
+
+      if (!useRes.success) {
+        alert("Lỗi sử dụng đơn trên hệ thống Hoàng Vân: " + useRes.error);
+        return;
+      }
+
+      alert("Đã chốt bill thành công! Transact: " + createRes.data?.transact);
+      setIsHoangVanSearchOpen(false);
+      fetchData(); // Refresh UI
+    } catch (err: unknown) {
+      alert("Lỗi: " + (err instanceof Error ? err.message : String(err)));
     } finally {
       setHvUsing(false);
     }
