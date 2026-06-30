@@ -5,8 +5,9 @@ interface AlertModalProps {
   isOpen: boolean;
   title: string;
   message: string;
-  type?: "success" | "error" | "info";
+  type?: "success" | "error" | "info" | "confirm";
   onClose: () => void;
+  onConfirm?: () => void;
 }
 
 export default function AlertModal({
@@ -15,6 +16,7 @@ export default function AlertModal({
   message,
   type = "info",
   onClose,
+  onConfirm,
 }: AlertModalProps): React.JSX.Element | null {
   if (!isOpen) return null;
 
@@ -24,6 +26,8 @@ export default function AlertModal({
         return <CheckCircle size={48} color="#22c55e" />;
       case "error":
         return <AlertCircle size={48} color="#ef4444" />;
+      case "confirm":
+        return <AlertCircle size={48} color="#f59e0b" />;
       case "info":
       default:
         return <Info size={48} color="#3b82f6" />;
@@ -36,6 +40,8 @@ export default function AlertModal({
         return "#22c55e";
       case "error":
         return "#ef4444";
+      case "confirm":
+        return "#f59e0b";
       case "info":
       default:
         return "#3b82f6";
@@ -60,12 +66,26 @@ export default function AlertModal({
         <div style={styles.iconContainer}>{getIcon()}</div>
         <h2 style={styles.title}>{title}</h2>
         <p style={styles.message}>{message}</p>
-        <button
-          style={{ ...styles.actionBtn, backgroundColor: getButtonColor() }}
-          onClick={onClose}
-        >
-          OK
-        </button>
+        <div style={{ display: "flex", gap: "12px", width: "100%", maxWidth: "300px" }}>
+          {type === "confirm" && (
+            <button
+              style={{
+                ...styles.actionBtn,
+                backgroundColor: "#cbd5e1",
+                color: "#475569",
+              }}
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+          )}
+          <button
+            style={{ ...styles.actionBtn, backgroundColor: getButtonColor(), flex: 1 }}
+            onClick={type === "confirm" && onConfirm ? onConfirm : onClose}
+          >
+            {type === "confirm" ? "Confirm" : "OK"}
+          </button>
+        </div>
       </div>
 
       <style>

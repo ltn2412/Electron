@@ -55,7 +55,8 @@ export default function PageMenu(): React.JSX.Element {
     isOpen: boolean;
     title: string;
     message: string;
-    type: "success" | "error" | "info";
+    type: "success" | "error" | "info" | "confirm";
+    onConfirm?: () => void;
   }>({ isOpen: false, title: "", message: "", type: "info" });
   const [isAutoConfirming, setIsAutoConfirming] = useState(false);
 
@@ -218,7 +219,7 @@ export default function PageMenu(): React.JSX.Element {
     }
   };
 
-  const handleUseHoangVanOrder = async (): Promise<void> => {
+  const executeUseHoangVanOrder = async (): Promise<void> => {
     if (!hvOrderInfo) return;
     setHvUsing(true);
     try {
@@ -279,16 +280,55 @@ export default function PageMenu(): React.JSX.Element {
       });
       setIsHoangVanSearchOpen(false);
       fetchData(); // Refresh UI
-    } catch (err: unknown) {
+    } catch (error: unknown) {
       setAlertConfig({
         isOpen: true,
         title: "Error",
-        message: "Error: " + (err instanceof Error ? err.message : String(err)),
+        message: "Unexpected error: " + (error as Error).message,
         type: "error",
       });
     } finally {
       setHvUsing(false);
     }
+  };
+
+  const handleUseHoangVanOrder = async (): Promise<void> => {
+    if (!hvOrderInfo) return;
+    const services = hvOrderInfo.services || [];
+    if (services.length === 0) {
+      setAlertConfig({
+        isOpen: true,
+        title: "Lỗi",
+        message: "Đơn hàng không có dịch vụ nào.",
+        type: "error",
+      });
+      return;
+    }
+    const svc = services[0];
+    const visitDateStr = hvOrderInfo.visitDate;
+    const startTimeStr = svc.timeSlot?.startTime || "00:00";
+    const endTimeStr = svc.timeSlot?.endTime || "23:59";
+    
+    const now = new Date();
+    // Parse using local time, assuming visitDateStr is YYYY-MM-DD and time is HH:mm
+    const startDateTime = new Date(`${visitDateStr}T${startTimeStr}:00`);
+    const endDateTime = new Date(`${visitDateStr}T${endTimeStr}:00`);
+
+    if (now < startDateTime || now > endDateTime) {
+      setAlertConfig({
+        isOpen: true,
+        title: "Time Frame Warning",
+        message: `The current time is outside the allowed timeframe for this ticket (${visitDateStr} ${startTimeStr} - ${endTimeStr}). Are you sure you want to proceed?`,
+        type: "confirm",
+        onConfirm: () => {
+          setAlertConfig((prev) => ({ ...prev, isOpen: false }));
+          executeUseHoangVanOrder();
+        }
+      });
+      return;
+    }
+
+    executeUseHoangVanOrder();
   };
 
   const handleLogoutConfirm = async (): Promise<void> => {
@@ -1453,6 +1493,7 @@ export default function PageMenu(): React.JSX.Element {
         message={alertConfig.message}
         type={alertConfig.type}
         onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+        onConfirm={alertConfig.onConfirm}
       />
     </>
   );
