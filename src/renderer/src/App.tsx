@@ -20,12 +20,9 @@ function App(): React.JSX.Element {
   useEffect(() => {
     const checkTime = async (): Promise<void> => {
       const now = new Date();
-      // Auto run at 17:30
-      if (
-        now.getHours() === 17 &&
-        now.getMinutes() >= 30 &&
-        !hasRunToday.current
-      ) {
+      const isPastTriggerTime = now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 30);
+      // Auto run once after 17:30
+      if (isPastTriggerTime && !hasRunToday.current) {
         hasRunToday.current = true;
         setIsAutoConfirming(true);
         try {

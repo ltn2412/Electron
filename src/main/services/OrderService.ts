@@ -278,7 +278,7 @@ export class OrderService {
         INSERT INTO DBA.POSDETAIL (
           UNIQUEID, TRANSACT, PRODNUM, WHOORDER, WHOAUTH, COSTEACH, QUAN, TIMEORD, PRINTLOC, SEATNUM, Minutes, NOTAX, HOWORDERED, STATUS, NEXTPOS, PRIORPOS, RECPOS, PRODTYPE, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5, ReduceInventory, StoreNum, STATNUM, RecipeCostEach, OpenDate, MealTime, LineDes, REVCENTER, MasterItem, QuestionId, OrigCostEach, NetCostEach, Discount, UpdateStatus, GratExempt, AuthCode
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
+          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
       `;
       const posDetailParams = [
@@ -297,6 +297,7 @@ export class OrderService {
         product.Tax3,
         product.Tax4,
         product.Tax5,
+        status === 3 ? 0 : 1,
         STATNUM,
         OPENDATE,
         LineDes,
@@ -408,13 +409,19 @@ export class OrderService {
           SET TillBalance = ISNULL(TillBalance, 0) + ? 
           WHERE Punchindex = ?
         `;
-        logger.info("Executed Database Query", { query: updateTillSql, params: [FINALTOTAL, PUNCHINDEX] });
+        logger.info("Executed Database Query", {
+          query: updateTillSql,
+          params: [FINALTOTAL, PUNCHINDEX],
+        });
         await connection.query(updateTillSql, [FINALTOTAL, PUNCHINDEX]);
       }
 
       // 15. Update NeedsCashout for Employee
       const updateNeedsCashoutSql = `UPDATE DBA.EMPLOYEE SET NEEDSCASHOUT = 1 WHERE EMPNUM = ?`;
-      logger.info("Executed Database Query", { query: updateNeedsCashoutSql, params: [WHOSTART] });
+      logger.info("Executed Database Query", {
+        query: updateNeedsCashoutSql,
+        params: [WHOSTART],
+      });
       await connection.query(updateNeedsCashoutSql, [WHOSTART]);
 
       await connection.commit();

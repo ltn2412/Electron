@@ -248,6 +248,8 @@ export default function PageMenu(): React.JSX.Element {
         return "#f59e0b";
       case "Return":
         return "#10b981";
+      case "Expired":
+        return "#ef4444";
       default:
         return "#64748b";
     }
