@@ -339,7 +339,7 @@ export default function PageMenu(): React.JSX.Element {
 
         <div style={styles.content}>
           {/* Left Column: Transactions */}
-          <div style={{ ...styles.card, flex: 2, minWidth: "220px" }}>
+          <div style={{ ...styles.card, flex: 1, minWidth: 0 }}>
             <div style={styles.cardHeader}>
               <h2 style={styles.cardTitle}>Transactions</h2>
               <span style={styles.badge}>{transactions.length}</span>
@@ -388,7 +388,7 @@ export default function PageMenu(): React.JSX.Element {
                           Final Total: {tx.FINALTOTAL.toLocaleString("en-US")} đ
                         </div>
                       </div>
-                      <div style={{ ...styles.txRight, width: "100%", justifyContent: "flex-end", marginTop: "4px" }}>
+                      <div style={{ ...styles.txRight, width: "100%", justifyContent: "flex-start", marginTop: "4px" }}>
                         <span
                           style={{
                             fontWeight: 600,
@@ -415,7 +415,7 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Middle Column: Slots */}
-          <div style={{ ...styles.middleColumn, minWidth: "160px" }}>
+          <div style={{ ...styles.middleColumn, minWidth: 0 }}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>
@@ -474,7 +474,7 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Right Column: Products */}
-          <div style={{ ...styles.rightColumn, minWidth: "180px" }}>
+          <div style={{ ...styles.rightColumn, minWidth: 0 }}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Products</h2>
@@ -1472,7 +1472,7 @@ const styles = {
     flexDirection: "column",
   } as React.CSSProperties,
   middleColumn: {
-    flex: 1.5,
+    flex: 1,
     display: "flex",
     flexDirection: "column",
   } as React.CSSProperties,
