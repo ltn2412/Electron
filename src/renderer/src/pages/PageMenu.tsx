@@ -57,6 +57,7 @@ export default function PageMenu(): React.JSX.Element {
     message: string;
     type: "success" | "error" | "info";
   }>({ isOpen: false, title: "", message: "", type: "info" });
+  const [isAutoConfirming, setIsAutoConfirming] = useState(false);
 
   const fetchData = useCallback(async (): Promise<void> => {
     try {
@@ -99,6 +100,62 @@ export default function PageMenu(): React.JSX.Element {
     const intervalId = setInterval(fetchData, 5000);
     return () => clearInterval(intervalId);
   }, [fetchData]);
+
+  // Auto-confirm logic
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      const now = new Date();
+      const isPastTriggerTime = now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 30);
+      if (!isPastTriggerTime) return;
+
+      const todayStr = now.toISOString().split("T")[0];
+      const lastRun = localStorage.getItem("lastAutoConfirmDate");
+      if (lastRun === todayStr) return;
+
+      setIsAutoConfirming(true);
+      try {
+        const res = await window.api.getExpiredOrders({ page: 1, pageSize: 1000 });
+        const dataRes = res as any;
+        if (dataRes.success && dataRes.data && dataRes.data.items && dataRes.data.items.length > 0) {
+          const orders = dataRes.data.items;
+          const swipe = localStorage.getItem("employeeSwipe") || "221278";
+          const orderNos: string[] = [];
+          for (const order of orders) {
+            orderNos.push(order.orderNo);
+            const services = order.services || [];
+            for (const svc of services) {
+              await window.api.createOrder({
+                refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
+                quantity: svc.quantity,
+                costEach: svc.unitPrice,
+                swipe: swipe,
+                status: 3,
+              });
+            }
+          }
+          const confirmRes = await window.api.confirmExpiredOrders({ orderNos });
+          if (confirmRes.success) {
+            setAlertConfig({
+              isOpen: true,
+              title: "Success",
+              message: `Successfully auto-confirmed ${orderNos.length} expired orders!`,
+              type: "success",
+            });
+            localStorage.setItem("lastAutoConfirmDate", todayStr);
+          }
+        } else {
+          // No orders, but mark as run so we don't check again
+          localStorage.setItem("lastAutoConfirmDate", todayStr);
+        }
+      } catch (err: unknown) {
+        console.error("Auto confirm error:", err);
+      } finally {
+        setIsAutoConfirming(false);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timeoutId);
+  }, []);
 
   const handleTransactionClick = (id: string): void => {
     navigate(`/order?id=${id}`);
@@ -1325,7 +1382,47 @@ export default function PageMenu(): React.JSX.Element {
           </div>
         )}
       </div>
-      {/* Alert Modal */}
+      {/* Auto Confirm Overlay */}
+      {isAutoConfirming && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.7)",
+            zIndex: 999999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white",
+            fontSize: "24px",
+            fontWeight: "bold",
+            fontFamily: "Inter, sans-serif",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          <div
+            className="spinner"
+            style={{
+              width: "40px",
+              height: "40px",
+              border: "4px solid #f3f3f3",
+              borderTop: "4px solid #3498db",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          ></div>
+          Checking and automatically confirming expired orders...
+          <style>
+            {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
+          </style>
+        </div>
+      )}
+
+      {/* Alert */}
       <AlertModal
         isOpen={alertConfig.isOpen}
         title={alertConfig.title}
