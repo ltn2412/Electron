@@ -388,7 +388,7 @@ export default function PageMenu(): React.JSX.Element {
                           Final Total: {tx.FINALTOTAL.toLocaleString("en-US")} đ
                         </div>
                       </div>
-                      <div style={styles.txRight}>
+                      <div style={{ ...styles.txRight, width: "100%", justifyContent: "flex-end", marginTop: "4px" }}>
                         <span
                           style={{
                             fontWeight: 600,
@@ -1492,8 +1492,6 @@ const styles = {
     fontSize: "16px",
     color: "#1e293b",
     fontWeight: 600,
-    flexWrap: "wrap",
-    gap: "8px",
   } as React.CSSProperties,
   modalOverlay: {
     position: "fixed",

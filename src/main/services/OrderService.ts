@@ -412,6 +412,11 @@ export class OrderService {
         await connection.query(updateTillSql, [FINALTOTAL, PUNCHINDEX]);
       }
 
+      // 15. Update NeedsCashout for Employee
+      const updateNeedsCashoutSql = `UPDATE DBA.EMPLOYEE SET NEEDSCASHOUT = 1 WHERE EMPNUM = ?`;
+      logger.info("Executed Database Query", { query: updateNeedsCashoutSql, params: [WHOSTART] });
+      await connection.query(updateNeedsCashoutSql, [WHOSTART]);
+
       await connection.commit();
 
       return {

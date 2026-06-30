@@ -158,34 +158,6 @@ export class EmployeeService {
       >;
 
       if (parseInt(employee.LASTSTAT) !== 0) {
-        // Get max transact and uniqueid for POSDetailEnd and TRANSEND
-        const getMaxTransact = await connection.query(
-          `SELECT ISNULL(MAX(TRANSACT), 0) as MAX_TRANSACT FROM DBA.POSHEADER`,
-        );
-        const maxTransact = getMaxTransact[0].MAX_TRANSACT;
-
-        const getMaxUniqueId = await connection.query(
-          `SELECT ISNULL(MAX(UNIQUEID), 0) as MAX_UNIQUEID FROM DBA.POSDETAIL`,
-        );
-        const maxUniqueId = getMaxUniqueId[0].MAX_UNIQUEID;
-
-        // Update PunchClock if PunchIndex exists
-        if (employee.PunchIndex) {
-          const updatePunchClock = `
-            UPDATE DBA.PUNCHCLOCK
-            SET PUNCHOUT = GETDATE(), 
-                OriginalPunchOut = GETDATE(), 
-                TRANSEND = ?, 
-                POSDetailEnd = ?
-            WHERE PunchIndex = ? AND PUNCHOUT IS NULL
-          `;
-          await connection.query(updatePunchClock, [
-            maxTransact,
-            maxUniqueId,
-            employee.PunchIndex,
-          ]);
-        }
-
         const updateEmployee = `
           UPDATE DBA.EMPLOYEE
           SET ISCLOCKEDIN = 0,
