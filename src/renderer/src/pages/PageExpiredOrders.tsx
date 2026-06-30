@@ -295,7 +295,12 @@ export default function PageExpiredOrders() {
                             color: "#0f172a",
                           }}
                         >
-                          {(svc.totalAmount || (svc.unitPrice * svc.quantity) || 0).toLocaleString("vi-VN")} đ
+                          {(
+                            svc.totalAmount ||
+                            svc.unitPrice * svc.quantity ||
+                            0
+                          ).toLocaleString("vi-VN")}{" "}
+                          đ
                         </div>
                       </div>
                     ))}
@@ -379,7 +384,7 @@ const styles = {
   } as React.CSSProperties,
   title: {
     margin: 0,
-    fontSize: "28px",
+    fontSize: "26px",
     fontWeight: 800,
     color: "#0f172a",
     letterSpacing: "-0.5px",
@@ -538,7 +543,7 @@ const styles = {
   } as React.CSSProperties,
   detailValue: {
     fontSize: "18px",
-    fontWeight: 800,
+    fontWeight: 700,
     color: "#0f172a",
   } as React.CSSProperties,
   statusBadge: {

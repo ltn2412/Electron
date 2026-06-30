@@ -198,7 +198,7 @@ export default function PageMenu(): React.JSX.Element {
         <div style={styles.header}>
           <div>
             <h1 style={styles.title}>Dashboard</h1>
-            <p style={styles.subtitle}>Manage your audio rentals</p>
+            <p style={styles.subtitle}>Bảo tàng chứng tích chiến tranh</p>
           </div>
           <div style={{ display: "flex", gap: "12px" }}>
             <button
@@ -420,7 +420,7 @@ export default function PageMenu(): React.JSX.Element {
                         <span>{p.DESCRIPT}</span>
                         <span
                           style={{
-                            fontSize: "24px",
+                            fontSize: "22px",
                             fontWeight: "bold",
                             color: "#0369a1",
                           }}
