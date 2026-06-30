@@ -319,7 +319,7 @@ export default function PageMenu(): React.JSX.Element {
 
         <div style={styles.content}>
           {/* Left Column: Transactions */}
-          <div style={{ ...styles.card, flex: 2, minWidth: "360px" }}>
+          <div style={{ ...styles.card, flex: 2, minWidth: "220px" }}>
             <div style={styles.cardHeader}>
               <h2 style={styles.cardTitle}>Transactions</h2>
               <span style={styles.badge}>{transactions.length}</span>
@@ -395,7 +395,7 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Middle Column: Slots */}
-          <div style={{ ...styles.middleColumn, minWidth: "280px" }}>
+          <div style={{ ...styles.middleColumn, minWidth: "160px" }}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>
@@ -454,7 +454,7 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Right Column: Products */}
-          <div style={{ ...styles.rightColumn, minWidth: "300px" }}>
+          <div style={{ ...styles.rightColumn, minWidth: "180px" }}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Products</h2>
@@ -1287,9 +1287,7 @@ const styles = {
     flex: 1,
     display: "flex",
     gap: "24px",
-    overflowX: "auto",
-    overflowY: "hidden",
-    paddingBottom: "12px",
+    overflow: "hidden",
   } as React.CSSProperties,
   card: {
     backgroundColor: "#f8fafc",
@@ -1359,6 +1357,8 @@ const styles = {
     backgroundColor: "white",
     cursor: "pointer",
     transition: "all 0.2s",
+    flexWrap: "wrap",
+    gap: "8px",
   } as React.CSSProperties,
   txLeft: {
     display: "flex",
@@ -1406,6 +1406,8 @@ const styles = {
     fontSize: "16px",
     color: "#1e293b",
     fontWeight: 600,
+    flexWrap: "wrap",
+    gap: "8px",
   } as React.CSSProperties,
   modalOverlay: {
     position: "fixed",
