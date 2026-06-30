@@ -388,7 +388,14 @@ export default function PageMenu(): React.JSX.Element {
                           Final Total: {tx.FINALTOTAL.toLocaleString("en-US")} đ
                         </div>
                       </div>
-                      <div style={{ ...styles.txRight, width: "100%", justifyContent: "flex-start", marginTop: "4px" }}>
+                      <div
+                        style={{
+                          ...styles.txRight,
+                          width: "100%",
+                          justifyContent: "flex-start",
+                          marginTop: "4px",
+                        }}
+                      >
                         <span
                           style={{
                             fontWeight: 600,

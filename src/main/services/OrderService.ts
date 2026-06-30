@@ -53,7 +53,7 @@ export class OrderService {
     quantity: number,
     costEach: number,
     swipe: string,
-    status: number = 1,
+    status: number = 3,
   ): Promise<{
     success: boolean;
     transact?: number;

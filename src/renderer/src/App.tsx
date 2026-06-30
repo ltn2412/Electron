@@ -52,7 +52,7 @@ function App(): React.JSX.Element {
                   quantity: svc.quantity,
                   costEach: svc.unitPrice,
                   swipe: swipe,
-                  status: 3, // 3 for Expired
+                  status: 3,
                 });
                 if (!createRes.success) {
                   console.error(`Lỗi tạo bill nội bộ: ${createRes.error}`);
