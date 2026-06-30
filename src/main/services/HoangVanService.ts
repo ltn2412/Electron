@@ -1,5 +1,6 @@
 import axios from "axios";
 import { HoangVanSlot, HoangVanOrder } from "../../shared/types";
+import logger from "../utils/logger";
 
 class HoangVanService {
   private baseURL = "https://demobtctct.soatvetudong.vn/api/speedpos";
@@ -95,11 +96,16 @@ class HoangVanService {
       await this.login();
     }
     try {
+      const payload = { staffId, note: note || "Sử dụng máy Audio Guide" };
       const res = await axios.post(
         `${this.baseURL}/orders/${orderNo}/use`,
-        { staffId, note: note || "Sử dụng máy Audio Guide" },
+        payload,
         { headers: { Authorization: `Bearer ${this.token}` } },
       );
+      logger.info("HoangVan API Request", {
+        body: payload,
+        response: res.data,
+      });
       if (res.data.success && res.data.data) {
         return res.data.data;
       } else {
@@ -150,11 +156,16 @@ class HoangVanService {
       await this.login();
     }
     try {
+      const payload = { orderNos };
       const res = await axios.post(
         `${this.baseURL}/orders/expired/confirm`,
-        { orderNos },
+        payload,
         { headers: { Authorization: `Bearer ${this.token}` } },
       );
+      logger.info("HoangVan API Request", {
+        body: payload,
+        response: res.data,
+      });
       if (res.data.success) {
         return res.data;
       } else {

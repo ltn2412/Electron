@@ -12,7 +12,9 @@ const api = {
   checkOrder: (orderNo) => electron.ipcRenderer.invoke("hoangvan:checkOrder", orderNo),
   useOrder: (payload) => electron.ipcRenderer.invoke("hoangvan:useOrder", payload),
   createUpdatePOSAudio: (data) => electron.ipcRenderer.invoke("posAudio:createUpdate", data),
-  createOrder: (payload) => electron.ipcRenderer.invoke("order:create", payload)
+  createOrder: (payload) => electron.ipcRenderer.invoke("order:create", payload),
+  getExpiredOrders: (payload) => electron.ipcRenderer.invoke("hoangvan:getExpiredOrders", payload),
+  confirmExpiredOrders: (payload) => electron.ipcRenderer.invoke("hoangvan:confirmExpiredOrders", payload)
 };
 if (process.contextIsolated) {
   try {

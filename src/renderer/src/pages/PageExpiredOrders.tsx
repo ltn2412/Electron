@@ -3,7 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { SpeedPosService } from "@/api/SpeedPosService";
 import TitleBar from "@/components/TitleBar";
 import { ExpiredOrder, ExpiredOrdersResponse } from "@/shared/apiTypes";
-import { ArrowLeft, Clock, AlertTriangle, AlertCircle, X, Search, FileText } from "lucide-react";
+import {
+  ArrowLeft,
+  Clock,
+  AlertTriangle,
+  AlertCircle,
+  X,
+  Search,
+  FileText,
+} from "lucide-react";
 
 export default function PageExpiredOrders() {
   const navigate = useNavigate();
@@ -22,7 +30,10 @@ export default function PageExpiredOrders() {
     try {
       setLoading(true);
       setError(null);
-      const res: ExpiredOrdersResponse = await SpeedPosService.getExpiredOrders(1, 50);
+      const res: ExpiredOrdersResponse = await SpeedPosService.getExpiredOrders(
+        1,
+        50,
+      );
       if (res.success && res.data) {
         setOrders(res.data.items);
       } else {
@@ -46,7 +57,7 @@ export default function PageExpiredOrders() {
         setConfirming(false);
         return;
       }
-      
+
       const swipe = localStorage.getItem("employeeSwipe") || "221278";
 
       // Insert return bills for each service
@@ -84,10 +95,14 @@ export default function PageExpiredOrders() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "HetHan": return "#dc2626";
-      case "DaSuDung": return "#16a34a";
-      case "DaHuy": return "#64748b";
-      default: return "#ca8a04";
+      case "HetHan":
+        return "#dc2626";
+      case "DaSuDung":
+        return "#16a34a";
+      case "DaHuy":
+        return "#64748b";
+      default:
+        return "#ca8a04";
     }
   };
 
@@ -111,12 +126,20 @@ export default function PageExpiredOrders() {
           <div style={styles.emptyState}>Loading expired orders...</div>
         ) : error ? (
           <div style={styles.errorState}>
-            <AlertCircle size={48} color="#ef4444" style={{ marginBottom: "16px" }} />
+            <AlertCircle
+              size={48}
+              color="#ef4444"
+              style={{ marginBottom: "16px" }}
+            />
             {error}
           </div>
         ) : orders.length === 0 ? (
           <div style={styles.emptyState}>
-            <FileText size={48} color="#cbd5e1" style={{ marginBottom: "16px" }} />
+            <FileText
+              size={48}
+              color="#cbd5e1"
+              style={{ marginBottom: "16px" }}
+            />
             No expired orders found
           </div>
         ) : (
@@ -139,8 +162,18 @@ export default function PageExpiredOrders() {
                   </div>
                 </div>
                 <div style={styles.txRight}>
-                  <span style={{ fontWeight: 600, color: "#475569", marginRight: "4px" }}>Status:</span>
-                  <span style={{ fontWeight: 700, color: "#dc2626" }}>Expired</span>
+                  <span
+                    style={{
+                      fontWeight: 600,
+                      color: "#475569",
+                      marginRight: "4px",
+                    }}
+                  >
+                    Status:
+                  </span>
+                  <span style={{ fontWeight: 700, color: "#dc2626" }}>
+                    Expired
+                  </span>
                 </div>
               </div>
             ))}
@@ -153,7 +186,9 @@ export default function PageExpiredOrders() {
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
             <div style={styles.modalHeader}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <div
+                style={{ display: "flex", alignItems: "center", gap: "8px" }}
+              >
                 <Search size={20} color="#1e3a8a" />
                 <h2 style={styles.cardTitle}>Expired Order Details</h2>
               </div>
@@ -165,17 +200,28 @@ export default function PageExpiredOrders() {
               </button>
             </div>
 
-            <div className="hide-scroll" style={{ padding: "24px", overflowY: "auto", maxHeight: "60vh" }}>
+            <div
+              className="hide-scroll"
+              style={{ padding: "24px", overflowY: "auto", maxHeight: "60vh" }}
+            >
               <div style={styles.detailCard}>
                 {/* Header Section */}
                 <div style={styles.detailHeader}>
                   <div>
                     <div style={styles.detailLabel}>Order No.</div>
-                    <div style={styles.detailValue}>{selectedOrder.orderNo}</div>
+                    <div style={styles.detailValue}>
+                      {selectedOrder.orderNo}
+                    </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
                     <div style={styles.detailLabel}>Status</div>
-                    <div style={{ ...styles.statusBadge, backgroundColor: "#fee2e2", color: "#dc2626" }}>
+                    <div
+                      style={{
+                        ...styles.statusBadge,
+                        backgroundColor: "#fee2e2",
+                        color: "#dc2626",
+                      }}
+                    >
                       Expired
                     </div>
                   </div>
@@ -186,19 +232,29 @@ export default function PageExpiredOrders() {
                   <div style={styles.infoGrid}>
                     <div>
                       <div style={styles.detailLabel}>Customer Name</div>
-                      <div style={styles.detailValueSmall}>{selectedOrder.buyerName}</div>
+                      <div style={styles.detailValueSmall}>
+                        {selectedOrder.buyerName}
+                      </div>
                     </div>
                     <div>
                       <div style={styles.detailLabel}>Phone / Email</div>
-                      <div style={styles.detailValueSmall}>{selectedOrder.buyerPhone || selectedOrder.buyerEmail}</div>
+                      <div style={styles.detailValueSmall}>
+                        {selectedOrder.buyerPhone || selectedOrder.buyerEmail}
+                      </div>
                     </div>
                     <div>
                       <div style={styles.detailLabel}>Visit Date</div>
-                      <div style={styles.detailValueSmall}>{selectedOrder.visitDate}</div>
+                      <div style={styles.detailValueSmall}>
+                        {selectedOrder.visitDate}
+                      </div>
                     </div>
                     <div>
                       <div style={styles.detailLabel}>Expired At</div>
-                      <div style={styles.detailValueSmall}>{new Date(selectedOrder.expiredAt).toLocaleDateString("vi-VN")}</div>
+                      <div style={styles.detailValueSmall}>
+                        {new Date(selectedOrder.expiredAt).toLocaleDateString(
+                          "vi-VN",
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -206,18 +262,39 @@ export default function PageExpiredOrders() {
                 {/* Services List */}
                 <div style={styles.detailSection}>
                   <div style={styles.detailLabel}>Services</div>
-                  <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "8px" }}>
+                  <div
+                    style={{
+                      marginTop: "8px",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "8px",
+                    }}
+                  >
                     {selectedOrder.services.map((svc, idx) => (
                       <div key={idx} style={styles.serviceItemBox}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "14px", fontWeight: 600, color: "#1e293b", marginBottom: "4px" }}>
+                          <div
+                            style={{
+                              fontSize: "14px",
+                              fontWeight: 600,
+                              color: "#1e293b",
+                              marginBottom: "4px",
+                            }}
+                          >
                             {svc.serviceName}
                           </div>
                           <div style={{ fontSize: "13px", color: "#64748b" }}>
-                            {svc.unitPrice.toLocaleString("vi-VN")} đ x {svc.quantity}
+                            {svc.unitPrice.toLocaleString("vi-VN")} đ x{" "}
+                            {svc.quantity}
                           </div>
                         </div>
-                        <div style={{ fontSize: "15px", fontWeight: 700, color: "#0f172a" }}>
+                        <div
+                          style={{
+                            fontSize: "15px",
+                            fontWeight: 700,
+                            color: "#0f172a",
+                          }}
+                        >
                           {svc.totalAmount.toLocaleString("vi-VN")} đ
                         </div>
                       </div>
@@ -227,8 +304,22 @@ export default function PageExpiredOrders() {
 
                 {/* Total Section */}
                 <div style={styles.detailTotal}>
-                  <span style={{ fontSize: "16px", fontWeight: 600, color: "#475569" }}>Total Amount</span>
-                  <span style={{ fontSize: "20px", fontWeight: 800, color: "#0f172a" }}>
+                  <span
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      color: "#475569",
+                    }}
+                  >
+                    Total Amount
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "20px",
+                      fontWeight: 800,
+                      color: "#0f172a",
+                    }}
+                  >
                     {selectedOrder.totalServiceAmount.toLocaleString("vi-VN")} đ
                   </span>
                 </div>
@@ -330,8 +421,6 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     gap: "12px",
-    maxWidth: "1000px",
-    margin: "0 auto",
   } as React.CSSProperties,
   txItem: {
     display: "flex",
@@ -424,7 +513,8 @@ const styles = {
     backgroundColor: "#ffffff",
     borderRadius: "12px",
     border: "1px solid #e2e8f0",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+    boxShadow:
+      "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
     overflow: "hidden",
   } as React.CSSProperties,
   detailHeader: {

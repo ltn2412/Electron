@@ -413,6 +413,9 @@ class HoangVanService {
         await this.login();
         return this.checkOrder(orderNo, true);
       }
+      if (status === 404) {
+        throw new Error("Không tìm thấy đơn hàng");
+      }
       console.error("HoangVanAPI checkOrder Error:", error);
       throw error;
     }
@@ -446,10 +449,61 @@ class HoangVanService {
       throw error;
     }
   }
+  async getExpiredOrders(page = 1, pageSize = 50, isRetry = false) {
+    if (!this.token) {
+      await this.login();
+    }
+    try {
+      const res = await axios.get(
+        `${this.baseURL}/orders/expired?page=${page}&pageSize=${pageSize}`,
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      );
+      if (res.data.success && res.data.data) {
+        return res.data;
+      } else {
+        throw new Error(res.data.message || "Failed to fetch expired orders");
+      }
+    } catch (error) {
+      const status = error.response?.status;
+      if ((status === 401 || status === 403) && !isRetry) {
+        this.token = null;
+        await this.login();
+        return this.getExpiredOrders(page, pageSize, true);
+      }
+      console.error("HoangVanAPI getExpiredOrders Error:", error);
+      throw error;
+    }
+  }
+  async confirmExpiredOrders(orderNos, isRetry = false) {
+    if (!this.token) {
+      await this.login();
+    }
+    try {
+      const res = await axios.post(
+        `${this.baseURL}/orders/expired/confirm`,
+        { orderNos },
+        { headers: { Authorization: `Bearer ${this.token}` } }
+      );
+      if (res.data.success) {
+        return res.data;
+      } else {
+        throw new Error(res.data.message || "Failed to confirm expired orders");
+      }
+    } catch (error) {
+      const status = error.response?.status;
+      if ((status === 401 || status === 403) && !isRetry) {
+        this.token = null;
+        await this.login();
+        return this.confirmExpiredOrders(orderNos, true);
+      }
+      console.error("HoangVanAPI confirmExpiredOrders Error:", error);
+      throw error;
+    }
+  }
 }
 const HoangVanService$1 = new HoangVanService();
 class OrderService {
-  async createOrder(refCode, quantity, costEach, swipe) {
+  async createOrder(refCode, quantity, costEach, swipe, status = 1) {
     const connection = await getConnection();
     try {
       await connection.beginTransaction();
@@ -500,10 +554,7 @@ class OrderService {
         `SELECT OpenDate FROM dba.CurrentOpenDay WHERE CurDayStatus = 1`
       );
       if (openDateResult.length === 0) throw new Error("No open day found");
-      const dateObj = new Date(
-        openDateResult[0].OpenDate
-      );
-      const OPENDATE = dateObj.toISOString().split("T")[0];
+      const OPENDATE = openDateResult[0].OpenDate;
       const sysInfoResult = await connection.query(`
         SELECT ISNULL(TAXRATE1, 0) AS TaxRate1, ISNULL(TAXRATE2, 0) AS TaxRate2, 
                ISNULL(TAXRATE3, 0) AS TaxRate3, ISNULL(TAXRATE4, 0) AS TaxRate4, 
@@ -566,17 +617,19 @@ class OrderService {
         INSERT INTO DBA.POSHEADER(
           TRANSACT, TABLENUM, TIMESTART, TIMEEND, NUMCUST, TAX1, TAX2, TAX3, TAX4, TAX5, 
           TAX1ABLE, TAX2ABLE, TAX3ABLE, TAX4ABLE, TAX5ABLE, NETTOTAL, WHOSTART, WHOCLOSE, 
-          ISSPLIT, SALETYPEINDEX, STATNUM, STATUS, FINALTOTAL, PUNCHINDEX, Gratuity, OPENDATE, 
-          MemCode, TotalPoints, PointsApplied, UpdateStatus, ISDelivery, ScheduleDate, 
-          Tax1Exempt, Tax2Exempt, Tax3Exempt, Tax4Exempt, Tax5Exempt, MEMRATE, MealTime, 
-          IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum, GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId
+          ISSPLIT, SALETYPEINDEX, EXP, WAITINGAUTH, STATNUM, STATUS, FINALTOTAL, StoreNum, 
+          PUNCHINDEX, Gratuity, OPENDATE, MemCode, TotalPoints, PointsApplied, UpdateStatus, 
+          ISDelivery, ScheduleDate, Tax1Exempt, Tax2Exempt, Tax3Exempt, Tax4Exempt, Tax5Exempt, 
+          MEMRATE, MealTime, IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum, 
+          GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId, RstOrdNum
         ) VALUES (
           ?, ?, GETDATE(), GETDATE(), 1, ?, ?, ?, ?, ?, 
-          0, 0, 0, 0, 0, ?, ?, 0, 
-          1, ?, ?, 0, ?, ?, 0, ?, 
-          0, 0, 0, 1, 0, '1899-12-30 00:00:00.000', 
-          0, 0, 0, 0, 0, 0, 1, 
-          0, ?, ?, ?, 0, 0, 0, 0, 0, ?
+          0, 0, 0, 0, 0, ?, ?, ?, 
+          1, ?, 1, NULL, ?, 3, ?, NULL, 
+          ?, 0, ?, 0, 0, 0, 1, 
+          1, '1899-12-30 00:00:00.000', 0, 0, 0, 0, 0, 
+          0, 3, 0, ?, ?, ?, 0, 
+          0, 0, 0, 1, ?, NULL
         )`,
         [
           TRANSACT,
@@ -587,6 +640,7 @@ class OrderService {
           tax4,
           tax5,
           NETTOTAL,
+          WHOSTART,
           WHOSTART,
           SALETYPEINDEX,
           STATNUM,
@@ -619,52 +673,100 @@ class OrderService {
       await connection.query(
         `
         INSERT INTO DBA.POSDETAIL (
-          TRANSACT, UNIQUEID, PRODNUM, PRODTYPE, COSTEACH, QUAN, ORIGCOSTEACH,
-          WHOORDER, STATNUM, PRINTLOC, TAX1, TAX2, TAX3, TAX4, TAX5,
-          LINEDES, TIMEORD, STATUS, RECPOS, STORENUM, MASTERITEM, NETCOSTEACH,
-          DISCAMOUNT, IsWeight, UpdateStatus, HASPREP, REASON
+          UNIQUEID, TRANSACT, PRODNUM, WHOORDER, WHOAUTH, COSTEACH, QUAN, TIMEORD, PRINTLOC, SEATNUM, Minutes, NOTAX, HOWORDERED, STATUS, NEXTPOS, PRIORPOS, RECPOS, PRODTYPE, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5, ReduceInventory, StoreNum, STATNUM, RecipeCostEach, OpenDate, MealTime, LineDes, REVCENTER, MasterItem, QuestionId, OrigCostEach, NetCostEach, Discount, UpdateStatus, GratExempt, AuthCode
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?,
-          ?, ?, ?, ?, ?, ?, ?, ?,
-          ?, GETDATE(), 0, ?, 0, ?, ?,
-          0, 0, 1, 0, 0
+          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 3, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
       `,
         [
-          TRANSACT,
           UNIQUEID,
+          TRANSACT,
           PRODNUM,
-          product.ProdType,
+          WHOSTART,
+          WHOSTART,
           costEach,
           quantity,
-          costEach,
-          WHOSTART,
-          STATNUM,
           product.PrintLoc,
-          tax1,
-          tax2,
-          tax3,
-          tax4,
-          tax5,
-          LineDes,
           RECPOS,
+          product.ProdType,
+          product.Tax1,
+          product.Tax2,
+          product.Tax3,
+          product.Tax4,
+          product.Tax5,
+          STATNUM,
+          OPENDATE,
+          LineDes,
+          REVCENTER,
           UNIQUEID,
+          costEach,
           useVat ? netTotalAmount / quantity : costEach
         ]
       );
-      await connection.query(
-        `
-        INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
-        VALUES (?, '', 1, GETDATE(), NULL)
-        `,
-        [TRANSACT]
-      );
+      if (status === 1) {
+        await connection.query(
+          `
+          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
+          VALUES (?, '', ?, GETDATE(), NULL)
+          `,
+          [TRANSACT, status]
+        );
+      } else {
+        await connection.query(
+          `
+          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
+          VALUES (?, '', ?, NULL, GETDATE())
+          `,
+          [TRANSACT, status]
+        );
+      }
       await connection.query(
         `
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
-        VALUES (?, ?, ?, 0)
+        VALUES (?, ?, ?, ?)
         `,
-        [TRANSACT, PRODNUM, quantity]
+        [TRANSACT, PRODNUM, status === 1 ? quantity : 0, status === 2 ? quantity : 0]
+      );
+      const methodRes = await connection.query(
+        `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1`
+      );
+      if (methodRes.length === 0) throw new Error("No payment method found");
+      const methodNum = methodRes[0].METHODNUM;
+      const nextHowPaidRes = await connection.query(
+        `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_HowPaid'`
+      );
+      const HowPaidLink = nextHowPaidRes[0].NEXTNUM + 1;
+      await connection.query(
+        `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_HowPaid'`,
+        [HowPaidLink]
+      );
+      await connection.query(
+        `
+        INSERT INTO DBA.Howpaid(
+          HowPaidLink, TRANSDATE, EMPNUM, TENDER, METHODNUM, CHANGE,
+          AUTHORIZED, AUTHCODE, MEMCODE, ExchangeRate, TRANSACT, PayType, OPENDATE,
+          PUNCHINDEX, UpdateStatus, Settled, Status, Approved, STATNUM, IsPayInOut,
+          PayReason, MealTime, RevCenter, Voided, VoidedLink, LCUDiff, EnforcedGrat,
+          GratAmount, OrigMethodNum, CardType
+        ) VALUES (
+          ?, GETDATE(), ?, ?, ?, 0,
+          199, '', 0, 1, ?, 101, ?,
+          ?, 1, 1, 3, 1, ?, 0,
+          '', 1, 999, 0, 0, 0, 0,
+          0, ?, ''
+        )
+        `,
+        [
+          HowPaidLink,
+          WHOSTART,
+          FINALTOTAL,
+          methodNum,
+          TRANSACT,
+          OPENDATE,
+          PUNCHINDEX,
+          STATNUM,
+          methodNum
+        ]
       );
       await connection.commit();
       return {
@@ -674,8 +776,9 @@ class OrderService {
       };
     } catch (error) {
       await connection.rollback();
-      console.error("Error creating order:", error);
-      throw error;
+      const detailedError = error.odbcErrors?.[0]?.message || error.message || "Unknown error";
+      console.error("Error creating order:", detailedError);
+      throw new Error(`[odbc] ${detailedError}`);
     }
   }
 }
@@ -788,6 +891,24 @@ electron.app.whenReady().then(() => {
   electron.ipcMain.handle("hoangvan:useOrder", async (_, { orderNo, staffId }) => {
     try {
       const data = await HoangVanService$1.useOrder(orderNo, staffId);
+      return { success: true, data };
+    } catch (error) {
+      const err = error;
+      return { success: false, error: err.message };
+    }
+  });
+  electron.ipcMain.handle("hoangvan:getExpiredOrders", async (_, { page, pageSize }) => {
+    try {
+      const data = await HoangVanService$1.getExpiredOrders(page, pageSize);
+      return { success: true, data };
+    } catch (error) {
+      const err = error;
+      return { success: false, error: err.message };
+    }
+  });
+  electron.ipcMain.handle("hoangvan:confirmExpiredOrders", async (_, { orderNos }) => {
+    try {
+      const data = await HoangVanService$1.confirmExpiredOrders(orderNos);
       return { success: true, data };
     } catch (error) {
       const err = error;

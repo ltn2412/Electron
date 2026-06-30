@@ -28,6 +28,8 @@ export default function PageMenu(): React.JSX.Element {
   const [slots, setSlots] = useState<HoangVanSlot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
+  const [transactCheckError, setTransactCheckError] = useState("");
+  const [isTransactChecking, setIsTransactChecking] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isHoangVanSearchOpen, setIsHoangVanSearchOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -83,10 +85,23 @@ export default function PageMenu(): React.JSX.Element {
     navigate(`/order?id=${id}`);
   };
 
-  const handleSearchTransact = (): void => {
+  const handleSearchTransact = async (): Promise<void> => {
     if (transactId) {
-      setIsSearchOpen(false);
-      handleTransactionClick(transactId);
+      setIsTransactChecking(true);
+      setTransactCheckError("");
+      try {
+        const res = await window.api.getTransactionByTransact(transactId);
+        if (res.success && res.data) {
+          setIsSearchOpen(false);
+          handleTransactionClick(transactId);
+        } else {
+          setTransactCheckError(res.error || "Transaction not found!");
+        }
+      } catch (err: any) {
+        setTransactCheckError(err.message || "Lỗi hệ thống");
+      } finally {
+        setIsTransactChecking(false);
+      }
     }
   };
 
@@ -202,6 +217,7 @@ export default function PageMenu(): React.JSX.Element {
               style={styles.iconBtn}
               onClick={() => {
                 setTransactId("");
+                setTransactCheckError("");
                 setIsSearchOpen(true);
               }}
               title="Find Transaction"
@@ -402,12 +418,9 @@ export default function PageMenu(): React.JSX.Element {
                         <span>{p.DESCRIPT}</span>
                         <span
                           style={{
-                            backgroundColor: "#e0f2fe",
+                            fontSize: "24px",
+                            fontWeight: 800,
                             color: "#0369a1",
-                            padding: "4px 12px",
-                            borderRadius: "999px",
-                            fontSize: "14px",
-                            fontWeight: 700,
                           }}
                         >
                           {p.STORAGE}
@@ -453,14 +466,31 @@ export default function PageMenu(): React.JSX.Element {
                   style={{
                     ...styles.primaryBtn,
                     marginTop: "24px",
-                    opacity: transactId ? 1 : 0.5,
-                    cursor: transactId ? "pointer" : "not-allowed",
+                    opacity: transactId && !isTransactChecking ? 1 : 0.5,
+                    cursor: transactId && !isTransactChecking ? "pointer" : "not-allowed",
                   }}
                   onClick={handleSearchTransact}
-                  disabled={!transactId}
+                  disabled={!transactId || isTransactChecking}
                 >
-                  Search
+                  {isTransactChecking ? "Searching..." : "Search"}
                 </button>
+
+                {transactCheckError && (
+                  <div
+                    style={{
+                      color: "#dc2626",
+                      marginTop: "16px",
+                      textAlign: "center",
+                      fontWeight: 500,
+                      padding: "16px",
+                      backgroundColor: "#fee2e2",
+                      borderRadius: "8px",
+                      border: "1px solid #f87171",
+                    }}
+                  >
+                    {transactCheckError}
+                  </div>
+                )}
               </div>
             </div>
           </div>
