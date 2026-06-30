@@ -48,7 +48,7 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
     }
 
     return {
-      height: "56px", // Reduced from 64px
+      height: "56px",
       fontSize: "24px",
       fontWeight: 600,
       borderRadius: "16px",
@@ -70,7 +70,7 @@ const KeypadControl: React.FC<KeypadControlProps> = ({
       display: "flex",
       justifyContent: "center",
       alignItems: "center",
-      userSelect: "none"
+      userSelect: "none",
     };
   };
 
@@ -100,7 +100,7 @@ const styles = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
-    gap: "12px", // Reduced gap to save vertical space
+    gap: "12px",
     width: "100%",
     maxWidth: "320px",
     margin: "0 auto",

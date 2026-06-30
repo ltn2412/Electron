@@ -335,7 +335,9 @@ export default function PageMenu(): React.JSX.Element {
           <div style={styles.middleColumn}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>Time Slots</h2>
+                <h2 style={styles.cardTitle}>
+                  Slots - {new Date().toLocaleDateString("en-GB")}
+                </h2>
                 <span style={styles.badge}>{slots.length}</span>
               </div>
               <div style={styles.listContainer}>
@@ -419,7 +421,7 @@ export default function PageMenu(): React.JSX.Element {
                         <span
                           style={{
                             fontSize: "24px",
-                            fontWeight: 800,
+                            fontWeight: "bold",
                             color: "#0369a1",
                           }}
                         >
@@ -467,7 +469,10 @@ export default function PageMenu(): React.JSX.Element {
                     ...styles.primaryBtn,
                     marginTop: "24px",
                     opacity: transactId && !isTransactChecking ? 1 : 0.5,
-                    cursor: transactId && !isTransactChecking ? "pointer" : "not-allowed",
+                    cursor:
+                      transactId && !isTransactChecking
+                        ? "pointer"
+                        : "not-allowed",
                   }}
                   onClick={handleSearchTransact}
                   disabled={!transactId || isTransactChecking}

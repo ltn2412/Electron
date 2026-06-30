@@ -140,35 +140,44 @@ app.whenReady().then(() => {
     }
   });
 
-  ipcMain.handle("hoangvan:useOrder", async (_, { orderNo, staffId }: { orderNo: string, staffId: string }) => {
-    try {
-      const data = await HoangVanService.useOrder(orderNo, staffId);
-      return { success: true, data };
-    } catch (error: unknown) {
-      const err = error as Error;
-      return { success: false, error: err.message };
-    }
-  });
+  ipcMain.handle(
+    "hoangvan:useOrder",
+    async (_, { orderNo, staffId }: { orderNo: string; staffId: string }) => {
+      try {
+        const data = await HoangVanService.useOrder(orderNo, staffId);
+        return { success: true, data };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
 
-  ipcMain.handle("hoangvan:getExpiredOrders", async (_, { page, pageSize }: { page: number, pageSize: number }) => {
-    try {
-      const data = await HoangVanService.getExpiredOrders(page, pageSize);
-      return { success: true, data };
-    } catch (error: unknown) {
-      const err = error as Error;
-      return { success: false, error: err.message };
-    }
-  });
+  ipcMain.handle(
+    "hoangvan:getExpiredOrders",
+    async (_, { page, pageSize }: { page: number; pageSize: number }) => {
+      try {
+        const data = await HoangVanService.getExpiredOrders(page, pageSize);
+        return { success: true, data };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
 
-  ipcMain.handle("hoangvan:confirmExpiredOrders", async (_, { orderNos }: { orderNos: string[] }) => {
-    try {
-      const data = await HoangVanService.confirmExpiredOrders(orderNos);
-      return { success: true, data };
-    } catch (error: unknown) {
-      const err = error as Error;
-      return { success: false, error: err.message };
-    }
-  });
+  ipcMain.handle(
+    "hoangvan:confirmExpiredOrders",
+    async (_, { orderNos }: { orderNos: string[] }) => {
+      try {
+        const data = await HoangVanService.confirmExpiredOrders(orderNos);
+        return { success: true, data };
+      } catch (error: unknown) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
 
   ipcMain.handle(
     "posAudio:createUpdate",
@@ -185,9 +194,22 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
     "order:create",
-    async (_, { refCode, quantity, costEach, swipe }: { refCode: string; quantity: number; costEach: number; swipe: string }) => {
+    async (
+      _,
+      {
+        refCode,
+        quantity,
+        costEach,
+        swipe,
+      }: { refCode: string; quantity: number; costEach: number; swipe: string },
+    ) => {
       try {
-        const result = await OrderService.createOrder(refCode, quantity, costEach, swipe);
+        const result = await OrderService.createOrder(
+          refCode,
+          quantity,
+          costEach,
+          swipe,
+        );
         return result;
       } catch (error: unknown) {
         const err = error as Error;

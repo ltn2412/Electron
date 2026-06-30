@@ -194,6 +194,9 @@ export class SpeedPosService {
     pageSize: number = 50,
   ): Promise<ExpiredOrdersResponse> {
     const response = await window.api.getExpiredOrders({ page, pageSize });
+    if (response.success && response.data) {
+      return response.data as ExpiredOrdersResponse;
+    }
     return response as unknown as ExpiredOrdersResponse;
   }
 
@@ -204,6 +207,9 @@ export class SpeedPosService {
     payload: ExpiredConfirmPayload,
   ): Promise<ExpiredConfirmResponse> {
     const response = await window.api.confirmExpiredOrders({ orderNos: payload.orderNos });
+    if (response.success && response.data) {
+      return response.data as ExpiredConfirmResponse;
+    }
     return response as unknown as ExpiredConfirmResponse;
   }
 

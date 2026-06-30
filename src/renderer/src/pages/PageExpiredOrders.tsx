@@ -270,7 +270,7 @@ export default function PageExpiredOrders() {
                       gap: "8px",
                     }}
                   >
-                    {selectedOrder.services.map((svc, idx) => (
+                    {(selectedOrder.services || []).map((svc, idx) => (
                       <div key={idx} style={styles.serviceItemBox}>
                         <div style={{ flex: 1 }}>
                           <div
@@ -295,7 +295,7 @@ export default function PageExpiredOrders() {
                             color: "#0f172a",
                           }}
                         >
-                          {svc.totalAmount.toLocaleString("vi-VN")} đ
+                          {(svc.totalAmount || (svc.unitPrice * svc.quantity) || 0).toLocaleString("vi-VN")} đ
                         </div>
                       </div>
                     ))}
@@ -348,11 +348,14 @@ export default function PageExpiredOrders() {
 
 const styles = {
   container: {
+    width: "100vw",
     display: "flex",
     flexDirection: "column",
     height: "100vh",
+    paddingTop: "36px",
     backgroundColor: "#f1f5f9",
     fontFamily: "Inter, sans-serif",
+    boxSizing: "border-box",
   } as React.CSSProperties,
   header: {
     display: "flex",

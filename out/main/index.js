@@ -4,6 +4,9 @@ const path = require("path");
 const utils = require("@electron-toolkit/utils");
 const odbc = require("odbc");
 const axios = require("axios");
+const winston = require("winston");
+const DailyRotateFile = require("winston-daily-rotate-file");
+const os = require("os");
 const icon = path.join(__dirname, "../../resources/icon.png");
 const CONNECTION_STRING = "DSN=PixelSqlbase;UID=DBA;ENP=28f3cd0c3ddcfc32;";
 async function getConnection() {
@@ -344,6 +347,39 @@ class TransactionPOSAudioService {
     }
   }
 }
+const isWindows = os.platform() === "win32";
+const logDir = isWindows ? "C:\\BTCTCT" : path.join(os.homedir(), "BTCTCT");
+const logger = winston.createLogger({
+  level: "info",
+  format: winston.format.combine(
+    winston.format.timestamp({
+      format: "YYYY-MM-DD HH:mm:ss"
+    }),
+    winston.format.printf((info) => {
+      let msg = `[${info.timestamp}] ${info.level.toUpperCase()}: ${info.message}`;
+      if (info.query) msg += `
+Query: ${info.query}`;
+      if (info.params) msg += `
+Params: ${JSON.stringify(info.params)}`;
+      if (info.body) msg += `
+Body: ${JSON.stringify(info.body)}`;
+      if (info.response) msg += `
+Response: ${JSON.stringify(info.response)}`;
+      if (info.error) msg += `
+Error: ${JSON.stringify(info.error)}`;
+      return msg;
+    })
+  ),
+  transports: [
+    new DailyRotateFile({
+      dirname: logDir,
+      filename: "app-%DATE%.log",
+      datePattern: "YYYY-MM-DD",
+      maxFiles: "7d"
+    }),
+    new winston.transports.Console()
+  ]
+});
 class HoangVanService {
   baseURL = "https://demobtctct.soatvetudong.vn/api/speedpos";
   token = null;
@@ -425,11 +461,16 @@ class HoangVanService {
       await this.login();
     }
     try {
+      const payload = { staffId, note: note || "Sử dụng máy Audio Guide" };
       const res = await axios.post(
         `${this.baseURL}/orders/${orderNo}/use`,
-        { staffId, note: note || "Sử dụng máy Audio Guide" },
+        payload,
         { headers: { Authorization: `Bearer ${this.token}` } }
       );
+      logger.info("HoangVan API Request", {
+        body: payload,
+        response: res.data
+      });
       if (res.data.success && res.data.data) {
         return res.data.data;
       } else {
@@ -479,11 +520,16 @@ class HoangVanService {
       await this.login();
     }
     try {
+      const payload = { orderNos };
       const res = await axios.post(
         `${this.baseURL}/orders/expired/confirm`,
-        { orderNos },
+        payload,
         { headers: { Authorization: `Bearer ${this.token}` } }
       );
+      logger.info("HoangVan API Request", {
+        body: payload,
+        response: res.data
+      });
       if (res.data.success) {
         return res.data;
       } else {
@@ -612,47 +658,55 @@ class OrderService {
         `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_POSHEADER'`
       );
       const TRANSACT = nextHeaderRes[0].NEXTNUM + 1;
-      await connection.query(
-        `
-        INSERT INTO DBA.POSHEADER(
-          TRANSACT, TABLENUM, TIMESTART, TIMEEND, NUMCUST, TAX1, TAX2, TAX3, TAX4, TAX5, 
-          TAX1ABLE, TAX2ABLE, TAX3ABLE, TAX4ABLE, TAX5ABLE, NETTOTAL, WHOSTART, WHOCLOSE, 
-          ISSPLIT, SALETYPEINDEX, EXP, WAITINGAUTH, STATNUM, STATUS, FINALTOTAL, StoreNum, 
-          PUNCHINDEX, Gratuity, OPENDATE, MemCode, TotalPoints, PointsApplied, UpdateStatus, 
-          ISDelivery, ScheduleDate, Tax1Exempt, Tax2Exempt, Tax3Exempt, Tax4Exempt, Tax5Exempt, 
-          MEMRATE, MealTime, IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum, 
-          GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId, RstOrdNum
+      const posHeaderSql = `
+        INSERT INTO DBA.POSHEADER (
+          TRANSACT, TABLENUM, TIMESTART, TIMEEND, NUMCUST,
+          TAX1, TAX2, TAX3, TAX4, TAX5,
+          TAX1ABLE, TAX2ABLE, TAX3ABLE, TAX4ABLE, TAX5ABLE,
+          NETTOTAL, WHOSTART, WHOCLOSE, ISSPLIT, SALETYPEINDEX,
+          EXP, WAITINGAUTH, STATNUM, STATUS, FINALTOTAL, StoreNum,
+          PUNCHINDEX, Gratuity, OPENDATE, MemCode, TotalPoints, PointsApplied,
+          UpdateStatus, ISDelivery, ScheduleDate, Tax1Exempt, Tax2Exempt,
+          Tax3Exempt, Tax4Exempt, Tax5Exempt, MEMRATE, MealTime,
+          IsInternet, RevCenter, PunchIdxStart, StatNumStart, SecNum,
+          GratAmount, ShipTo, EnforcedGrat, NumPrintedFinal, RefId,
+          RstOrdNum
         ) VALUES (
-          ?, ?, GETDATE(), GETDATE(), 1, ?, ?, ?, ?, ?, 
-          0, 0, 0, 0, 0, ?, ?, ?, 
-          1, ?, 1, NULL, ?, 3, ?, NULL, 
-          ?, 0, ?, 0, 0, 0, 1, 
-          1, '1899-12-30 00:00:00.000', 0, 0, 0, 0, 0, 
-          0, 3, 0, ?, ?, ?, 0, 
+          ?, ?, GETDATE(), GETDATE(), 1,
+          ?, ?, ?, ?, ?,
+          0, 0, 0, 0, 0,
+          ?, ?, ?, 1, ?,
+          1, NULL, ?, 3, ?, NULL,
+          ?, 0, ?, 0, 0, 0,
+          1, 1, '1899-12-30 00:00:00.000', 0, 0,
+          0, 0, 0, 0, 3,
+          0, ?, ?, ?, 0,
           0, 0, 0, 1, ?, NULL
-        )`,
-        [
-          TRANSACT,
-          TABLENUM,
-          tax1,
-          tax2,
-          tax3,
-          tax4,
-          tax5,
-          NETTOTAL,
-          WHOSTART,
-          WHOSTART,
-          SALETYPEINDEX,
-          STATNUM,
-          FINALTOTAL,
-          PUNCHINDEX,
-          OPENDATE,
-          REVCENTER,
-          PUNCHINDEX,
-          STATNUM,
-          refCode
-        ]
-      );
+        )
+      `;
+      const posHeaderParams = [
+        TRANSACT,
+        TABLENUM,
+        tax1,
+        tax2,
+        tax3,
+        tax4,
+        tax5,
+        NETTOTAL,
+        WHOSTART,
+        WHOSTART,
+        SALETYPEINDEX,
+        STATNUM,
+        FINALTOTAL,
+        PUNCHINDEX,
+        OPENDATE,
+        REVCENTER,
+        PUNCHINDEX,
+        STATNUM,
+        refCode
+      ];
+      logger.info("Executed Database Query", { query: posHeaderSql, params: posHeaderParams });
+      await connection.query(posHeaderSql, posHeaderParams);
       await connection.query(
         `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_POSHEADER'`,
         [TRANSACT]
@@ -670,63 +724,61 @@ class OrderService {
         [TRANSACT]
       );
       const RECPOS = recPosRes[0].RECPOS + 1;
-      await connection.query(
-        `
+      const posDetailSql = `
         INSERT INTO DBA.POSDETAIL (
           UNIQUEID, TRANSACT, PRODNUM, WHOORDER, WHOAUTH, COSTEACH, QUAN, TIMEORD, PRINTLOC, SEATNUM, Minutes, NOTAX, HOWORDERED, STATUS, NEXTPOS, PRIORPOS, RECPOS, PRODTYPE, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5, ReduceInventory, StoreNum, STATNUM, RecipeCostEach, OpenDate, MealTime, LineDes, REVCENTER, MasterItem, QuestionId, OrigCostEach, NetCostEach, Discount, UpdateStatus, GratExempt, AuthCode
         ) VALUES (
           ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 3, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
-      `,
-        [
-          UNIQUEID,
-          TRANSACT,
-          PRODNUM,
-          WHOSTART,
-          WHOSTART,
-          costEach,
-          quantity,
-          product.PrintLoc,
-          RECPOS,
-          product.ProdType,
-          product.Tax1,
-          product.Tax2,
-          product.Tax3,
-          product.Tax4,
-          product.Tax5,
-          STATNUM,
-          OPENDATE,
-          LineDes,
-          REVCENTER,
-          UNIQUEID,
-          costEach,
-          useVat ? netTotalAmount / quantity : costEach
-        ]
-      );
+      `;
+      const posDetailParams = [
+        UNIQUEID,
+        TRANSACT,
+        PRODNUM,
+        WHOSTART,
+        WHOSTART,
+        costEach,
+        quantity,
+        product.PrintLoc,
+        RECPOS,
+        product.ProdType,
+        product.Tax1,
+        product.Tax2,
+        product.Tax3,
+        product.Tax4,
+        product.Tax5,
+        STATNUM,
+        OPENDATE,
+        LineDes,
+        REVCENTER,
+        UNIQUEID,
+        costEach,
+        useVat ? netTotalAmount / quantity : costEach
+      ];
+      logger.info("Executed Database Query", { query: posDetailSql, params: posDetailParams });
+      await connection.query(posDetailSql, posDetailParams);
       if (status === 1) {
-        await connection.query(
-          `
+        const sql = `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
           VALUES (?, '', ?, GETDATE(), NULL)
-          `,
-          [TRANSACT, status]
-        );
+        `;
+        logger.info("Executed Database Query", { query: sql, params: [TRANSACT, status] });
+        await connection.query(sql, [TRANSACT, status]);
       } else {
-        await connection.query(
-          `
+        const sql = `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
           VALUES (?, '', ?, NULL, GETDATE())
-          `,
-          [TRANSACT, status]
-        );
+        `;
+        logger.info("Executed Database Query", { query: sql, params: [TRANSACT, status] });
+        await connection.query(sql, [TRANSACT, status]);
       }
-      await connection.query(
-        `
+      const tdSql = `
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
         VALUES (?, ?, ?, ?)
-        `,
-        [TRANSACT, PRODNUM, status === 1 ? quantity : 0, status === 2 ? quantity : 0]
-      );
+      `;
+      const tdParams = [TRANSACT, PRODNUM, status === 1 ? quantity : 0, status === 2 ? quantity : 0];
+      logger.info("Executed Database Query", { query: tdSql, params: tdParams });
+      await connection.query(tdSql, tdParams);
       const methodRes = await connection.query(
         `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1`
       );
@@ -740,8 +792,7 @@ class OrderService {
         `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_HowPaid'`,
         [HowPaidLink]
       );
-      await connection.query(
-        `
+      const hpSql = `
         INSERT INTO DBA.Howpaid(
           HowPaidLink, TRANSDATE, EMPNUM, TENDER, METHODNUM, CHANGE,
           AUTHORIZED, AUTHCODE, MEMCODE, ExchangeRate, TRANSACT, PayType, OPENDATE,
@@ -755,19 +806,20 @@ class OrderService {
           '', 1, 999, 0, 0, 0, 0,
           0, ?, ''
         )
-        `,
-        [
-          HowPaidLink,
-          WHOSTART,
-          FINALTOTAL,
-          methodNum,
-          TRANSACT,
-          OPENDATE,
-          PUNCHINDEX,
-          STATNUM,
-          methodNum
-        ]
-      );
+      `;
+      const hpParams = [
+        HowPaidLink,
+        WHOSTART,
+        FINALTOTAL,
+        methodNum,
+        TRANSACT,
+        OPENDATE,
+        PUNCHINDEX,
+        STATNUM,
+        methodNum
+      ];
+      logger.info("Executed Database Query", { query: hpSql, params: hpParams });
+      await connection.query(hpSql, hpParams);
       await connection.commit();
       return {
         success: true,
@@ -888,33 +940,42 @@ electron.app.whenReady().then(() => {
       return { success: false, error: err.message };
     }
   });
-  electron.ipcMain.handle("hoangvan:useOrder", async (_, { orderNo, staffId }) => {
-    try {
-      const data = await HoangVanService$1.useOrder(orderNo, staffId);
-      return { success: true, data };
-    } catch (error) {
-      const err = error;
-      return { success: false, error: err.message };
+  electron.ipcMain.handle(
+    "hoangvan:useOrder",
+    async (_, { orderNo, staffId }) => {
+      try {
+        const data = await HoangVanService$1.useOrder(orderNo, staffId);
+        return { success: true, data };
+      } catch (error) {
+        const err = error;
+        return { success: false, error: err.message };
+      }
     }
-  });
-  electron.ipcMain.handle("hoangvan:getExpiredOrders", async (_, { page, pageSize }) => {
-    try {
-      const data = await HoangVanService$1.getExpiredOrders(page, pageSize);
-      return { success: true, data };
-    } catch (error) {
-      const err = error;
-      return { success: false, error: err.message };
+  );
+  electron.ipcMain.handle(
+    "hoangvan:getExpiredOrders",
+    async (_, { page, pageSize }) => {
+      try {
+        const data = await HoangVanService$1.getExpiredOrders(page, pageSize);
+        return { success: true, data };
+      } catch (error) {
+        const err = error;
+        return { success: false, error: err.message };
+      }
     }
-  });
-  electron.ipcMain.handle("hoangvan:confirmExpiredOrders", async (_, { orderNos }) => {
-    try {
-      const data = await HoangVanService$1.confirmExpiredOrders(orderNos);
-      return { success: true, data };
-    } catch (error) {
-      const err = error;
-      return { success: false, error: err.message };
+  );
+  electron.ipcMain.handle(
+    "hoangvan:confirmExpiredOrders",
+    async (_, { orderNos }) => {
+      try {
+        const data = await HoangVanService$1.confirmExpiredOrders(orderNos);
+        return { success: true, data };
+      } catch (error) {
+        const err = error;
+        return { success: false, error: err.message };
+      }
     }
-  });
+  );
   electron.ipcMain.handle(
     "posAudio:createUpdate",
     async (_, data) => {
@@ -929,9 +990,19 @@ electron.app.whenReady().then(() => {
   );
   electron.ipcMain.handle(
     "order:create",
-    async (_, { refCode, quantity, costEach, swipe }) => {
+    async (_, {
+      refCode,
+      quantity,
+      costEach,
+      swipe
+    }) => {
       try {
-        const result = await OrderService$1.createOrder(refCode, quantity, costEach, swipe);
+        const result = await OrderService$1.createOrder(
+          refCode,
+          quantity,
+          costEach,
+          swipe
+        );
         return result;
       } catch (error) {
         const err = error;
