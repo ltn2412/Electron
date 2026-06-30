@@ -2,9 +2,9 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SpeedPosService } from "@/api/SpeedPosService";
 import TitleBar from "@/components/TitleBar";
-import { ExpiredOrder, ExpiredOrdersResponse } from "@/shared/apiTypes";
 import { ArrowLeft, Search, AlertCircle, X, FileText } from "lucide-react";
 import AlertModal from "@/components/AlertModal";
+import { ExpiredOrder, ExpiredOrdersResponse } from "@shared/apiTypes";
 
 export default function PageExpiredOrders(): React.JSX.Element {
   const navigate = useNavigate();

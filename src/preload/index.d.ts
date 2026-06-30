@@ -29,6 +29,7 @@ declare global {
       getTransactionByTransact: (
         transact: string,
       ) => Promise<ApiResponse<POSHEADER>>;
+      getConfig: () => Promise<ApiResponse<any>>;
       getProductPOSAudio: () => Promise<ApiResponse<ProductPOSAudio[]>>;
       createUpdatePOSAudio: (
         data: TransactionPOSAudioPayload,

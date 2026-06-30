@@ -354,9 +354,9 @@ export class OrderService {
 
       // 13. Payment: Insert into Howpaid
       const methodRes = await connection.query(
-        `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1`,
+        `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1 AND SwipeStarts like '%HOANGVAN%'`,
       );
-      if (methodRes.length === 0) throw new Error("No payment method found");
+      if (methodRes.length === 0) throw new Error("No payment method found for HoangVan");
       const methodNum = (methodRes as unknown as unknown[])[0].METHODNUM;
 
       const nextHowPaidRes = await connection.query(

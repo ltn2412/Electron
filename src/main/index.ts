@@ -107,6 +107,17 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle("config:get", async () => {
+    try {
+      const { ConfigManager } = await import("./config/AppConfig");
+      const config = ConfigManager.getConfig();
+      return { success: true, data: config };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle("product:getPOSAudio", async () => {
     try {
       const data = await ProductService.getProductPOSAudio();

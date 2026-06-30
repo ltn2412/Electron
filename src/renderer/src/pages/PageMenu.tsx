@@ -73,7 +73,11 @@ export default function PageMenu(): React.JSX.Element {
         setTransactions(txRes.data);
       }
       if (prodRes.success && prodRes.data) {
-        setProducts(prodRes.data);
+        setProducts(
+          prodRes.data.sort((a: ProductPOSAudio, b: ProductPOSAudio) =>
+            (a.DESCRIPT || "").localeCompare(b.DESCRIPT || ""),
+          ),
+        );
       }
       if (slotRes && slotRes.success && slotRes.data) {
         setSlots(slotRes.data);

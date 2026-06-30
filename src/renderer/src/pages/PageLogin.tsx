@@ -9,6 +9,15 @@ export default function PageLogin(): React.JSX.Element {
   const [isLoading, setIsLoading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isActive, setIsActive] = useState(false);
+  const [configError, setConfigError] = useState("");
+
+  useEffect(() => {
+    window.api.getConfig().then((res) => {
+      if (!res.success || !res.data) {
+        setConfigError("Missing config.json file or invalid fields.");
+      }
+    });
+  }, []);
 
   const handleLogin = useCallback(async (): Promise<void> => {
     if (!password) return;
@@ -94,37 +103,52 @@ export default function PageLogin(): React.JSX.Element {
           <h1 style={styles.title}>POS System</h1>
           <p style={styles.subtitle}>Please enter your PIN to continue</p>
 
-          <div style={styles.inputWrapper}>
-            <input
-              type="password"
-              value={password}
-              readOnly
-              style={styles.input}
-            />
-          </div>
+          {configError ? (
+            <div
+              style={{
+                color: "red",
+                textAlign: "center",
+                marginBottom: "20px",
+                fontWeight: "bold",
+              }}
+            >
+              {configError}
+            </div>
+          ) : (
+            <>
+              <div style={styles.inputWrapper}>
+                <input
+                  type="password"
+                  value={password}
+                  readOnly
+                  style={styles.input}
+                />
+              </div>
 
-          <div style={styles.keypadWrapper}>
-            <KeypadControl
-              onKeyPress={(key) => setPassword((prev) => prev + key)}
-              onBackspace={() => setPassword((prev) => prev.slice(0, -1))}
-              onClear={() => setPassword("")}
-            />
-          </div>
+              <div style={styles.keypadWrapper}>
+                <KeypadControl
+                  onKeyPress={(key) => setPassword((prev) => prev + key)}
+                  onBackspace={() => setPassword((prev) => prev.slice(0, -1))}
+                  onClear={() => setPassword("")}
+                />
+              </div>
 
-          <button
-            style={btnStyle}
-            onClick={handleLogin}
-            disabled={isLoading || password.length === 0}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => {
-              setIsHovered(false);
-              setIsActive(false);
-            }}
-            onMouseDown={() => setIsActive(true)}
-            onMouseUp={() => setIsActive(false)}
-          >
-            {isLoading ? "Authenticating..." : "Login"}
-          </button>
+              <button
+                style={btnStyle}
+                onClick={handleLogin}
+                disabled={isLoading || password.length === 0}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => {
+                  setIsHovered(false);
+                  setIsActive(false);
+                }}
+                onMouseDown={() => setIsActive(true)}
+                onMouseUp={() => setIsActive(false)}
+              >
+                {isLoading ? "Authenticating..." : "Login"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </>

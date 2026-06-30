@@ -10,6 +10,7 @@ const api = {
   getTransactions: () => ipcRenderer.invoke("transaction:get"),
   getTransactionByTransact: (transact: string) =>
     ipcRenderer.invoke("transaction:getByTransact", transact),
+  getConfig: () => ipcRenderer.invoke("config:get"),
   getProductPOSAudio: () => ipcRenderer.invoke("product:getPOSAudio"),
   resetProduct: (products: import("@/shared/types").ProductPOSAudio[]) =>
     ipcRenderer.invoke("reset-product", products),

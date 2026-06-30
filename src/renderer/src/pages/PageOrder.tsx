@@ -89,6 +89,7 @@ export default function PageOrder(): React.JSX.Element {
   const isNew = statusName === "New";
   const isOut = statusName === "Out";
   const isReturn = statusName === "Return";
+  const isExpired = statusName === "Expired";
 
   return (
     <>
@@ -249,7 +250,32 @@ export default function PageOrder(): React.JSX.Element {
                     }}
                     disabled
                   >
-                    Already Returned
+                    Returned
+                  </button>
+                </div>
+              )}
+
+              {isExpired && (
+                <div style={styles.actionBlock}>
+                  <CheckCircle
+                    size={64}
+                    color="#ef4444"
+                    style={{ marginBottom: "24px" }}
+                  />
+                  <h3 style={styles.actionTitle}>Transaction Expired</h3>
+                  <p style={styles.actionDesc}>
+                    This ticket has expired and can no longer be processed.
+                  </p>
+                  <button
+                    style={{
+                      ...styles.actionBtn,
+                      backgroundColor: "#fca5a5",
+                      color: "#991b1b",
+                      cursor: "not-allowed",
+                    }}
+                    disabled
+                  >
+                    Expired
                   </button>
                 </div>
               )}

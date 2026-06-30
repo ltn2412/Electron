@@ -1,12 +1,10 @@
 import axios from "axios";
 import { HoangVanSlot, HoangVanOrder } from "../../shared/types";
 import logger from "../utils/logger";
+import { ConfigManager } from "../config/AppConfig";
 
 class HoangVanService {
-  private baseURL = "https://demobtctct.soatvetudong.vn/api/speedpos";
   private token: string | null = null;
-  private username = "speedpos";
-  private password = "SpeedHoangVan";
 
   private handleApiError(error: unknown, context: string): never {
     if (axios.isAxiosError(error)) {
@@ -39,13 +37,18 @@ class HoangVanService {
   }
 
   async login(): Promise<void> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
     try {
-      const res = await axios.post(`${this.baseURL}/login`, {
-        Username: this.username,
-        Password: this.password,
-        username: this.username,
-        password: this.password,
-      });
+      const payload = {
+        Username: config.hoangVanUser,
+        Password: config.hoangVanPass,
+        username: config.hoangVanUser,
+        password: config.hoangVanPass,
+      };
+      logger.info(`HoangVanAPI Login Request to ${config.hoangVanURL}/login`, { payload });
+      const res = await axios.post(`${config.hoangVanURL}/login`, payload);
+      logger.info("HoangVanAPI Login Response", { data: res.data });
 
       if (res.data.success && res.data.data?.token) {
         this.token = res.data.data.token;
@@ -59,16 +62,21 @@ class HoangVanService {
   }
 
   async getSlots(date: string, isRetry = false): Promise<HoangVanSlot[]> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) {
       await this.login();
     }
 
     try {
-      const res = await axios.get(`${this.baseURL}/slots?date=${date}`, {
+      const url = `${config.hoangVanURL}/slots?date=${date}`;
+      logger.info(`HoangVanAPI GetSlots Request to ${url}`);
+      const res = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
+      logger.info("HoangVanAPI GetSlots Response", { data: res.data });
 
       if (res.data.success && res.data.data?.slots) {
         return res.data.data.slots;
@@ -90,13 +98,18 @@ class HoangVanService {
   }
 
   async checkOrder(orderNo: string, isRetry = false): Promise<HoangVanOrder> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) {
       await this.login();
     }
     try {
-      const res = await axios.get(`${this.baseURL}/orders/${orderNo}/status`, {
+      const url = `${config.hoangVanURL}/orders/${orderNo}/status`;
+      logger.info(`HoangVanAPI CheckOrder Request to ${url}`);
+      const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
+      logger.info("HoangVanAPI CheckOrder Response", { data: res.data });
       if (res.data.success && res.data.data) {
         return res.data.data as HoangVanOrder;
       } else {
@@ -119,23 +132,25 @@ class HoangVanService {
   async useOrder(
     orderNo: string,
     staffId: string,
-    note?: string,
     isRetry = false,
-  ): Promise<HoangVanOrder> {
+  ): Promise<any> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) {
       await this.login();
     }
     try {
-      const payload = { staffId, note: note || "Sử dụng máy Audio Guide" };
-      const res = await axios.post(
-        `${this.baseURL}/orders/${orderNo}/use`,
-        payload,
-        { headers: { Authorization: `Bearer ${this.token}` } },
-      );
-      logger.info("HoangVan API Request", {
-        body: payload,
-        response: res.data,
+      const url = `${config.hoangVanURL}/orders/${orderNo}/use`;
+      const payload = {
+        orderNo,
+        staffId,
+        usedTime: new Date().toISOString(),
+      };
+      logger.info(`HoangVanAPI UseOrder Request to ${url}`, { payload });
+      const res = await axios.post(url, payload, {
+        headers: { Authorization: `Bearer ${this.token}` },
       });
+      logger.info("HoangVanAPI UseOrder Response", { data: res.data });
       if (res.data.success && res.data.data) {
         return res.data.data;
       } else {
@@ -147,26 +162,64 @@ class HoangVanService {
         if ((status === 401 || status === 403) && !isRetry) {
           this.token = null;
           await this.login();
-          return this.useOrder(orderNo, staffId, note, true);
+          return this.useOrder(orderNo, staffId, true);
         }
       }
       console.error("HoangVanAPI useOrder Error:", error);
       this.handleApiError(error, "useOrder");
     }
   }
+
+  async getTransactions(
+    orderNo: string,
+    isRetry = false,
+  ): Promise<any> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
+    if (!this.token) {
+      await this.login();
+    }
+    try {
+      const url = `${config.hoangVanURL}/orders/${orderNo}/transactions`;
+      logger.info(`HoangVanAPI GetTransactions Request to ${url}`);
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      logger.info("HoangVanAPI GetTransactions Response", { data: res.data });
+      if (res.data.success) {
+        return res.data;
+      } else {
+        throw new Error(res.data.message || "Failed to fetch transactions");
+      }
+    } catch (error: unknown) {
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if ((status === 401 || status === 403) && !isRetry) {
+          this.token = null;
+          await this.login();
+          return this.getTransactions(orderNo, true);
+        }
+      }
+      console.error("HoangVanAPI getTransactions Error:", error);
+      this.handleApiError(error, "getTransactions");
+    }
+  }
+
   async getExpiredOrders(
     page: number = 1,
     pageSize: number = 50,
     isRetry = false,
   ): Promise<unknown> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) {
       await this.login();
     }
     try {
-      const res = await axios.get(
-        `${this.baseURL}/orders/expired?page=${page}&pageSize=${pageSize}`,
-        { headers: { Authorization: `Bearer ${this.token}` } },
-      );
+      const url = `${config.hoangVanURL}/orders/expired?page=${page}&pageSize=${pageSize}`;
+      logger.info(`HoangVanAPI GetExpiredOrders Request to ${url}`);
+      const res = await axios.get(url, { headers: { Authorization: `Bearer ${this.token}` } });
+      logger.info("HoangVanAPI GetExpiredOrders Response", { data: res.data });
       if (res.data.success && res.data.data) {
         return res.data;
       } else {
@@ -190,20 +243,21 @@ class HoangVanService {
     orderNos: string[],
     isRetry = false,
   ): Promise<unknown> {
+    const config = ConfigManager.getConfig();
+    if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) {
       await this.login();
     }
     try {
+      const url = `${config.hoangVanURL}/orders/expired/confirm`;
       const payload = { orderNos };
+      logger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, { payload });
       const res = await axios.post(
-        `${this.baseURL}/orders/expired/confirm`,
+        url,
         payload,
         { headers: { Authorization: `Bearer ${this.token}` } },
       );
-      logger.info("HoangVan API Request", {
-        body: payload,
-        response: res.data,
-      });
+      logger.info("HoangVanAPI ConfirmExpiredOrders Response", { data: res.data });
       if (res.data.success) {
         return res.data;
       } else {
