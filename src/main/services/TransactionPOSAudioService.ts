@@ -38,39 +38,52 @@ export class TransactionPOSAudioService {
 
           let sqlBatch = "";
 
+          const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ${detail.PRODNUM}`;
+          const prodLinkResult = await connection.query(prodLinkQuery);
+          let linkNum = detail.PRODNUM;
+          let linkQty = 1;
+          if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
+            const row = (prodLinkResult as any[])[0];
+            linkNum = row.PRODNUMLINK;
+            linkQty = row.QUANTITY || 1;
+          }
+
+          const outQty = detail.QuantityOut * linkQty;
+          const retQty = detail.QuantityReturn * linkQty;
+
           if ((existingDetail as unknown[]).length > 0) {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
               sqlBatch += `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ${detail.QuantityOut} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM};`;
-              sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
-              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
+              // DO NOT decrement COUNTDOWN here, it was already decremented when the third-party POS created the order
+              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT+${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum};`;
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               sqlBatch += `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ${detail.QuantityReturn} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM};`;
-              sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
-              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
+              sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum};`;
+              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT-${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum};`;
             }
           } else {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
               sqlBatch += `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYOUT) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityOut});`;
-              sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
-              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
+              // DO NOT decrement COUNTDOWN here, it was already decremented when the third-party POS created the order
+              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT+${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum};`;
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               sqlBatch += `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYRETURN) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityReturn});`;
-              sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
-              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
+              sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum};`;
+              sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT-${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum};`;
             }
           }
 
