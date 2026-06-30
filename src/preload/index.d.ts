@@ -22,6 +22,7 @@ declare global {
     electron: ElectronAPI;
     api: {
       getEmployeeBySwipe: (swipe: string) => Promise<ApiResponse<EmployeeData>>;
+      logoutEmployee: (swipe: string) => Promise<ApiResponse<boolean>>;
       minimize: () => void;
       close: () => void;
       getTransactions: () => Promise<ApiResponse<POSHEADER[]>>;

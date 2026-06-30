@@ -77,6 +77,16 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle("employee:logout", async (_, swipe: string) => {
+    try {
+      const result = await EmployeeService.logoutEmployee(swipe);
+      return { success: true, data: result };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle("transaction:get", async () => {
     try {
       const data = await TransactionService.getTransaction();

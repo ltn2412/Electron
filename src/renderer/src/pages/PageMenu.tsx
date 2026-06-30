@@ -44,6 +44,8 @@ export default function PageMenu(): React.JSX.Element {
   const [hvUsing, setHvUsing] = useState(false);
 
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [setupProducts, setSetupProducts] = useState<ProductPOSAudio[]>([]);
   const [editingProduct, setEditingProduct] = useState<ProductPOSAudio | null>(
     null,
@@ -214,6 +216,24 @@ export default function PageMenu(): React.JSX.Element {
     }
   };
 
+  const handleLogoutConfirm = async (): Promise<void> => {
+    setIsLoggingOut(true);
+    try {
+      const swipe = localStorage.getItem("employeeSwipe");
+      if (swipe) {
+        await window.api.logoutEmployee(swipe);
+      }
+      localStorage.removeItem("employeeSwipe");
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      navigate("/login");
+    } finally {
+      setIsLoggingOut(false);
+      setIsLogoutConfirmOpen(false);
+    }
+  };
+
   const handleRefresh = async (): Promise<void> => {
     setIsRefreshing(true);
     await fetchData();
@@ -309,7 +329,7 @@ export default function PageMenu(): React.JSX.Element {
             </button>
             <button
               style={styles.iconBtn}
-              onClick={() => navigate("/login")}
+              onClick={() => setIsLogoutConfirmOpen(true)}
               title="Logout"
             >
               <LogOut size={20} />
@@ -1223,6 +1243,72 @@ export default function PageMenu(): React.JSX.Element {
                     }}
                   >
                     Enter
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Logout Confirm Modal */}
+        {isLogoutConfirmOpen && (
+          <div style={{ ...styles.modalOverlay, zIndex: 1200 }}>
+            <div style={{ ...styles.modalContent, width: "320px" }}>
+              <div
+                style={{
+                  ...styles.modalHeader,
+                  justifyContent: "center",
+                  borderBottom: "none",
+                  paddingBottom: 0,
+                }}
+              >
+                <h2
+                  style={{
+                    ...styles.cardTitle,
+                    color: "#1e3a8a",
+                    textAlign: "center",
+                  }}
+                >
+                  Confirm Logout
+                </h2>
+              </div>
+              <div style={{ padding: "24px", textAlign: "center" }}>
+                <p style={{ margin: "0 0 24px 0", color: "#64748b" }}>
+                  Are you sure you want to log out?
+                </p>
+                <div style={{ display: "flex", gap: "16px" }}>
+                  <button
+                    style={{
+                      flex: 1,
+                      height: "48px",
+                      border: "1px solid #94a3b8",
+                      borderRadius: "12px",
+                      background: "white",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      color: "#64748b",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => setIsLogoutConfirmOpen(false)}
+                    disabled={isLoggingOut}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    style={{
+                      flex: 1,
+                      height: "48px",
+                      border: "none",
+                      borderRadius: "12px",
+                      background: "#ef4444",
+                      fontSize: "16px",
+                      fontWeight: 600,
+                      color: "white",
+                      cursor: "pointer",
+                    }}
+                    onClick={handleLogoutConfirm}
+                    disabled={isLoggingOut}
+                  >
+                    {isLoggingOut ? "..." : "Logout"}
                   </button>
                 </div>
               </div>

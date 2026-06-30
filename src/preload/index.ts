@@ -3,6 +3,8 @@ import { contextBridge, ipcRenderer } from "electron";
 const api = {
   getEmployeeBySwipe: (swipe: string) =>
     ipcRenderer.invoke("employee:getBySwipe", swipe),
+  logoutEmployee: (swipe: string) =>
+    ipcRenderer.invoke("employee:logout", swipe),
   minimize: () => ipcRenderer.send("window:minimize"),
   close: () => ipcRenderer.send("window:close"),
   getTransactions: () => ipcRenderer.invoke("transaction:get"),
