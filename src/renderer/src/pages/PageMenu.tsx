@@ -955,7 +955,13 @@ export default function PageMenu(): React.JSX.Element {
                             {new Intl.NumberFormat("vi-VN", {
                               style: "currency",
                               currency: "VND",
-                            }).format(hvOrderInfo.totalAmount)}
+                            }).format(
+                              (hvOrderInfo.services || []).reduce(
+                                (sum, svc) =>
+                                  sum + svc.unitPrice * svc.quantity,
+                                0,
+                              ),
+                            )}
                           </div>
                         </div>
                       </div>
