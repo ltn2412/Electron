@@ -33,12 +33,33 @@ declare global {
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
       resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
-      getHoangVanSlots: (date: string) => Promise<ApiResponse<any>>;
-      checkOrder: (orderNo: string) => Promise<ApiResponse<any>>;
-      useOrder: (payload: { orderNo: string; staffId: string }) => Promise<ApiResponse<any>>;
-      createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number }) => Promise<ApiResponse<{ success: boolean; transact?: number; message?: string; error?: string }>>;
-      getExpiredOrders: (payload: { page: number; pageSize: number }) => Promise<ApiResponse<any>>;
-      confirmExpiredOrders: (payload: { orderNos: string[] }) => Promise<ApiResponse<any>>;
+      getHoangVanSlots: (date: string) => Promise<ApiResponse<unknown>>;
+      checkOrder: (orderNo: string) => Promise<ApiResponse<unknown>>;
+      useOrder: (payload: {
+        orderNo: string;
+        staffId: string;
+      }) => Promise<ApiResponse<unknown>>;
+      createOrder: (payload: {
+        refCode: string;
+        quantity: number;
+        costEach: number;
+        swipe: string;
+        status?: number;
+      }) => Promise<
+        ApiResponse<{
+          success: boolean;
+          transact?: number;
+          message?: string;
+          error?: string;
+        }>
+      >;
+      getExpiredOrders: (payload: {
+        page: number;
+        pageSize: number;
+      }) => Promise<ApiResponse<unknown>>;
+      confirmExpiredOrders: (payload: {
+        orderNos: string[];
+      }) => Promise<ApiResponse<unknown>>;
     };
   }
 }

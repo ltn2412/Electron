@@ -20,8 +20,13 @@ const api = {
   createUpdatePOSAudio: (
     data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
-  createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number }) =>
-    ipcRenderer.invoke("order:create", payload),
+  createOrder: (payload: {
+    refCode: string;
+    quantity: number;
+    costEach: number;
+    swipe: string;
+    status?: number;
+  }) => ipcRenderer.invoke("order:create", payload),
   getExpiredOrders: (payload: { page: number; pageSize: number }) =>
     ipcRenderer.invoke("hoangvan:getExpiredOrders", payload),
   confirmExpiredOrders: (payload: { orderNos: string[] }) =>

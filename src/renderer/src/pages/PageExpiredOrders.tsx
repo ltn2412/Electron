@@ -3,17 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { SpeedPosService } from "@/api/SpeedPosService";
 import TitleBar from "@/components/TitleBar";
 import { ExpiredOrder, ExpiredOrdersResponse } from "@/shared/apiTypes";
-import {
-  ArrowLeft,
-  Clock,
-  AlertTriangle,
-  AlertCircle,
-  X,
-  Search,
-  FileText,
-} from "lucide-react";
+import { ArrowLeft, Search, AlertCircle, X, FileText } from "lucide-react";
 
-export default function PageExpiredOrders() {
+export default function PageExpiredOrders(): React.JSX.Element {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<ExpiredOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -21,32 +13,53 @@ export default function PageExpiredOrders() {
 
   const [selectedOrder, setSelectedOrder] = useState<ExpiredOrder | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  useEffect(() => {
-    fetchExpiredOrders();
-  }, []);
-
-  const fetchExpiredOrders = async () => {
+  const fetchExpiredOrders = async (
+    pageNum: number = 1,
+    isLoadMore: boolean = false,
+  ): Promise<void> => {
+    if (loading) return;
     try {
       setLoading(true);
       setError(null);
       const res: ExpiredOrdersResponse = await SpeedPosService.getExpiredOrders(
-        1,
+        pageNum,
         50,
       );
       if (res.success && res.data) {
-        setOrders(res.data.items);
+        if (isLoadMore) {
+          setOrders((prev) => [...prev, ...res.data!.items]);
+        } else {
+          setOrders(res.data.items);
+        }
+        setPage(pageNum);
+        setHasMore(res.data.items.length === 50);
       } else {
         setError(res.message || "Không thể lấy danh sách đơn hết hạn");
       }
-    } catch (err: any) {
-      setError(err.message || "Có lỗi xảy ra khi gọi API");
+    } catch (err: unknown) {
+      setError((err as Error).message || "Có lỗi xảy ra khi gọi API");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleConfirmReturn = async () => {
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchExpiredOrders(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>): void => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollHeight - scrollTop <= clientHeight + 50 && hasMore && !loading) {
+      fetchExpiredOrders(page + 1, true);
+    }
+  };
+
+  const handleConfirmReturn = async (): Promise<void> => {
     if (!selectedOrder) return;
     setConfirming(true);
     try {
@@ -67,7 +80,7 @@ export default function PageExpiredOrders() {
           quantity: svc.quantity,
           costEach: svc.unitPrice,
           swipe: swipe,
-          status: 2, // 2 for Return
+          status: 3, // 3 for Expired
         });
         if (!createRes.success) {
           throw new Error(`Lỗi tạo bill nội bộ: ${createRes.error}`);
@@ -85,24 +98,11 @@ export default function PageExpiredOrders() {
 
       alert("Đã hoàn thành thu hồi đơn hết hạn!");
       setSelectedOrder(null);
-      fetchExpiredOrders(); // refresh list
-    } catch (err: any) {
-      alert("Lỗi: " + (err.message || String(err)));
+      fetchExpiredOrders(1, false); // refresh list
+    } catch (err: unknown) {
+      alert("Lỗi: " + ((err as Error).message || String(err)));
     } finally {
       setConfirming(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "HetHan":
-        return "#dc2626";
-      case "DaSuDung":
-        return "#16a34a";
-      case "DaHuy":
-        return "#64748b";
-      default:
-        return "#ca8a04";
     }
   };
 
@@ -121,9 +121,9 @@ export default function PageExpiredOrders() {
         </div>
       </div>
 
-      <div style={styles.content}>
-        {loading ? (
-          <div style={styles.emptyState}>Loading expired orders...</div>
+      <div style={styles.content} onScroll={handleScroll}>
+        {loading && orders.length === 0 ? (
+          <div style={styles.emptyState}>Đang tải dữ liệu...</div>
         ) : error ? (
           <div style={styles.errorState}>
             <AlertCircle
@@ -177,6 +177,17 @@ export default function PageExpiredOrders() {
                 </div>
               </div>
             ))}
+            {loading && orders.length > 0 && (
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "12px",
+                  color: "#64748b",
+                }}
+              >
+                Đang tải thêm...
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -14,7 +14,9 @@ export class TransactionService {
         SELECT TOP 1 
           CASE WHEN (TPA.TRANSACT IS NULL) THEN 0 ELSE TPA.STATUS END AS POSAudioStatus,
           CASE WHEN (TPA.TRANSACT IS NULL) THEN 'New' 
-               ELSE CASE WHEN (TPA.STATUS = 1) THEN 'Out' ELSE 'Return' END 
+               ELSE CASE WHEN (TPA.STATUS = 1) THEN 'Out' 
+                         WHEN (TPA.STATUS = 3) THEN 'Expired' 
+                         ELSE 'Return' END 
           END AS POSAudioStatusName, 
           E.EMPNAME AS EMPNAME,
           PH.* 
@@ -72,7 +74,9 @@ export class TransactionService {
         SELECT 
           CASE WHEN (TPA.TRANSACT IS NULL) THEN 0 ELSE TPA.STATUS END AS POSAudioStatus,
           CASE WHEN (TPA.TRANSACT IS NULL) THEN 'New' 
-               ELSE CASE WHEN (TPA.STATUS = 1) THEN 'Out' ELSE 'Return' END 
+               ELSE CASE WHEN (TPA.STATUS = 1) THEN 'Out' 
+                         WHEN (TPA.STATUS = 3) THEN 'Expired'
+                         ELSE 'Return' END 
           END AS POSAudioStatusName, 
           PH.* 
         FROM DBA.POSHEADER PH 

@@ -216,7 +216,7 @@ export class OrderService {
           ?, ?, ?, ?, ?,
           0, 0, 0, 0, 0,
           ?, ?, ?, 1, ?,
-          1, NULL, ?, 3, ?, NULL,
+          1, NULL, ?, ?, ?, NULL,
           ?, 0, ?, 0, 0, 0,
           1, 1, '1899-12-30 00:00:00.000', 0, 0,
           0, 0, 0, 0, 3,
@@ -225,9 +225,31 @@ export class OrderService {
         )
       `;
       const posHeaderParams = [
-        TRANSACT, TABLENUM, tax1, tax2, tax3, tax4, tax5, NETTOTAL, WHOSTART, WHOSTART, SALETYPEINDEX, STATNUM, FINALTOTAL, PUNCHINDEX, OPENDATE, REVCENTER, PUNCHINDEX, STATNUM, refCode
+        TRANSACT,
+        TABLENUM,
+        tax1,
+        tax2,
+        tax3,
+        tax4,
+        tax5,
+        NETTOTAL,
+        WHOSTART,
+        WHOSTART,
+        SALETYPEINDEX,
+        STATNUM,
+        status,
+        FINALTOTAL,
+        PUNCHINDEX,
+        OPENDATE,
+        REVCENTER,
+        PUNCHINDEX,
+        STATNUM,
+        refCode,
       ];
-      logger.info("Executed Database Query", { query: posHeaderSql, params: posHeaderParams });
+      logger.info("Executed Database Query", {
+        query: posHeaderSql,
+        params: posHeaderParams,
+      });
       await connection.query(posHeaderSql, posHeaderParams);
 
       await connection.query(
@@ -283,7 +305,10 @@ export class OrderService {
         costEach,
         useVat ? netTotalAmount / quantity : costEach,
       ];
-      logger.info("Executed Database Query", { query: posDetailSql, params: posDetailParams });
+      logger.info("Executed Database Query", {
+        query: posDetailSql,
+        params: posDetailParams,
+      });
       await connection.query(posDetailSql, posDetailParams);
 
       // 11. Insert TransactionPOSAudio
@@ -292,14 +317,20 @@ export class OrderService {
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
           VALUES (?, '', ?, GETDATE(), NULL)
         `;
-        logger.info("Executed Database Query", { query: sql, params: [TRANSACT, status] });
+        logger.info("Executed Database Query", {
+          query: sql,
+          params: [TRANSACT, status],
+        });
         await connection.query(sql, [TRANSACT, status]);
       } else {
         const sql = `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
           VALUES (?, '', ?, NULL, GETDATE())
         `;
-        logger.info("Executed Database Query", { query: sql, params: [TRANSACT, status] });
+        logger.info("Executed Database Query", {
+          query: sql,
+          params: [TRANSACT, status],
+        });
         await connection.query(sql, [TRANSACT, status]);
       }
 
@@ -308,8 +339,16 @@ export class OrderService {
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
         VALUES (?, ?, ?, ?)
       `;
-      const tdParams = [TRANSACT, PRODNUM, status === 1 ? quantity : 0, status === 2 ? quantity : 0];
-      logger.info("Executed Database Query", { query: tdSql, params: tdParams });
+      const tdParams = [
+        TRANSACT,
+        PRODNUM,
+        status === 1 ? quantity : 0,
+        status === 2 || status === 3 ? quantity : 0,
+      ];
+      logger.info("Executed Database Query", {
+        query: tdSql,
+        params: tdParams,
+      });
       await connection.query(tdSql, tdParams);
 
       // 13. Payment: Insert into Howpaid
@@ -317,7 +356,7 @@ export class OrderService {
         `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1`,
       );
       if (methodRes.length === 0) throw new Error("No payment method found");
-      const methodNum = (methodRes as unknown as any[])[0].METHODNUM;
+      const methodNum = (methodRes as unknown as unknown[])[0].METHODNUM;
 
       const nextHowPaidRes = await connection.query(
         `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_HowPaid'`,
@@ -356,7 +395,10 @@ export class OrderService {
         STATNUM,
         methodNum,
       ];
-      logger.info("Executed Database Query", { query: hpSql, params: hpParams });
+      logger.info("Executed Database Query", {
+        query: hpSql,
+        params: hpParams,
+      });
       await connection.query(hpSql, hpParams);
 
       await connection.commit();
@@ -366,7 +408,7 @@ export class OrderService {
         transact: TRANSACT,
         message: "Order inserted successfully",
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       await connection.rollback();
       const detailedError =
         error.odbcErrors?.[0]?.message || error.message || "Unknown error";

@@ -26,6 +26,7 @@ export default function PageMenu(): React.JSX.Element {
   const [transactions, setTransactions] = useState<POSHEADER[]>([]);
   const [products, setProducts] = useState<ProductPOSAudio[]>([]);
   const [slots, setSlots] = useState<HoangVanSlot[]>([]);
+  const [expiredCount, setExpiredCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
   const [transactCheckError, setTransactCheckError] = useState("");
@@ -51,10 +52,11 @@ export default function PageMenu(): React.JSX.Element {
   const fetchData = useCallback(async (): Promise<void> => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const [txRes, prodRes, slotRes] = await Promise.all([
+      const [txRes, prodRes, slotRes, expiredRes] = await Promise.all([
         window.api.getTransactions(),
         window.api.getProductPOSAudio(),
         window.api.getHoangVanSlots(today),
+        window.api.getExpiredOrders({ page: 1, pageSize: 1 }),
       ]);
 
       if (txRes.success && txRes.data) {
@@ -66,6 +68,9 @@ export default function PageMenu(): React.JSX.Element {
       if (slotRes && slotRes.success && slotRes.data) {
         setSlots(slotRes.data);
       }
+      if (expiredRes && expiredRes.success && expiredRes.data) {
+        setExpiredCount(expiredRes.data.totalCount || 0);
+      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -76,8 +81,8 @@ export default function PageMenu(): React.JSX.Element {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-    // Polling every 10 seconds
-    const intervalId = setInterval(fetchData, 10000);
+    // Polling every 5 seconds
+    const intervalId = setInterval(fetchData, 5000);
     return () => clearInterval(intervalId);
   }, [fetchData]);
 
@@ -97,7 +102,7 @@ export default function PageMenu(): React.JSX.Element {
         } else {
           setTransactCheckError(res.error || "Transaction not found!");
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
         setTransactCheckError(err.message || "Lỗi hệ thống");
       } finally {
         setIsTransactChecking(false);
@@ -117,7 +122,7 @@ export default function PageMenu(): React.JSX.Element {
       } else {
         setHvCheckError(res.error || "Không tìm thấy đơn hàng");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setHvCheckError(err.message || "Lỗi hệ thống");
     } finally {
       setHvChecking(false);
@@ -225,11 +230,32 @@ export default function PageMenu(): React.JSX.Element {
               <Search size={20} />
             </button>
             <button
-              style={styles.iconBtn}
+              style={{ ...styles.iconBtn, position: "relative" }}
               onClick={() => navigate("/expired")}
               title="Expired Orders"
             >
               <Archive size={20} />
+              {expiredCount > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-5px",
+                    backgroundColor: "#ef4444",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: "20px",
+                    height: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {expiredCount > 99 ? "99+" : expiredCount}
+                </div>
+              )}
             </button>
             <button
               style={styles.iconBtn}
@@ -417,7 +443,14 @@ export default function PageMenu(): React.JSX.Element {
                   <div style={styles.productList}>
                     {products.map((p, idx: number) => (
                       <div key={idx} style={styles.productItem}>
-                        <span>{p.DESCRIPT}</span>
+                        <span
+                          style={{
+                            fontSize: "20px",
+                            fontWeight: 500,
+                          }}
+                        >
+                          {p.DESCRIPT}
+                        </span>
                         <span
                           style={{
                             fontSize: "22px",

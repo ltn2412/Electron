@@ -45,7 +45,7 @@ class HoangVanService {
       } else {
         throw new Error(res.data.message || "Failed to fetch slots");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const status = error.response?.status;
       if ((status === 401 || status === 403) && !isRetry) {
         // Token might have expired or Access Denied, try logging in again
@@ -71,7 +71,7 @@ class HoangVanService {
       } else {
         throw new Error(res.data.message || "Failed to check order");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const status = error.response?.status;
       if ((status === 401 || status === 403) && !isRetry) {
         this.token = null;
@@ -111,7 +111,7 @@ class HoangVanService {
       } else {
         throw new Error(res.data.message || "Failed to use order");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const status = error.response?.status;
       if ((status === 401 || status === 403) && !isRetry) {
         this.token = null;
@@ -125,7 +125,11 @@ class HoangVanService {
       throw error;
     }
   }
-  async getExpiredOrders(page: number = 1, pageSize: number = 50, isRetry = false): Promise<any> {
+  async getExpiredOrders(
+    page: number = 1,
+    pageSize: number = 50,
+    isRetry = false,
+  ): Promise<unknown> {
     if (!this.token) {
       await this.login();
     }
@@ -139,7 +143,7 @@ class HoangVanService {
       } else {
         throw new Error(res.data.message || "Failed to fetch expired orders");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const status = error.response?.status;
       if ((status === 401 || status === 403) && !isRetry) {
         this.token = null;
@@ -151,7 +155,10 @@ class HoangVanService {
     }
   }
 
-  async confirmExpiredOrders(orderNos: string[], isRetry = false): Promise<any> {
+  async confirmExpiredOrders(
+    orderNos: string[],
+    isRetry = false,
+  ): Promise<unknown> {
     if (!this.token) {
       await this.login();
     }
@@ -171,7 +178,7 @@ class HoangVanService {
       } else {
         throw new Error(res.data.message || "Failed to confirm expired orders");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const status = error.response?.status;
       if ((status === 401 || status === 403) && !isRetry) {
         this.token = null;

@@ -206,7 +206,9 @@ export class SpeedPosService {
   static async confirmExpiredOrders(
     payload: ExpiredConfirmPayload,
   ): Promise<ExpiredConfirmResponse> {
-    const response = await window.api.confirmExpiredOrders({ orderNos: payload.orderNos });
+    const response = await window.api.confirmExpiredOrders({
+      orderNos: payload.orderNos,
+    });
     if (response.success && response.data) {
       return response.data as ExpiredConfirmResponse;
     }
