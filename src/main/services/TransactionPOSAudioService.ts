@@ -45,7 +45,7 @@ export class TransactionPOSAudioService {
               sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
               sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${detail.QuantityOut},OUT=OUT+${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT+${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
@@ -53,7 +53,7 @@ export class TransactionPOSAudioService {
               sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
               sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${detail.QuantityReturn},OUT=OUT-${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT-${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
             }
           } else {
             // OUT
@@ -62,7 +62,7 @@ export class TransactionPOSAudioService {
               sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
               sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${detail.QuantityOut},OUT=OUT+${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT+${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM};`;
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
@@ -70,7 +70,7 @@ export class TransactionPOSAudioService {
               sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
               sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${detail.QuantityReturn},OUT=OUT-${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET OUT=OUT-${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
             }
           }
 
