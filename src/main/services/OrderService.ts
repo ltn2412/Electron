@@ -52,6 +52,7 @@ export class OrderService {
     quantity: number,
     costEach: number,
     swipe: string,
+    status: number = 1,
   ): Promise<{
     success: boolean;
     transact?: number;
@@ -295,21 +296,31 @@ export class OrderService {
       );
 
       // 11. Insert TransactionPOSAudio
-      await connection.query(
-        `
-        INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
-        VALUES (?, '', 1, GETDATE(), NULL)
-        `,
-        [TRANSACT],
-      );
+      if (status === 1) {
+        await connection.query(
+          `
+          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
+          VALUES (?, '', ?, GETDATE(), NULL)
+          `,
+          [TRANSACT, status],
+        );
+      } else {
+        await connection.query(
+          `
+          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
+          VALUES (?, '', ?, NULL, GETDATE())
+          `,
+          [TRANSACT, status],
+        );
+      }
 
       // 12. Insert TransactionDetailPOSAudio
       await connection.query(
         `
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
-        VALUES (?, ?, ?, 0)
+        VALUES (?, ?, ?, ?)
         `,
-        [TRANSACT, PRODNUM, quantity],
+        [TRANSACT, PRODNUM, status === 1 ? quantity : 0, status === 2 ? quantity : 0],
       );
 
       // 13. Payment: Insert into Howpaid

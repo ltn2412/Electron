@@ -36,7 +36,9 @@ declare global {
       getHoangVanSlots: (date: string) => Promise<ApiResponse<any>>;
       checkOrder: (orderNo: string) => Promise<ApiResponse<any>>;
       useOrder: (payload: { orderNo: string; staffId: string }) => Promise<ApiResponse<any>>;
-      createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string }) => Promise<ApiResponse<{ success: boolean; transact?: number; message?: string; error?: string }>>;
+      createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number }) => Promise<ApiResponse<{ success: boolean; transact?: number; message?: string; error?: string }>>;
+      getExpiredOrders: (payload: { page: number; pageSize: number }) => Promise<ApiResponse<any>>;
+      confirmExpiredOrders: (payload: { orderNos: string[] }) => Promise<ApiResponse<any>>;
     };
   }
 }

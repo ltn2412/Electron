@@ -119,6 +119,58 @@ class HoangVanService {
       throw error;
     }
   }
+  async getExpiredOrders(page: number = 1, pageSize: number = 50, isRetry = false): Promise<any> {
+    if (!this.token) {
+      await this.login();
+    }
+    try {
+      const res = await axios.get(
+        `${this.baseURL}/orders/expired?page=${page}&pageSize=${pageSize}`,
+        { headers: { Authorization: `Bearer ${this.token}` } },
+      );
+      if (res.data.success && res.data.data) {
+        return res.data;
+      } else {
+        throw new Error(res.data.message || "Failed to fetch expired orders");
+      }
+    } catch (error: any) {
+      const status = error.response?.status;
+      if ((status === 401 || status === 403) && !isRetry) {
+        this.token = null;
+        await this.login();
+        return this.getExpiredOrders(page, pageSize, true);
+      }
+      console.error("HoangVanAPI getExpiredOrders Error:", error);
+      throw error;
+    }
+  }
+
+  async confirmExpiredOrders(orderNos: string[], isRetry = false): Promise<any> {
+    if (!this.token) {
+      await this.login();
+    }
+    try {
+      const res = await axios.post(
+        `${this.baseURL}/orders/expired/confirm`,
+        { orderNos },
+        { headers: { Authorization: `Bearer ${this.token}` } },
+      );
+      if (res.data.success) {
+        return res.data;
+      } else {
+        throw new Error(res.data.message || "Failed to confirm expired orders");
+      }
+    } catch (error: any) {
+      const status = error.response?.status;
+      if ((status === 401 || status === 403) && !isRetry) {
+        this.token = null;
+        await this.login();
+        return this.confirmExpiredOrders(orderNos, true);
+      }
+      console.error("HoangVanAPI confirmExpiredOrders Error:", error);
+      throw error;
+    }
+  }
 }
 
 export default new HoangVanService();

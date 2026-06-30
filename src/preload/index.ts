@@ -20,8 +20,12 @@ const api = {
   createUpdatePOSAudio: (
     data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
-  createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string }) =>
+  createOrder: (payload: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number }) =>
     ipcRenderer.invoke("order:create", payload),
+  getExpiredOrders: (payload: { page: number; pageSize: number }) =>
+    ipcRenderer.invoke("hoangvan:getExpiredOrders", payload),
+  confirmExpiredOrders: (payload: { orderNos: string[] }) =>
+    ipcRenderer.invoke("hoangvan:confirmExpiredOrders", payload),
 };
 
 // Expose api ra đối tượng window

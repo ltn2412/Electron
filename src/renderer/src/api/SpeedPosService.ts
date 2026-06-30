@@ -193,10 +193,8 @@ export class SpeedPosService {
     page: number = 1,
     pageSize: number = 50,
   ): Promise<ExpiredOrdersResponse> {
-    const response = await api.get<ExpiredOrdersResponse>(
-      `/orders/expired?page=${page}&pageSize=${pageSize}`,
-    );
-    return response.data;
+    const response = await window.api.getExpiredOrders({ page, pageSize });
+    return response as unknown as ExpiredOrdersResponse;
   }
 
   /**
@@ -205,11 +203,8 @@ export class SpeedPosService {
   static async confirmExpiredOrders(
     payload: ExpiredConfirmPayload,
   ): Promise<ExpiredConfirmResponse> {
-    const response = await api.post<ExpiredConfirmResponse>(
-      "/orders/expired/confirm",
-      payload,
-    );
-    return response.data;
+    const response = await window.api.confirmExpiredOrders({ orderNos: payload.orderNos });
+    return response as unknown as ExpiredConfirmResponse;
   }
 
   /**

@@ -150,6 +150,26 @@ app.whenReady().then(() => {
     }
   });
 
+  ipcMain.handle("hoangvan:getExpiredOrders", async (_, { page, pageSize }: { page: number, pageSize: number }) => {
+    try {
+      const data = await HoangVanService.getExpiredOrders(page, pageSize);
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("hoangvan:confirmExpiredOrders", async (_, { orderNos }: { orderNos: string[] }) => {
+    try {
+      const data = await HoangVanService.confirmExpiredOrders(orderNos);
+      return { success: true, data };
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
   ipcMain.handle(
     "posAudio:createUpdate",
     async (_, data: import("@/shared/types").TransactionPOSAudioPayload) => {
