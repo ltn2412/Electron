@@ -1,4 +1,5 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { showAlert } from "@/utils/alert";
 import {
   LoginResponse,
   OrderStatusResponse,
@@ -121,7 +122,7 @@ api.interceptors.response.use(
         const errMessage =
           (refreshError as AxiosError<LoginResponse>)?.response?.data
             ?.message || (refreshError as Error).message;
-        alert(
+        showAlert(
           `Phiên đăng nhập hết hạn và tự động đăng nhập thất bại. Lỗi: ${errMessage}`,
         );
 
@@ -138,9 +139,9 @@ api.interceptors.response.use(
         error?: string;
       };
       const msg = errData.message || errData.error || error.message;
-      alert(`Lỗi API: ${msg}`);
+      showAlert(`Lỗi API: ${msg}`);
     } else {
-      alert(`Lỗi kết nối API: ${error.message}`);
+      showAlert(`Lỗi kết nối API: ${error.message}`);
     }
 
     return Promise.reject(error);

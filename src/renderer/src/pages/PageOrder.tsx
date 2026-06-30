@@ -3,6 +3,7 @@ import { POSDETAIL, POSHEADER } from "@shared/types";
 import { ArrowLeft, CheckCircle, Clock, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { showAlert } from "@/utils/alert";
 
 export default function PageOrder(): React.JSX.Element {
   const navigate = useNavigate();
@@ -25,12 +26,12 @@ export default function PageOrder(): React.JSX.Element {
         if (res.success && res.data) {
           if (isMounted) setTransaction(res.data);
         } else {
-          alert("Transaction not found!");
+          showAlert("Transaction not found!");
           navigate("/menu");
         }
       } catch (error) {
         console.error("Error fetching transaction details:", error);
-        alert("Error loading transaction.");
+        showAlert("Error loading transaction.");
         navigate("/menu");
       } finally {
         if (isMounted) setIsLoading(false);
@@ -64,11 +65,11 @@ export default function PageOrder(): React.JSX.Element {
       if (res.success) {
         navigate("/menu");
       } else {
-        alert(res.error || "Failed to update transaction.");
+        showAlert(res.error || "Failed to update transaction.");
       }
     } catch (error: unknown) {
       const err = error as Error;
-      alert(`System error: ${err.message}`);
+      showAlert(`System error: ${err.message}`);
     } finally {
       setIsProcessing(false);
     }

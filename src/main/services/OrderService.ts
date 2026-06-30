@@ -237,7 +237,7 @@ export class OrderService {
         WHOSTART,
         SALETYPEINDEX,
         STATNUM,
-        status,
+        3, // ALWAYS 3 for POSHEADER (Closed)
         FINALTOTAL,
         PUNCHINDEX,
         OPENDATE,

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import KeypadControl from "@/components/KeypadControl";
 import TitleBar from "@/components/TitleBar";
+import { showAlert } from "@/utils/alert";
 
 export default function PageLogin(): React.JSX.Element {
   const navigate = useNavigate();
@@ -29,15 +30,15 @@ export default function PageLogin(): React.JSX.Element {
       if (result?.success && result?.data) {
         navigate("/menu");
       } else {
-        alert(result?.message || result?.error || "Employee not found!");
+        showAlert(result?.message || result?.error || "Employee not found!");
         setPassword("");
       }
     } catch (err: unknown) {
       console.error("Login process error:", err);
       if (err instanceof Error) {
-        alert(`System error: ${err.message}`);
+        showAlert(`System error: ${err.message}`);
       } else {
-        alert("Undefined system error.");
+        showAlert("Undefined system error.");
       }
       setPassword("");
     } finally {
