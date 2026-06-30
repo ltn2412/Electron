@@ -342,7 +342,7 @@ export class OrderService {
       const tdParams = [
         TRANSACT,
         PRODNUM,
-        status === 1 ? quantity : 0,
+        quantity,
         status === 2 || status === 3 ? quantity : 0,
       ];
       logger.info("Executed Database Query", {

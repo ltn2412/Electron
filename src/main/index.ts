@@ -211,7 +211,8 @@ app.whenReady().then(() => {
         quantity,
         costEach,
         swipe,
-      }: { refCode: string; quantity: number; costEach: number; swipe: string },
+        status,
+      }: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number },
     ) => {
       try {
         const result = await OrderService.createOrder(
@@ -219,6 +220,7 @@ app.whenReady().then(() => {
           quantity,
           costEach,
           swipe,
+          status,
         );
         return result;
       } catch (error: unknown) {
