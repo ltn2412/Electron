@@ -105,7 +105,9 @@ export default function PageMenu(): React.JSX.Element {
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
       const now = new Date();
-      const isPastTriggerTime = now.getHours() > 17 || (now.getHours() === 17 && now.getMinutes() >= 30);
+      const isPastTriggerTime =
+        now.getHours() > 17 ||
+        (now.getHours() === 17 && now.getMinutes() >= 20);
       if (!isPastTriggerTime) return;
 
       const todayStr = now.toISOString().split("T")[0];
@@ -114,10 +116,20 @@ export default function PageMenu(): React.JSX.Element {
 
       setIsAutoConfirming(true);
       try {
-        const res = await window.api.getExpiredOrders({ page: 1, pageSize: 1000 });
+        const res = await window.api.getExpiredOrders({
+          page: 1,
+          pageSize: 1000,
+        });
         const dataRes = res as any;
-        if (dataRes.success && dataRes.data && dataRes.data.items && dataRes.data.items.length > 0) {
-          const orders = dataRes.data.items;
+        const payload = dataRes.data; // This is the HoangVan API response body
+        if (
+          dataRes.success &&
+          payload &&
+          payload.data &&
+          payload.data.items &&
+          payload.data.items.length > 0
+        ) {
+          const orders = payload.data.items;
           const swipe = localStorage.getItem("employeeSwipe") || "221278";
           const orderNos: string[] = [];
           for (const order of orders) {
@@ -133,7 +145,9 @@ export default function PageMenu(): React.JSX.Element {
               });
             }
           }
-          const confirmRes = await window.api.confirmExpiredOrders({ orderNos });
+          const confirmRes = await window.api.confirmExpiredOrders({
+            orderNos,
+          });
           if (confirmRes.success) {
             setAlertConfig({
               isOpen: true,
