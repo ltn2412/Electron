@@ -4,6 +4,7 @@ import { SpeedPosService } from "@/api/SpeedPosService";
 import TitleBar from "@/components/TitleBar";
 import { ExpiredOrder, ExpiredOrdersResponse } from "@/shared/apiTypes";
 import { ArrowLeft, Search, AlertCircle, X, FileText } from "lucide-react";
+import AlertModal from "@/components/AlertModal";
 
 export default function PageExpiredOrders(): React.JSX.Element {
   const navigate = useNavigate();
@@ -15,12 +16,17 @@ export default function PageExpiredOrders(): React.JSX.Element {
   const [confirming, setConfirming] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({ isOpen: false, title: "", message: "", type: "info" });
 
   const fetchExpiredOrders = async (
     pageNum: number = 1,
     isLoadMore: boolean = false,
   ): Promise<void> => {
-    if (loading) return;
     try {
       setLoading(true);
       setError(null);
@@ -37,10 +43,12 @@ export default function PageExpiredOrders(): React.JSX.Element {
         setPage(pageNum);
         setHasMore(res.data.items.length === 50);
       } else {
-        setError(res.message || "Không thể lấy danh sách đơn hết hạn");
+        setError(res.message || "Failed to load expired orders");
       }
     } catch (err: unknown) {
-      setError((err as Error).message || "Có lỗi xảy ra khi gọi API");
+      setError(
+        (err as Error).message || "An error occurred while calling the API",
+      );
     } finally {
       setLoading(false);
     }
@@ -49,7 +57,6 @@ export default function PageExpiredOrders(): React.JSX.Element {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchExpiredOrders(1, false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>): void => {
@@ -66,7 +73,12 @@ export default function PageExpiredOrders(): React.JSX.Element {
       // 1. Create POS Return Transactions (status = 2)
       const services = selectedOrder.services || [];
       if (services.length === 0) {
-        alert("Đơn hàng không có dịch vụ nào.");
+        setAlertConfig({
+          isOpen: true,
+          title: "Warning",
+          message: "Order has no services.",
+          type: "error",
+        });
         setConfirming(false);
         return;
       }
@@ -83,7 +95,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
           status: 3, // 3 for Expired
         });
         if (!createRes.success) {
-          throw new Error(`Lỗi tạo bill nội bộ: ${createRes.error}`);
+          throw new Error(`Internal billing error: ${createRes.error}`);
         }
       }
 
@@ -93,14 +105,26 @@ export default function PageExpiredOrders(): React.JSX.Element {
       });
 
       if (!confirmRes.success) {
-        throw new Error(confirmRes.message || "Lỗi xác nhận đơn Hoàng Vân");
+        throw new Error(
+          confirmRes.message || "Hoang Van order confirmation error",
+        );
       }
 
-      alert("Đã hoàn thành thu hồi đơn hết hạn!");
+      setAlertConfig({
+        isOpen: true,
+        title: "Success",
+        message: "Expired order successfully recovered!",
+        type: "success",
+      });
       setSelectedOrder(null);
       fetchExpiredOrders(1, false); // refresh list
     } catch (err: unknown) {
-      alert("Lỗi: " + ((err as Error).message || String(err)));
+      setAlertConfig({
+        isOpen: true,
+        title: "Error",
+        message: "Error: " + ((err as Error).message || String(err)),
+        type: "error",
+      });
     } finally {
       setConfirming(false);
     }
@@ -123,7 +147,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
 
       <div style={styles.content} onScroll={handleScroll}>
         {loading && orders.length === 0 ? (
-          <div style={styles.emptyState}>Đang tải dữ liệu...</div>
+          <div style={styles.emptyState}>Loading data...</div>
         ) : error ? (
           <div style={styles.errorState}>
             <AlertCircle
@@ -185,7 +209,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
                   color: "#64748b",
                 }}
               >
-                Đang tải thêm...
+                Loading more...
               </div>
             )}
           </div>
@@ -358,6 +382,15 @@ export default function PageExpiredOrders(): React.JSX.Element {
           </div>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+      />
     </div>
   );
 }

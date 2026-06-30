@@ -4,10 +4,17 @@ import PageLogin from "./pages/PageLogin";
 import PageMenu from "./pages/PageMenu";
 import PageOrder from "./pages/PageOrder";
 import PageExpiredOrders from "./pages/PageExpiredOrders";
+import AlertModal from "./components/AlertModal";
 import { ExpiredOrdersResponse } from "@shared/apiTypes";
 
 function App(): React.JSX.Element {
   const [isAutoConfirming, setIsAutoConfirming] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({ isOpen: false, title: "", message: "", type: "info" });
   const hasRunToday = useRef(false);
 
   useEffect(() => {
@@ -57,14 +64,27 @@ function App(): React.JSX.Element {
               orderNos,
             });
             if (!confirmRes.success) {
-              throw new Error(confirmRes.error || "Lỗi xác nhận đơn Hoàng Vân");
+              throw new Error(
+                confirmRes.error || "Hoang Van order confirmation error",
+              );
             }
-            alert(
-              `Đã tự động xác nhận ${orderNos.length} đơn hết hạn thành công!`,
-            );
+            setAlertConfig({
+              isOpen: true,
+              title: "Success",
+              message: `Successfully auto-confirmed ${orderNos.length} expired orders!`,
+              type: "success",
+            });
           }
         } catch (err: unknown) {
           console.error("Auto confirm error:", err);
+          setAlertConfig({
+            isOpen: true,
+            title: "Error",
+            message:
+              "Auto confirm error: " +
+              (err instanceof Error ? err.message : String(err)),
+            type: "error",
+          });
         } finally {
           setIsAutoConfirming(false);
         }
@@ -123,12 +143,21 @@ function App(): React.JSX.Element {
               animation: "spin 1s linear infinite",
             }}
           ></div>
-          Đang kiểm tra và tự động xác nhận các đơn hết hạn...
+          Checking and automatically confirming expired orders...
           <style>
             {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
           </style>
         </div>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+      />
     </>
   );
 }

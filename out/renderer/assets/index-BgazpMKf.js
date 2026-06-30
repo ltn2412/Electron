@@ -15053,45 +15053,45 @@ const createLucideIcon = (iconName, iconNode) => {
   Component.displayName = toPascalCase(iconName);
   return Component;
 };
-const __iconNode$g = [
+const __iconNode$h = [
   ["rect", { width: "20", height: "5", x: "2", y: "3", rx: "1", key: "1wp1u1" }],
   ["path", { d: "M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8", key: "1s80jp" }],
   ["path", { d: "M10 12h4", key: "a56b0p" }]
 ];
-const Archive = createLucideIcon("archive", __iconNode$g);
-const __iconNode$f = [
+const Archive = createLucideIcon("archive", __iconNode$h);
+const __iconNode$g = [
   ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
   ["path", { d: "M19 12H5", key: "x3x0zl" }]
 ];
-const ArrowLeft = createLucideIcon("arrow-left", __iconNode$f);
-const __iconNode$e = [
+const ArrowLeft = createLucideIcon("arrow-left", __iconNode$g);
+const __iconNode$f = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
   ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$e);
-const __iconNode$d = [
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$f);
+const __iconNode$e = [
   ["path", { d: "M21.801 10A10 10 0 1 1 17 3.335", key: "yps3ct" }],
   ["path", { d: "m9 11 3 3L22 4", key: "1pflzl" }]
 ];
-const CircleCheckBig = createLucideIcon("circle-check-big", __iconNode$d);
-const __iconNode$c = [
+const CircleCheckBig = createLucideIcon("circle-check-big", __iconNode$e);
+const __iconNode$d = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "M8 12h8", key: "1wcyev" }]
 ];
-const CircleMinus = createLucideIcon("circle-minus", __iconNode$c);
-const __iconNode$b = [
+const CircleMinus = createLucideIcon("circle-minus", __iconNode$d);
+const __iconNode$c = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "M8 12h8", key: "1wcyev" }],
   ["path", { d: "M12 8v8", key: "napkw2" }]
 ];
-const CirclePlus = createLucideIcon("circle-plus", __iconNode$b);
-const __iconNode$a = [
+const CirclePlus = createLucideIcon("circle-plus", __iconNode$c);
+const __iconNode$b = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "M12 6v6l4 2", key: "mmk7yg" }]
 ];
-const Clock = createLucideIcon("clock", __iconNode$a);
-const __iconNode$9 = [
+const Clock = createLucideIcon("clock", __iconNode$b);
+const __iconNode$a = [
   [
     "path",
     {
@@ -15102,8 +15102,8 @@ const __iconNode$9 = [
   ["path", { d: "m12 9 6 6", key: "anjzzh" }],
   ["path", { d: "m18 9-6 6", key: "1fp51s" }]
 ];
-const Delete = createLucideIcon("delete", __iconNode$9);
-const __iconNode$8 = [
+const Delete = createLucideIcon("delete", __iconNode$a);
+const __iconNode$9 = [
   [
     "path",
     {
@@ -15116,13 +15116,19 @@ const __iconNode$8 = [
   ["path", { d: "M16 13H8", key: "t4e002" }],
   ["path", { d: "M16 17H8", key: "z1uh3a" }]
 ];
-const FileText = createLucideIcon("file-text", __iconNode$8);
-const __iconNode$7 = [
+const FileText = createLucideIcon("file-text", __iconNode$9);
+const __iconNode$8 = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20", key: "13o1zl" }],
   ["path", { d: "M2 12h20", key: "9i4pu4" }]
 ];
-const Globe = createLucideIcon("globe", __iconNode$7);
+const Globe = createLucideIcon("globe", __iconNode$8);
+const __iconNode$7 = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "M12 16v-4", key: "1dtifu" }],
+  ["path", { d: "M12 8h.01", key: "e9boi3" }]
+];
+const Info = createLucideIcon("info", __iconNode$7);
 const __iconNode$6 = [
   ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
   ["path", { d: "M21 12H9", key: "dn1m92" }],
@@ -15225,7 +15231,7 @@ const KeypadControl = ({
       userSelect: "none"
     };
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$5.grid, children: keys.map((key, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$6.grid, children: keys.map((key, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(
     "button",
     {
       style: getButtonStyle(key),
@@ -15242,7 +15248,7 @@ const KeypadControl = ({
     index
   )) });
 };
-const styles$5 = {
+const styles$6 = {
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(3, 1fr)",
@@ -15253,13 +15259,13 @@ const styles$5 = {
   }
 };
 const TitleBar = () => {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$4.titleBar, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$4.dragRegion, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: styles$4.title, children: "POS System" }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$4.controls, children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$5.titleBar, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$5.dragRegion, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: styles$5.title, children: "POS System" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$5.controls, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
-          style: styles$4.controlBtn,
+          style: styles$5.controlBtn,
           onClick: () => window.api.minimize(),
           title: "Minimize",
           children: /* @__PURE__ */ jsxRuntimeExports.jsx(Minus, { size: 18 })
@@ -15268,7 +15274,7 @@ const TitleBar = () => {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
-          style: { ...styles$4.controlBtn, ...styles$4.closeBtn },
+          style: { ...styles$5.controlBtn, ...styles$5.closeBtn },
           onClick: () => window.api.close(),
           title: "Close",
           onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "#ef4444",
@@ -15279,7 +15285,7 @@ const TitleBar = () => {
     ] })
   ] });
 };
-const styles$4 = {
+const styles$5 = {
   titleBar: {
     height: "36px",
     width: "100%",
@@ -15375,19 +15381,19 @@ function PageLogin() {
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(TitleBar, {}),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$3.container, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$3.card, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { style: styles$3.title, children: "POS System" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: styles$3.subtitle, children: "Please enter your PIN to continue" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$3.inputWrapper, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$4.container, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$4.card, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { style: styles$4.title, children: "POS System" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: styles$4.subtitle, children: "Please enter your PIN to continue" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$4.inputWrapper, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         "input",
         {
           type: "password",
           value: password,
           readOnly: true,
-          style: styles$3.input
+          style: styles$4.input
         }
       ) }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$3.keypadWrapper, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$4.keypadWrapper, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         KeypadControl,
         {
           onKeyPress: (key) => setPassword((prev) => prev + key),
@@ -15414,7 +15420,7 @@ function PageLogin() {
     ] }) })
   ] });
 }
-const styles$3 = {
+const styles$4 = {
   container: {
     width: "100vw",
     height: "100vh",
@@ -15479,6 +15485,145 @@ const styles$3 = {
     marginBottom: "20px"
   }
 };
+function AlertModal({
+  isOpen,
+  title,
+  message,
+  type = "info",
+  onClose
+}) {
+  if (!isOpen) return null;
+  const getIcon = () => {
+    switch (type) {
+      case "success":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheckBig, { size: 48, color: "#22c55e" });
+      case "error":
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { size: 48, color: "#ef4444" });
+      case "info":
+      default:
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(Info, { size: 48, color: "#3b82f6" });
+    }
+  };
+  const getButtonColor = () => {
+    switch (type) {
+      case "success":
+        return "#22c55e";
+      case "error":
+        return "#ef4444";
+      case "info":
+      default:
+        return "#3b82f6";
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$3.overlay, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$3.modal, className: "alert-modal-animation", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          style: styles$3.closeBtn,
+          onClick: onClose,
+          onMouseEnter: (e) => e.currentTarget.style.backgroundColor = "#f1f5f9",
+          onMouseLeave: (e) => e.currentTarget.style.backgroundColor = "transparent",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 24 })
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$3.iconContainer, children: getIcon() }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: styles$3.title, children: title }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: styles$3.message, children: message }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          style: { ...styles$3.actionBtn, backgroundColor: getButtonColor() },
+          onClick: onClose,
+          children: "OK"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+          @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+          }
+          .alert-modal-animation {
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          }
+        ` })
+  ] });
+}
+const styles$3 = {
+  overlay: {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    width: "100vw",
+    height: "100vh",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
+    backdropFilter: "blur(4px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 999999
+  },
+  modal: {
+    backgroundColor: "#ffffff",
+    borderRadius: "16px",
+    padding: "32px 24px 24px",
+    width: "90%",
+    maxWidth: "400px",
+    boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    position: "relative",
+    fontFamily: "Inter, sans-serif"
+  },
+  closeBtn: {
+    position: "absolute",
+    top: "16px",
+    right: "16px",
+    background: "none",
+    border: "none",
+    color: "#94a3b8",
+    cursor: "pointer",
+    padding: "4px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "50%",
+    transition: "background-color 0.2s, color 0.2s"
+  },
+  iconContainer: {
+    marginBottom: "16px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  title: {
+    margin: "0 0 12px 0",
+    fontSize: "20px",
+    fontWeight: "700",
+    color: "#1e293b",
+    textAlign: "center"
+  },
+  message: {
+    margin: "0 0 24px 0",
+    fontSize: "15px",
+    color: "#475569",
+    textAlign: "center",
+    lineHeight: "1.5"
+  },
+  actionBtn: {
+    width: "100%",
+    padding: "12px",
+    border: "none",
+    borderRadius: "8px",
+    color: "#ffffff",
+    fontSize: "16px",
+    fontWeight: "600",
+    cursor: "pointer",
+    transition: "opacity 0.2s, transform 0.1s"
+  }
+};
 function PageMenu() {
   const navigate = useNavigate();
   const [transactions, setTransactions] = reactExports.useState([]);
@@ -15503,6 +15648,7 @@ function PageMenu() {
     null
   );
   const [editQuantity, setEditQuantity] = reactExports.useState("");
+  const [alertConfig, setAlertConfig] = reactExports.useState({ isOpen: false, title: "", message: "", type: "info" });
   const fetchData = reactExports.useCallback(async () => {
     try {
       const today = (/* @__PURE__ */ new Date()).toISOString().split("T")[0];
@@ -15522,7 +15668,8 @@ function PageMenu() {
         setSlots(slotRes.data);
       }
       if (expiredRes && expiredRes.success && expiredRes.data) {
-        setExpiredCount(expiredRes.data.totalCount || 0);
+        const innerData = expiredRes.data.data;
+        setExpiredCount(innerData?.totalCount || innerData?.total || 0);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -15581,7 +15728,12 @@ function PageMenu() {
     try {
       const services = hvOrderInfo.services || [];
       if (services.length === 0) {
-        alert("Đơn hàng không có dịch vụ nào.");
+        setAlertConfig({
+          isOpen: true,
+          title: "Warning",
+          message: "Order has no services.",
+          type: "error"
+        });
         return;
       }
       const svc = services[0];
@@ -15593,7 +15745,12 @@ function PageMenu() {
         swipe
       });
       if (!createRes.success) {
-        alert("Lỗi tạo bill nội bộ: " + createRes.error);
+        setAlertConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Internal billing error: " + createRes.error,
+          type: "error"
+        });
         return;
       }
       const useRes = await window.api.useOrder({
@@ -15601,14 +15758,29 @@ function PageMenu() {
         staffId: "NV001"
       });
       if (!useRes.success) {
-        alert("Lỗi sử dụng đơn trên hệ thống Hoàng Vân: " + useRes.error);
+        setAlertConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Hoang Van system error: " + useRes.error,
+          type: "error"
+        });
         return;
       }
-      alert("Đã chốt bill thành công! Transact: " + createRes.transact);
+      setAlertConfig({
+        isOpen: true,
+        title: "Success",
+        message: "Bill created successfully! Transact: " + createRes.transact,
+        type: "success"
+      });
       setIsHoangVanSearchOpen(false);
       fetchData();
     } catch (err) {
-      alert("Lỗi: " + (err instanceof Error ? err.message : String(err)));
+      setAlertConfig({
+        isOpen: true,
+        title: "Error",
+        message: "Error: " + (err instanceof Error ? err.message : String(err)),
+        type: "error"
+      });
     } finally {
       setHvUsing(false);
     }
@@ -15881,7 +16053,7 @@ function PageMenu() {
               "span",
               {
                 style: {
-                  fontSize: "20px",
+                  fontSize: "18px",
                   fontWeight: 500
                 },
                 children: p.DESCRIPT
@@ -16684,7 +16856,17 @@ function PageMenu() {
           )
         ] })
       ] }) })
-    ] })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      AlertModal,
+      {
+        isOpen: alertConfig.isOpen,
+        title: alertConfig.title,
+        message: alertConfig.message,
+        type: alertConfig.type,
+        onClose: () => setAlertConfig({ ...alertConfig, isOpen: false })
+      }
+    )
   ] });
 }
 const styles$2 = {
@@ -20697,8 +20879,8 @@ function PageExpiredOrders() {
   const [confirming, setConfirming] = reactExports.useState(false);
   const [page, setPage] = reactExports.useState(1);
   const [hasMore, setHasMore] = reactExports.useState(true);
+  const [alertConfig, setAlertConfig] = reactExports.useState({ isOpen: false, title: "", message: "", type: "info" });
   const fetchExpiredOrders = async (pageNum = 1, isLoadMore = false) => {
-    if (loading) return;
     try {
       setLoading(true);
       setError(null);
@@ -20715,10 +20897,12 @@ function PageExpiredOrders() {
         setPage(pageNum);
         setHasMore(res.data.items.length === 50);
       } else {
-        setError(res.message || "Không thể lấy danh sách đơn hết hạn");
+        setError(res.message || "Failed to load expired orders");
       }
     } catch (err) {
-      setError(err.message || "Có lỗi xảy ra khi gọi API");
+      setError(
+        err.message || "An error occurred while calling the API"
+      );
     } finally {
       setLoading(false);
     }
@@ -20738,7 +20922,12 @@ function PageExpiredOrders() {
     try {
       const services = selectedOrder.services || [];
       if (services.length === 0) {
-        alert("Đơn hàng không có dịch vụ nào.");
+        setAlertConfig({
+          isOpen: true,
+          title: "Warning",
+          message: "Order has no services.",
+          type: "error"
+        });
         setConfirming(false);
         return;
       }
@@ -20753,20 +20942,32 @@ function PageExpiredOrders() {
           // 3 for Expired
         });
         if (!createRes.success) {
-          throw new Error(`Lỗi tạo bill nội bộ: ${createRes.error}`);
+          throw new Error(`Internal billing error: ${createRes.error}`);
         }
       }
       const confirmRes = await SpeedPosService.confirmExpiredOrders({
         orderNos: [selectedOrder.orderNo]
       });
       if (!confirmRes.success) {
-        throw new Error(confirmRes.message || "Lỗi xác nhận đơn Hoàng Vân");
+        throw new Error(
+          confirmRes.message || "Hoang Van order confirmation error"
+        );
       }
-      alert("Đã hoàn thành thu hồi đơn hết hạn!");
+      setAlertConfig({
+        isOpen: true,
+        title: "Success",
+        message: "Expired order successfully recovered!",
+        type: "success"
+      });
       setSelectedOrder(null);
       fetchExpiredOrders(1, false);
     } catch (err) {
-      alert("Lỗi: " + (err.message || String(err)));
+      setAlertConfig({
+        isOpen: true,
+        title: "Error",
+        message: "Error: " + (err.message || String(err)),
+        type: "error"
+      });
     } finally {
       setConfirming(false);
     }
@@ -20780,7 +20981,7 @@ function PageExpiredOrders() {
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles.headerRight, children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { style: styles.badge, children: orders.length }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles.content, onScroll: handleScroll, children: loading && orders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles.emptyState, children: "Đang tải dữ liệu..." }) : error ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles.errorState, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles.content, onScroll: handleScroll, children: loading && orders.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles.emptyState, children: "Loading data..." }) : error ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles.errorState, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         CircleAlert,
         {
@@ -20845,7 +21046,7 @@ function PageExpiredOrders() {
             padding: "12px",
             color: "#64748b"
           },
-          children: "Đang tải thêm..."
+          children: "Loading more..."
         }
       )
     ] }) }),
@@ -21015,7 +21216,17 @@ function PageExpiredOrders() {
           ]
         }
       )
-    ] }) })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      AlertModal,
+      {
+        isOpen: alertConfig.isOpen,
+        title: alertConfig.title,
+        message: alertConfig.message,
+        type: alertConfig.type,
+        onClose: () => setAlertConfig({ ...alertConfig, isOpen: false })
+      }
+    )
   ] });
 }
 const styles = {
@@ -21259,6 +21470,7 @@ const styles = {
 };
 function App() {
   const [isAutoConfirming, setIsAutoConfirming] = reactExports.useState(false);
+  const [alertConfig, setAlertConfig] = reactExports.useState({ isOpen: false, title: "", message: "", type: "info" });
   const hasRunToday = reactExports.useRef(false);
   reactExports.useEffect(() => {
     const checkTime = async () => {
@@ -21296,14 +21508,25 @@ function App() {
               orderNos
             });
             if (!confirmRes.success) {
-              throw new Error(confirmRes.error || "Lỗi xác nhận đơn Hoàng Vân");
+              throw new Error(
+                confirmRes.error || "Hoang Van order confirmation error"
+              );
             }
-            alert(
-              `Đã tự động xác nhận ${orderNos.length} đơn hết hạn thành công!`
-            );
+            setAlertConfig({
+              isOpen: true,
+              title: "Success",
+              message: `Successfully auto-confirmed ${orderNos.length} expired orders!`,
+              type: "success"
+            });
           }
         } catch (err) {
           console.error("Auto confirm error:", err);
+          setAlertConfig({
+            isOpen: true,
+            title: "Error",
+            message: "Auto confirm error: " + (err instanceof Error ? err.message : String(err)),
+            type: "error"
+          });
         } finally {
           setIsAutoConfirming(false);
         }
@@ -21359,9 +21582,19 @@ function App() {
               }
             }
           ),
-          "Đang kiểm tra và tự động xác nhận các đơn hết hạn...",
+          "Checking and automatically confirming expired orders...",
           /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }` })
         ]
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      AlertModal,
+      {
+        isOpen: alertConfig.isOpen,
+        title: alertConfig.title,
+        message: alertConfig.message,
+        type: alertConfig.type,
+        onClose: () => setAlertConfig({ ...alertConfig, isOpen: false })
       }
     )
   ] });

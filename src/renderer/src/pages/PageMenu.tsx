@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import TitleBar from "@/components/TitleBar";
+import AlertModal from "@/components/AlertModal";
 import KeypadControl from "@/components/KeypadControl";
 import {
   POSHEADER,
@@ -48,6 +49,12 @@ export default function PageMenu(): React.JSX.Element {
     null,
   );
   const [editQuantity, setEditQuantity] = useState("");
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: "success" | "error" | "info";
+  }>({ isOpen: false, title: "", message: "", type: "info" });
 
   const fetchData = useCallback(async (): Promise<void> => {
     try {
@@ -69,7 +76,12 @@ export default function PageMenu(): React.JSX.Element {
         setSlots(slotRes.data);
       }
       if (expiredRes && expiredRes.success && expiredRes.data) {
-        setExpiredCount(expiredRes.data.totalCount || 0);
+        const innerData = (
+          expiredRes.data as unknown as {
+            data?: { total?: number; totalCount?: number };
+          }
+        ).data;
+        setExpiredCount(innerData?.totalCount || innerData?.total || 0);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -103,7 +115,7 @@ export default function PageMenu(): React.JSX.Element {
           setTransactCheckError(res.error || "Transaction not found!");
         }
       } catch (err: unknown) {
-        setTransactCheckError(err.message || "Lỗi hệ thống");
+        setTransactCheckError((err as Error).message || "Lỗi hệ thống");
       } finally {
         setIsTransactChecking(false);
       }
@@ -123,7 +135,7 @@ export default function PageMenu(): React.JSX.Element {
         setHvCheckError(res.error || "Không tìm thấy đơn hàng");
       }
     } catch (err: unknown) {
-      setHvCheckError(err.message || "Lỗi hệ thống");
+      setHvCheckError((err as Error).message || "Lỗi hệ thống");
     } finally {
       setHvChecking(false);
     }
@@ -136,7 +148,12 @@ export default function PageMenu(): React.JSX.Element {
       // 1. Extract services
       const services = hvOrderInfo.services || [];
       if (services.length === 0) {
-        alert("Đơn hàng không có dịch vụ nào.");
+        setAlertConfig({
+          isOpen: true,
+          title: "Warning",
+          message: "Order has no services.",
+          type: "error",
+        });
         return;
       }
       const svc = services[0];
@@ -152,7 +169,12 @@ export default function PageMenu(): React.JSX.Element {
       });
 
       if (!createRes.success) {
-        alert("Lỗi tạo bill nội bộ: " + createRes.error);
+        setAlertConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Internal billing error: " + createRes.error,
+          type: "error",
+        });
         return;
       }
 
@@ -163,15 +185,30 @@ export default function PageMenu(): React.JSX.Element {
       });
 
       if (!useRes.success) {
-        alert("Lỗi sử dụng đơn trên hệ thống Hoàng Vân: " + useRes.error);
+        setAlertConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Hoang Van system error: " + useRes.error,
+          type: "error",
+        });
         return;
       }
 
-      alert("Đã chốt bill thành công! Transact: " + createRes.transact);
+      setAlertConfig({
+        isOpen: true,
+        title: "Success",
+        message: "Bill created successfully! Transact: " + createRes.transact,
+        type: "success",
+      });
       setIsHoangVanSearchOpen(false);
       fetchData(); // Refresh UI
     } catch (err: unknown) {
-      alert("Lỗi: " + (err instanceof Error ? err.message : String(err)));
+      setAlertConfig({
+        isOpen: true,
+        title: "Error",
+        message: "Error: " + (err instanceof Error ? err.message : String(err)),
+        type: "error",
+      });
     } finally {
       setHvUsing(false);
     }
@@ -445,7 +482,7 @@ export default function PageMenu(): React.JSX.Element {
                       <div key={idx} style={styles.productItem}>
                         <span
                           style={{
-                            fontSize: "20px",
+                            fontSize: "18px",
                             fontWeight: 500,
                           }}
                         >
@@ -1193,6 +1230,14 @@ export default function PageMenu(): React.JSX.Element {
           </div>
         )}
       </div>
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onClose={() => setAlertConfig({ ...alertConfig, isOpen: false })}
+      />
     </>
   );
 }

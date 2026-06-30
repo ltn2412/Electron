@@ -8,6 +8,36 @@ class HoangVanService {
   private username = "speedpos";
   private password = "SpeedHoangVan";
 
+  private handleApiError(error: unknown, context: string): never {
+    if (axios.isAxiosError(error)) {
+      const status = error.response?.status;
+      const data = error.response?.data;
+      if (status === 400) {
+        throw new Error(data?.message || "Invalid data (400).");
+      }
+      if (status === 401 || status === 403) {
+        throw new Error(`Session expired or access denied (${status}).`);
+      }
+      if (status === 404) {
+        throw new Error("Order not found on Hoang Van system (404).");
+      }
+      if (status === 500) {
+        throw new Error(
+          "Hoang Van server is experiencing issues (500). Please try again later.",
+        );
+      }
+      if (error.code === "ECONNABORTED" || error.message.includes("timeout")) {
+        throw new Error(
+          "Connection to Hoang Van timed out. Please check your network.",
+        );
+      }
+      throw new Error(
+        `Hoang Van connection error: ${data?.message || error.message}`,
+      );
+    }
+    throw new Error(`Unknown error (${context}): ${(error as Error).message}`);
+  }
+
   async login(): Promise<void> {
     try {
       const res = await axios.post(`${this.baseURL}/login`, {
@@ -24,7 +54,7 @@ class HoangVanService {
       }
     } catch (error) {
       console.error("HoangVanAPI Login Error:", error);
-      throw error;
+      this.handleApiError(error, "login");
     }
   }
 
@@ -46,15 +76,16 @@ class HoangVanService {
         throw new Error(res.data.message || "Failed to fetch slots");
       }
     } catch (error: unknown) {
-      const status = error.response?.status;
-      if ((status === 401 || status === 403) && !isRetry) {
-        // Token might have expired or Access Denied, try logging in again
-        this.token = null;
-        await this.login();
-        return this.getSlots(date, true);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if ((status === 401 || status === 403) && !isRetry) {
+          this.token = null;
+          await this.login();
+          return this.getSlots(date, true);
+        }
       }
       console.error("HoangVanAPI getSlots Error:", error);
-      throw error;
+      this.handleApiError(error, "getSlots");
     }
   }
 
@@ -72,17 +103,16 @@ class HoangVanService {
         throw new Error(res.data.message || "Failed to check order");
       }
     } catch (error: unknown) {
-      const status = error.response?.status;
-      if ((status === 401 || status === 403) && !isRetry) {
-        this.token = null;
-        await this.login();
-        return this.checkOrder(orderNo, true);
-      }
-      if (status === 404) {
-        throw new Error("Không tìm thấy đơn hàng");
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if ((status === 401 || status === 403) && !isRetry) {
+          this.token = null;
+          await this.login();
+          return this.checkOrder(orderNo, true);
+        }
       }
       console.error("HoangVanAPI checkOrder Error:", error);
-      throw error;
+      this.handleApiError(error, "checkOrder");
     }
   }
 
@@ -112,17 +142,16 @@ class HoangVanService {
         throw new Error(res.data.message || "Failed to use order");
       }
     } catch (error: unknown) {
-      const status = error.response?.status;
-      if ((status === 401 || status === 403) && !isRetry) {
-        this.token = null;
-        await this.login();
-        return this.useOrder(orderNo, staffId, note, true);
-      }
-      if (status === 400 && error.response?.data?.message) {
-        throw new Error(error.response.data.message);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if ((status === 401 || status === 403) && !isRetry) {
+          this.token = null;
+          await this.login();
+          return this.useOrder(orderNo, staffId, note, true);
+        }
       }
       console.error("HoangVanAPI useOrder Error:", error);
-      throw error;
+      this.handleApiError(error, "useOrder");
     }
   }
   async getExpiredOrders(
@@ -144,14 +173,16 @@ class HoangVanService {
         throw new Error(res.data.message || "Failed to fetch expired orders");
       }
     } catch (error: unknown) {
-      const status = error.response?.status;
-      if ((status === 401 || status === 403) && !isRetry) {
-        this.token = null;
-        await this.login();
-        return this.getExpiredOrders(page, pageSize, true);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if ((status === 401 || status === 403) && !isRetry) {
+          this.token = null;
+          await this.login();
+          return this.getExpiredOrders(page, pageSize, true);
+        }
       }
       console.error("HoangVanAPI getExpiredOrders Error:", error);
-      throw error;
+      this.handleApiError(error, "getExpiredOrders");
     }
   }
 
@@ -179,14 +210,16 @@ class HoangVanService {
         throw new Error(res.data.message || "Failed to confirm expired orders");
       }
     } catch (error: unknown) {
-      const status = error.response?.status;
-      if ((status === 401 || status === 403) && !isRetry) {
-        this.token = null;
-        await this.login();
-        return this.confirmExpiredOrders(orderNos, true);
+      if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if ((status === 401 || status === 403) && !isRetry) {
+          this.token = null;
+          await this.login();
+          return this.confirmExpiredOrders(orderNos, true);
+        }
       }
       console.error("HoangVanAPI confirmExpiredOrders Error:", error);
-      throw error;
+      this.handleApiError(error, "confirmExpiredOrders");
     }
   }
 }
