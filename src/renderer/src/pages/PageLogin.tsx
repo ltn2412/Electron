@@ -12,9 +12,6 @@ export default function PageLogin(): React.JSX.Element {
 
   const handleLogin = useCallback(async (): Promise<void> => {
     if (!password) return;
-
-    navigate("/menu");
-    return;
     setIsLoading(true);
 
     try {

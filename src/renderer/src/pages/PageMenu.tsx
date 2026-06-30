@@ -319,7 +319,7 @@ export default function PageMenu(): React.JSX.Element {
 
         <div style={styles.content}>
           {/* Left Column: Transactions */}
-          <div style={{ ...styles.card, flex: 2 }}>
+          <div style={{ ...styles.card, flex: 2, minWidth: "360px" }}>
             <div style={styles.cardHeader}>
               <h2 style={styles.cardTitle}>Transactions</h2>
               <span style={styles.badge}>{transactions.length}</span>
@@ -395,7 +395,7 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Middle Column: Slots */}
-          <div style={styles.middleColumn}>
+          <div style={{ ...styles.middleColumn, minWidth: "280px" }}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>
@@ -454,7 +454,7 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Right Column: Products */}
-          <div style={styles.rightColumn}>
+          <div style={{ ...styles.rightColumn, minWidth: "300px" }}>
             <div style={styles.card}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Products</h2>
@@ -1287,7 +1287,9 @@ const styles = {
     flex: 1,
     display: "flex",
     gap: "24px",
-    overflow: "hidden",
+    overflowX: "auto",
+    overflowY: "hidden",
+    paddingBottom: "12px",
   } as React.CSSProperties,
   card: {
     backgroundColor: "#f8fafc",
@@ -1379,7 +1381,7 @@ const styles = {
     color: "#0f172a",
   } as React.CSSProperties,
   rightColumn: {
-    width: "340px",
+    flex: 1,
     display: "flex",
     flexDirection: "column",
   } as React.CSSProperties,

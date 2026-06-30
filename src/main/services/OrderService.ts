@@ -219,7 +219,7 @@ export class OrderService {
           1, NULL, ?, ?, ?, NULL,
           ?, 0, ?, 0, 0, 0,
           1, 1, '1899-12-30 00:00:00.000', 0, 0,
-          0, 0, 0, 0, 3,
+          0, 0, 0, 0, 1,
           0, ?, ?, ?, 0,
           0, 0, 0, 1, ?, NULL
         )
@@ -278,7 +278,7 @@ export class OrderService {
         INSERT INTO DBA.POSDETAIL (
           UNIQUEID, TRANSACT, PRODNUM, WHOORDER, WHOAUTH, COSTEACH, QUAN, TIMEORD, PRINTLOC, SEATNUM, Minutes, NOTAX, HOWORDERED, STATUS, NEXTPOS, PRIORPOS, RECPOS, PRODTYPE, ApplyTax1, Applytax2, Applytax3, Applytax4, Applytax5, ReduceInventory, StoreNum, STATNUM, RecipeCostEach, OpenDate, MealTime, LineDes, REVCENTER, MasterItem, QuestionId, OrigCostEach, NetCostEach, Discount, UpdateStatus, GratExempt, AuthCode
         ) VALUES (
-          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 3, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
+          ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, 1, 0, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
       `;
       const posDetailParams = [
@@ -400,6 +400,17 @@ export class OrderService {
         params: hpParams,
       });
       await connection.query(hpSql, hpParams);
+
+      // 14. Update TillBalance in PunchClock
+      if (PUNCHINDEX > 0) {
+        const updateTillSql = `
+          UPDATE DBA.PUNCHCLOCK 
+          SET TillBalance = ISNULL(TillBalance, 0) + ? 
+          WHERE Punchindex = ?
+        `;
+        logger.info("Executed Database Query", { query: updateTillSql, params: [FINALTOTAL, PUNCHINDEX] });
+        await connection.query(updateTillSql, [FINALTOTAL, PUNCHINDEX]);
+      }
 
       await connection.commit();
 
