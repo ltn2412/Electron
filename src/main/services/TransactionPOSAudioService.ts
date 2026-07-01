@@ -51,7 +51,7 @@ export class TransactionPOSAudioService {
               if (isPrimary === 0) {
                 sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum};`;
               }
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},"OUT"="OUT"+${outQty} WHERE PRODNUM=${linkNum};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum};`;
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
@@ -60,7 +60,7 @@ export class TransactionPOSAudioService {
               if (isPrimary === 0) {
                 sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
               }
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},"OUT"="OUT"-${retQty} WHERE PRODNUM=${linkNum};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum};`;
             }
           } else {
             // OUT
@@ -69,7 +69,7 @@ export class TransactionPOSAudioService {
               if (isPrimary === 0) {
                 sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum};`;
               }
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},"OUT"="OUT"+${outQty} WHERE PRODNUM=${linkNum};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum};`;
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
@@ -78,7 +78,7 @@ export class TransactionPOSAudioService {
               if (isPrimary === 0) {
                 sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
               }
-              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},"OUT"="OUT"-${retQty} WHERE PRODNUM=${linkNum};`;
+              sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum};`;
             }
           }
           if (sqlBatch !== "") {
