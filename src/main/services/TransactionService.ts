@@ -19,8 +19,7 @@ export class TransactionService {
                          ELSE 'Return' END 
           END AS POSAudioStatusName, 
           E.EMPNAME AS EMPNAME,
-          PH.* 
-        FROM DBA.POSHEADER PH 
+          PH.* FROM DBA.POSHEADER PH 
         LEFT JOIN DBA.TransactionPOSAudio TPA ON PH.TRANSACT = TPA.TRANSACT 
         INNER JOIN DBA.EMPLOYEE E ON PH.WHOCLOSE = E.EMPNUM 
         WHERE (PH.TRANSACT = ? OR TPA.PHONENUMBER = ?) 
@@ -36,13 +35,11 @@ export class TransactionService {
         const posHeader = headerResult[0];
 
         const queryDetail = `
-          SELECT P.DESCRIPT AS DESCRIPT, PD.* 
-          FROM DBA.POSDETAIL PD 
+          SELECT P.DESCRIPT AS DESCRIPT, PD.* FROM DBA.POSDETAIL PD 
           INNER JOIN DBA.PRODUCT P ON PD.PRODNUM = P.PRODNUM 
           WHERE PD.TRANSACT = ? AND PD.PRODTYPE not in (100,101) 
           UNION ALL 
-          SELECT P.DESCRIPT AS DESCRIPT, PD.* 
-          FROM DBA.POSDETAIL PD 
+          SELECT P.DESCRIPT AS DESCRIPT, PD.* FROM DBA.POSDETAIL PD 
           INNER JOIN DBA.PROMO P ON PD.PRODNUM = P.PROMONUM 
           WHERE PD.TRANSACT = ? AND PD.PRODTYPE not in (100)
         `;
@@ -52,11 +49,21 @@ export class TransactionService {
         ]);
 
         posHeader.POSDETAILS = detailResult;
+
+        // [QUAN TRỌNG NHẤT]: Nhả Lock sau khi Select xong để hàm Update không bị treo
+        await connection.commit();
+
         return JSON.parse(JSON.stringify(posHeader));
       }
 
+      await connection.commit();
       return null;
     } catch (error) {
+      if (connection) {
+        try {
+          await connection.rollback();
+        } catch (e) {}
+      }
       console.error("Lỗi khi lấy thông tin Transaction By Transact:", error);
       throw error;
     } finally {
@@ -78,8 +85,7 @@ export class TransactionService {
                          WHEN (TPA.STATUS = 3) THEN 'Expired'
                          ELSE 'Return' END 
           END AS POSAudioStatusName, 
-          PH.* 
-        FROM DBA.POSHEADER PH 
+          PH.* FROM DBA.POSHEADER PH 
         LEFT JOIN DBA.TransactionPOSAudio TPA ON PH.TRANSACT = TPA.TRANSACT
         WHERE PH.TRANSACT IN (
           SELECT PD.TRANSACT 
@@ -95,8 +101,17 @@ export class TransactionService {
         ORDER BY PH.TIMEEND DESC
       `;
       const result = await connection.query(query);
+
+      // [QUAN TRỌNG NHẤT]: Nhả Lock cho danh sách
+      await connection.commit();
+
       return JSON.parse(JSON.stringify(result)) as unknown[];
     } catch (error) {
+      if (connection) {
+        try {
+          await connection.rollback();
+        } catch (e) {}
+      }
       console.error("Lỗi khi lấy thông tin Transaction list:", error);
       throw error;
     } finally {
