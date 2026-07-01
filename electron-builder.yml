@@ -1,5 +1,5 @@
 appId: com.electron.app
-productName: posrental
+productName: POS Audio
 directories:
   buildResources: build
 files:
@@ -12,7 +12,7 @@ files:
 asarUnpack:
   - resources/**
 win:
-  executableName: posrental
+  executableName: POS Audio
 nsis:
   artifactName: ${name}-${version}-setup.${ext}
   shortcutName: ${productName}
