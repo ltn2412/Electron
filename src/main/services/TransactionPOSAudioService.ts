@@ -47,6 +47,11 @@ export class TransactionPOSAudioService {
             linkQty = row.QUANTITY || 1;
             isPrimary = row.ISPRIMARY;
           }
+
+          if (isPrimary === 0) {
+            continue;
+          }
+
           const outQty = (detail.QuantityOut || 0) * linkQty;
           const retQty = (detail.QuantityReturn || 0) * linkQty;
 
