@@ -9,7 +9,6 @@ export class TransactionPOSAudioService {
     try {
       connection = await getConnection();
 
-      // BẮT BUỘC: Mở transaction để an toàn dữ liệu và tránh lock lẻ tẻ
       await connection.beginTransaction();
 
       // 1. CẬP NHẬT HEADER (Bảng TRANSACTIONPOSAUDIO)
@@ -54,7 +53,6 @@ export class TransactionPOSAudioService {
             linkQty = row.QUANTITY || 1;
           }
 
-          // Tính tổng số lượng máy thực tế bị tác động (Dành riêng cho máy con linkNum)
           const totalOutQty = (detail.QuantityOut || 0) * linkQty;
           const totalRetQty = (detail.QuantityReturn || 0) * linkQty;
 
@@ -63,7 +61,6 @@ export class TransactionPOSAudioService {
 
           // ================== OUT (New -> Out) ==================
           if (data.Status === 1 && detail.QuantityOut > 0) {
-            // A. Ghi nhận số lượng xuất
             if (isUpdate) {
               queries.push(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ${detail.QuantityOut} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`,
@@ -74,17 +71,13 @@ export class TransactionPOSAudioService {
               );
             }
 
-            // B. Quản lý COUNTDOWN bảng PRODUCT
-            // [QUAN TRỌNG] KHÔNG trừ COUNTDOWN của chính Item (detail.PRODNUM) vì đã trừ lúc Order.
-            // CHỈ trừ COUNTDOWN của máy con (linkNum) NẾU đây là một Combo.
+            // [CHUẨN LOGIC] Lẻ thì không trừ, Combo thì chỉ trừ máy con (vì vé đã trừ lúc lên Order)
             if (linkNum !== detail.PRODNUM) {
               queries.push(
                 `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${totalOutQty} WHERE PRODNUM=${linkNum}`,
               );
             }
 
-            // C. Quản lý Kho STORAGE
-            // LUÔN LUÔN cập nhật kho của máy (dù là lẻ hay con của combo)
             queries.push(
               `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${totalOutQty},OUT=OUT+${totalOutQty} WHERE PRODNUM=${linkNum}`,
             );
@@ -92,7 +85,6 @@ export class TransactionPOSAudioService {
 
           // ================== RETURN (Out -> Return) ==================
           if (data.Status === 2 && detail.QuantityReturn > 0) {
-            // A. Ghi nhận số lượng trả
             if (isUpdate) {
               queries.push(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ${detail.QuantityReturn} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`,
@@ -103,27 +95,26 @@ export class TransactionPOSAudioService {
               );
             }
 
-            // B. Quản lý COUNTDOWN bảng PRODUCT
-            // LUÔN LUÔN cộng lại COUNTDOWN cho chính Item đó (Trả hàng thì phải phục hồi)
-            queries.push(
-              `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`,
-            );
-
-            // NẾU LÀ COMBO: Cộng trả thêm COUNTDOWN cho máy con
+            // [FIX BUG TREO DB] Gộp 2 câu update DBA.PRODUCT thành 1 câu duy nhất dùng CASE WHEN để không bị kẹt Lock
             if (linkNum !== detail.PRODNUM) {
+              // Combo: Cập nhật đồng thời cả dòng vé (PRODNUM) và dòng máy con (linkNum) trong 1 nhịp
               queries.push(
-                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${totalRetQty} WHERE PRODNUM=${linkNum}`,
+                `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + CASE WHEN PRODNUM = ${detail.PRODNUM} THEN ${detail.QuantityReturn} WHEN PRODNUM = ${linkNum} THEN ${totalRetQty} ELSE 0 END WHERE PRODNUM IN (${detail.PRODNUM}, ${linkNum})`,
+              );
+            } else {
+              // Item Lẻ: Chỉ cập nhật 1 dòng của chính nó
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`,
               );
             }
 
-            // C. Quản lý Kho STORAGE
-            // LUÔN LUÔN phục hồi kho cho máy
+            // Phục hồi kho
             queries.push(
               `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${totalRetQty},OUT=OUT-${totalRetQty} WHERE PRODNUM=${linkNum}`,
             );
           }
 
-          // Thực thi Batch cho từng Item
+          // Thực thi SQL
           for (const query of queries) {
             console.log("SQL EXEC:", query);
             await connection.query(query);
@@ -131,7 +122,6 @@ export class TransactionPOSAudioService {
         }
       }
 
-      // Xong toàn bộ mới Commit
       await connection.commit();
     } catch (error: any) {
       if (connection) {
