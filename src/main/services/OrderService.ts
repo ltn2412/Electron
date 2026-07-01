@@ -351,11 +351,48 @@ export class OrderService {
       });
       await connection.query(tdSql, tdParams);
 
+      // 12.5 Update ProductPOSAudio STORAGE if status === 1 (Out)
+      if (status === 1) {
+        const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
+        const prodLinkResult = await connection.query(prodLinkQuery, [PRODNUM]);
+        let linkNum = PRODNUM;
+        let linkQty = 1;
+        if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
+          const row = (prodLinkResult as any[])[0];
+          linkNum = row.PRODNUMLINK;
+          linkQty = row.QUANTITY || 1;
+        }
+
+        const outQty = quantity * linkQty;
+
+        const updateProductSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN - ? WHERE PRODNUM = ?`;
+        logger.info("Executed Database Query", {
+          query: updateProductSql,
+          params: [outQty, linkNum],
+        });
+        await connection.query(updateProductSql, [outQty, linkNum]);
+
+        const updateStorageSql = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE - ?, OUT = OUT + ? WHERE PRODNUM = ?`;
+        logger.info("Executed Database Query", {
+          query: updateStorageSql,
+          params: [outQty, outQty, linkNum],
+        });
+        await connection.query(updateStorageSql, [outQty, outQty, linkNum]);
+
+        const msgSql1 = `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A')`;
+        logger.info("Executed Database Query", { query: msgSql1 });
+        await connection.query(msgSql1);
+
+        const msgSql2 = `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr'`;
+        await connection.query(msgSql2);
+      }
+
       // 13. Payment: Insert into Howpaid
       const methodRes = await connection.query(
         `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1 AND SwipeStarts like '%HOANGVAN%'`,
       );
-      if (methodRes.length === 0) throw new Error("No payment method found for HoangVan");
+      if (methodRes.length === 0)
+        throw new Error("No payment method found for HoangVan");
       const methodNum = (methodRes as unknown as unknown[])[0].METHODNUM;
 
       const nextHowPaidRes = await connection.query(
