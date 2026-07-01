@@ -6,7 +6,7 @@ export class TransactionPOSAudioService {
     data: TransactionPOSAudioPayload,
   ): Promise<void> {
     let connection;
-    let lastQuery = "Khởi tạo kết nối"; // Biến lưu vết cực kỳ quan trọng
+    let lastQuery = "Khởi tạo kết nối";
 
     try {
       connection = await getConnection();

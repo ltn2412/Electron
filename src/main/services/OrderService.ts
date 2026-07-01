@@ -368,7 +368,7 @@ export class OrderService {
 
         const outQty = quantity * linkQty;
 
-        if (isPrimary === 0) {
+        if (isPrimary === 1) {
           const updateProductSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN - ? WHERE PRODNUM = ?`;
           logger.info("Executed Database Query", {
             query: updateProductSql,
