@@ -94,9 +94,11 @@ export class TransactionPOSAudioService {
       console.error("Lỗi khi Create/Update Transaction POS Audio:", error);
       try {
         const fs = require('fs');
+        const os = require('os');
         const errStr = error ? (error.message || error.toString()) : "Unknown error";
         const logContent = `\n[${new Date().toISOString()}] ERROR: ${errStr}\nSQL BATCH: ${lastSqlBatch}\n`;
-        fs.appendFileSync('C:\\pos_audio_error_log.txt', logContent);
+        const logPath = os.homedir() + '\\pos_audio_error_log.txt';
+        fs.appendFileSync(logPath, logContent);
       } catch (e) {
         // ignore fs errors
       }
