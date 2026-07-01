@@ -469,11 +469,13 @@ export class OrderService {
       await connection.rollback();
       console.error("Lỗi khi Create Order POS Audio:", error);
       try {
-        const fs = require('fs');
-        const os = require('os');
-        const errStr = error ? (error.message || error.toString()) : "Unknown error";
+        const fs = require("fs");
+        const os = require("os");
+        const errStr = error
+          ? error.message || error.toString()
+          : "Unknown error";
         const logContent = `\n[${new Date().toISOString()}] ORDER_SERVICE ERROR: ${errStr}\n`;
-        const logPath = os.homedir() + '\\pos_audio_error_log.txt';
+        const logPath = os.homedir() + "\\pos_audio_error_log.txt";
         fs.appendFileSync(logPath, logContent);
       } catch (e) {
         // ignore fs errors
