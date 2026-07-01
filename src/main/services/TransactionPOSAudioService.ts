@@ -7,6 +7,8 @@ export class TransactionPOSAudioService {
     let connection;
     try {
       connection = await getConnection();
+      await connection.beginTransaction();
+
       const queryCheck = `SELECT * FROM DBA.TRANSACTIONPOSAUDIO WHERE TRANSACT = ${data.Transact}`;
       const existing = await connection.query(queryCheck);
       if ((existing as unknown[]).length > 0) {
@@ -53,38 +55,66 @@ export class TransactionPOSAudioService {
           if ((existingDetail as unknown[]).length > 0) {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
-              queries.push(`UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ${detail.QuantityOut} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`);
+              queries.push(
+                `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ${detail.QuantityOut} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`,
+              );
               if (isPrimary === 0) {
-                queries.push(`UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum}`);
+                queries.push(
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum}`,
+                );
               }
-              queries.push(`UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum}`);
+              queries.push(
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum}`,
+              );
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
-              queries.push(`UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ${detail.QuantityReturn} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`);
-              queries.push(`UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum}`);
+              queries.push(
+                `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ${detail.QuantityReturn} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`,
+              );
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum}`,
+              );
               if (isPrimary === 0) {
-                queries.push(`UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`);
+                queries.push(
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`,
+                );
               }
-              queries.push(`UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum}`);
+              queries.push(
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum}`,
+              );
             }
           } else {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
-              queries.push(`INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYOUT) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityOut})`);
+              queries.push(
+                `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYOUT) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityOut})`,
+              );
               if (isPrimary === 0) {
-                queries.push(`UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum}`);
+                queries.push(
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum}`,
+                );
               }
-              queries.push(`UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum}`);
+              queries.push(
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum}`,
+              );
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
-              queries.push(`INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYRETURN) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityReturn})`);
-              queries.push(`UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum}`);
+              queries.push(
+                `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYRETURN) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityReturn})`,
+              );
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum}`,
+              );
               if (isPrimary === 0) {
-                queries.push(`UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`);
+                queries.push(
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`,
+                );
               }
-              queries.push(`UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum}`);
+              queries.push(
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum}`,
+              );
             }
           }
 
@@ -94,7 +124,14 @@ export class TransactionPOSAudioService {
           }
         }
       }
+
+      await connection.commit();
     } catch (error: any) {
+      if (connection) {
+        try {
+          await connection.rollback();
+        } catch (e) {}
+      }
       console.error("Lỗi khi Create/Update Transaction POS Audio:", error);
       try {
         const fs = require("fs");
