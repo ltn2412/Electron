@@ -55,78 +55,70 @@ export class TransactionPOSAudioService {
             if (data.Status === 1 && detail.QuantityOut > 0) {
               await connection.query(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ? WHERE TRANSACT = ? AND PRODNUM = ?`,
-                [detail.QuantityOut, data.Transact, detail.PRODNUM]
+                [detail.QuantityOut, data.Transact, detail.PRODNUM],
               );
-              if (isPrimary === 0) {
+              if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-? WHERE PRODNUM=?`,
-                  [outQty, linkNum]
+                  [outQty, linkNum],
+                );
+                await connection.query(
+                  `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-?, OUT=OUT+? WHERE PRODNUM=?`,
+                  [outQty, outQty, linkNum],
                 );
               }
-              await connection.query(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-?, OUT=OUT+? WHERE PRODNUM=?`,
-                [outQty, outQty, linkNum]
-              );
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               await connection.query(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ? WHERE TRANSACT = ? AND PRODNUM = ?`,
-                [detail.QuantityReturn, data.Transact, detail.PRODNUM]
+                [detail.QuantityReturn, data.Transact, detail.PRODNUM],
               );
-              await connection.query(
-                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+? WHERE PRODNUM=?`,
-                [retQty, linkNum]
-              );
-              if (isPrimary === 0) {
+              if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+? WHERE PRODNUM=?`,
-                  [detail.QuantityReturn, detail.PRODNUM]
+                  [retQty, linkNum],
+                );
+                await connection.query(
+                  `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+?, OUT=OUT-? WHERE PRODNUM=?`,
+                  [retQty, retQty, linkNum],
                 );
               }
-              await connection.query(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+?, OUT=OUT-? WHERE PRODNUM=?`,
-                [retQty, retQty, linkNum]
-              );
             }
           } else {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
               await connection.query(
                 `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYOUT) VALUES (?,?,?)`,
-                [data.Transact, detail.PRODNUM, detail.QuantityOut]
+                [data.Transact, detail.PRODNUM, detail.QuantityOut],
               );
-              if (isPrimary === 0) {
+              if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-? WHERE PRODNUM=?`,
-                  [outQty, linkNum]
+                  [outQty, linkNum],
+                );
+                await connection.query(
+                  `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-?, OUT=OUT+? WHERE PRODNUM=?`,
+                  [outQty, outQty, linkNum],
                 );
               }
-              await connection.query(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-?, OUT=OUT+? WHERE PRODNUM=?`,
-                [outQty, outQty, linkNum]
-              );
             }
             // RETURN
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               await connection.query(
                 `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYRETURN) VALUES (?,?,?)`,
-                [data.Transact, detail.PRODNUM, detail.QuantityReturn]
+                [data.Transact, detail.PRODNUM, detail.QuantityReturn],
               );
-              await connection.query(
-                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+? WHERE PRODNUM=?`,
-                [retQty, linkNum]
-              );
-              if (isPrimary === 0) {
+              if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+? WHERE PRODNUM=?`,
-                  [detail.QuantityReturn, detail.PRODNUM]
+                  [retQty, linkNum],
+                );
+                await connection.query(
+                  `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+?, OUT=OUT-? WHERE PRODNUM=?`,
+                  [retQty, retQty, linkNum],
                 );
               }
-              await connection.query(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+?, OUT=OUT-? WHERE PRODNUM=?`,
-                [retQty, retQty, linkNum]
-              );
             }
           }
         }
