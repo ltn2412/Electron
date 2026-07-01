@@ -36,20 +36,16 @@ export class TransactionPOSAudioService {
           const detailQuery = `SELECT * FROM DBA.TRANSACTIONDETAILPOSAUDIO WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`;
           const existingDetail = await connection.query(detailQuery);
           let sqlBatch = "";
-          const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ${detail.PRODNUM}`;
-          const prodLinkResult = await connection.query(prodLinkQuery);
+          const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
+          const prodLinkResult = await connection.query(prodLinkQuery, [detail.PRODNUM]);
           let linkNum = detail.PRODNUM;
           let linkQty = 1;
           let isPrimary = 1;
           if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
             const row = (prodLinkResult as any[])[0];
-            linkNum = row.PRODNUMLINK;
+            linkNum = row.PRODNUMLINK || detail.PRODNUM;
             linkQty = row.QUANTITY || 1;
             isPrimary = row.ISPRIMARY;
-          }
-
-          if (isPrimary === 0) {
-            continue;
           }
 
           const outQty = (detail.QuantityOut || 0) * linkQty;
@@ -60,16 +56,16 @@ export class TransactionPOSAudioService {
             if (data.Status === 1 && detail.QuantityOut > 0) {
               await connection.query(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ? WHERE TRANSACT = ? AND PRODNUM = ?`,
-                [detail.QuantityOut, data.Transact, detail.PRODNUM],
+                [detail.QuantityOut, data.Transact, detail.PRODNUM]
               );
               if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-? WHERE PRODNUM=?`,
-                  [outQty, linkNum],
+                  [outQty, linkNum]
                 );
                 await connection.query(
                   `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-?, OUT=OUT+? WHERE PRODNUM=?`,
-                  [outQty, outQty, linkNum],
+                  [outQty, outQty, linkNum]
                 );
               }
             }
@@ -77,16 +73,16 @@ export class TransactionPOSAudioService {
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               await connection.query(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ? WHERE TRANSACT = ? AND PRODNUM = ?`,
-                [detail.QuantityReturn, data.Transact, detail.PRODNUM],
+                [detail.QuantityReturn, data.Transact, detail.PRODNUM]
               );
               if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+? WHERE PRODNUM=?`,
-                  [retQty, linkNum],
+                  [retQty, linkNum]
                 );
                 await connection.query(
                   `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+?, OUT=OUT-? WHERE PRODNUM=?`,
-                  [retQty, retQty, linkNum],
+                  [retQty, retQty, linkNum]
                 );
               }
             }
@@ -95,16 +91,16 @@ export class TransactionPOSAudioService {
             if (data.Status === 1 && detail.QuantityOut > 0) {
               await connection.query(
                 `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYOUT) VALUES (?,?,?)`,
-                [data.Transact, detail.PRODNUM, detail.QuantityOut],
+                [data.Transact, detail.PRODNUM, detail.QuantityOut]
               );
               if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-? WHERE PRODNUM=?`,
-                  [outQty, linkNum],
+                  [outQty, linkNum]
                 );
                 await connection.query(
                   `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-?, OUT=OUT+? WHERE PRODNUM=?`,
-                  [outQty, outQty, linkNum],
+                  [outQty, outQty, linkNum]
                 );
               }
             }
@@ -112,16 +108,16 @@ export class TransactionPOSAudioService {
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               await connection.query(
                 `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYRETURN) VALUES (?,?,?)`,
-                [data.Transact, detail.PRODNUM, detail.QuantityReturn],
+                [data.Transact, detail.PRODNUM, detail.QuantityReturn]
               );
               if (isPrimary === 1) {
                 await connection.query(
                   `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+? WHERE PRODNUM=?`,
-                  [retQty, linkNum],
+                  [retQty, linkNum]
                 );
                 await connection.query(
                   `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+?, OUT=OUT-? WHERE PRODNUM=?`,
-                  [retQty, retQty, linkNum],
+                  [retQty, retQty, linkNum]
                 );
               }
             }
