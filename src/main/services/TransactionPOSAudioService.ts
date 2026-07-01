@@ -1,6 +1,5 @@
 import { getConnection } from "@/main/config/database";
 import { TransactionPOSAudioPayload } from "@/shared/types";
-
 export class TransactionPOSAudioService {
   static async createUpdateTransaction(
     data: TransactionPOSAudioPayload,
@@ -8,10 +7,8 @@ export class TransactionPOSAudioService {
     let connection;
     try {
       connection = await getConnection();
-
       const queryCheck = `SELECT * FROM DBA.TRANSACTIONPOSAUDIO WHERE TRANSACT = ${data.Transact}`;
       const existing = await connection.query(queryCheck);
-
       if ((existing as unknown[]).length > 0) {
         await connection.query(
           `UPDATE DBA.TRANSACTIONPOSAUDIO SET STATUS = ${data.Status} WHERE TRANSACT = ${data.Transact}`,
@@ -21,13 +18,11 @@ export class TransactionPOSAudioService {
           `INSERT INTO DBA.TRANSACTIONPOSAUDIO(TRANSACT,STATUS,PHONENUMBER,DATEOUT,DATERETURN) VALUES (${data.Transact},${data.Status},'${data.PhoneNumber}',GETDATE(),GETDATE())`,
         );
       }
-
       if (data.Status === 2) {
         await connection.query(
           `UPDATE DBA.TRANSACTIONPOSAUDIO SET DATERETURN = GETDATE() WHERE TRANSACT = ${data.Transact}`,
         );
       }
-
       if (
         data.TransactionDetailPOSAudios &&
         data.TransactionDetailPOSAudios.length > 0
@@ -35,9 +30,7 @@ export class TransactionPOSAudioService {
         for (const detail of data.TransactionDetailPOSAudios) {
           const detailQuery = `SELECT * FROM DBA.TRANSACTIONDETAILPOSAUDIO WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`;
           const existingDetail = await connection.query(detailQuery);
-
           let sqlBatch = "";
-
           const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ${detail.PRODNUM}`;
           const prodLinkResult = await connection.query(prodLinkQuery);
           let linkNum = detail.PRODNUM;
@@ -49,10 +42,8 @@ export class TransactionPOSAudioService {
             linkQty = row.QUANTITY || 1;
             isPrimary = row.ISPRIMARY;
           }
-
           const outQty = detail.QuantityOut * linkQty;
           const retQty = detail.QuantityReturn * linkQty;
-
           if ((existingDetail as unknown[]).length > 0) {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
@@ -71,6 +62,7 @@ export class TransactionPOSAudioService {
               if (isPrimary === 0) {
                 sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
                 sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
+                sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
               }
               sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
@@ -94,13 +86,13 @@ export class TransactionPOSAudioService {
               if (isPrimary === 0) {
                 sqlBatch += `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM};`;
                 sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${detail.PRODNUM}\\x0D\\x0A');`;
+                sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
               }
               sqlBatch += `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A');`;
               sqlBatch += `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr';`;
               sqlBatch += `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},"OUT"="OUT"-${retQty} WHERE PRODNUM=${linkNum};`;
             }
           }
-
           if (sqlBatch !== "") {
             await connection.query(sqlBatch);
           }

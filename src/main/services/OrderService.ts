@@ -383,13 +383,6 @@ export class OrderService {
           params: [outQty, outQty, linkNum],
         });
         await connection.query(updateStorageSql, [outQty, outQty, linkNum]);
-
-        const msgSql1 = `INSERT INTO DBA.MsgMgr(MsgNum,MsgTime,MsgType,MsgPrm,Data) VALUES ((SELECT MAX(NEXTNUM)+1 FROM DBA.AUTOINCINDEX WHERE INCNAME='GetNext_MsgMgr'),getdate(),7,1,'UPDATEPROD\\x0D\\x0A${linkNum}\\x0D\\x0A')`;
-        logger.info("Executed Database Query", { query: msgSql1 });
-        await connection.query(msgSql1);
-
-        const msgSql2 = `UPDATE DBA.AUTOINCINDEX SET NEXTNUM=(SELECT MAX(MsgNum) FROM DBA.MsgMgr) WHERE INCNAME='GetNext_MsgMgr'`;
-        await connection.query(msgSql2);
       }
 
       // 13. Payment: Insert into Howpaid
