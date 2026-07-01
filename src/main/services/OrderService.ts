@@ -465,12 +465,22 @@ export class OrderService {
         transact: TRANSACT,
         message: "Order inserted successfully",
       };
-    } catch (error: unknown) {
+    } catch (error: any) {
       await connection.rollback();
-      const detailedError =
-        error.odbcErrors?.[0]?.message || error.message || "Unknown error";
-      console.error("Error creating order:", detailedError);
-      throw new Error(`[odbc] ${detailedError}`);
+      console.error("Lỗi khi Create Order POS Audio:", error);
+      try {
+        const fs = require('fs');
+        const errStr = error ? (error.message || error.toString()) : "Unknown error";
+        const logContent = `\n[${new Date().toISOString()}] ORDER_SERVICE ERROR: ${errStr}\n`;
+        fs.appendFileSync('C:\\pos_audio_error_log.txt', logContent);
+      } catch (e) {
+        // ignore fs errors
+      }
+      throw error;
+    } finally {
+      if (connection) {
+        await connection.close();
+      }
     }
   }
 }

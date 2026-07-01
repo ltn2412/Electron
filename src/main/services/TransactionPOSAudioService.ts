@@ -23,6 +23,9 @@ export class TransactionPOSAudioService {
           `UPDATE DBA.TRANSACTIONPOSAUDIO SET DATERETURN = GETDATE() WHERE TRANSACT = ${data.Transact}`,
         );
       }
+
+      let lastSqlBatch = "";
+
       if (
         data.TransactionDetailPOSAudios &&
         data.TransactionDetailPOSAudios.length > 0
@@ -42,8 +45,8 @@ export class TransactionPOSAudioService {
             linkQty = row.QUANTITY || 1;
             isPrimary = row.ISPRIMARY;
           }
-          const outQty = detail.QuantityOut * linkQty;
-          const retQty = detail.QuantityReturn * linkQty;
+          const outQty = (detail.QuantityOut || 0) * linkQty;
+          const retQty = (detail.QuantityReturn || 0) * linkQty;
           if ((existingDetail as unknown[]).length > 0) {
             // OUT
             if (data.Status === 1 && detail.QuantityOut > 0) {
@@ -82,12 +85,21 @@ export class TransactionPOSAudioService {
             }
           }
           if (sqlBatch !== "") {
+            lastSqlBatch = sqlBatch;
             await connection.query(sqlBatch);
           }
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Lỗi khi Create/Update Transaction POS Audio:", error);
+      try {
+        const fs = require('fs');
+        const errStr = error ? (error.message || error.toString()) : "Unknown error";
+        const logContent = `\n[${new Date().toISOString()}] ERROR: ${errStr}\nSQL BATCH: ${lastSqlBatch}\n`;
+        fs.appendFileSync('C:\\pos_audio_error_log.txt', logContent);
+      } catch (e) {
+        // ignore fs errors
+      }
       throw error;
     } finally {
       if (connection) {
