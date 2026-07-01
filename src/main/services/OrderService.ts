@@ -294,6 +294,7 @@ export class OrderService {
         product.ProdType,
         product.Tax1,
         product.Tax2,
+        product.Tax3,
         product.Tax4,
         product.Tax5,
         status === 3 ? 0 : 1,
