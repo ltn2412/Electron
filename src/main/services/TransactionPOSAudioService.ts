@@ -37,84 +37,112 @@ export class TransactionPOSAudioService {
           const detailQuery = `SELECT * FROM DBA.TRANSACTIONDETAILPOSAUDIO WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`;
           const existingDetail = await connection.query(detailQuery);
 
-          const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ${detail.PRODNUM}`;
+          const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ${detail.PRODNUM}`;
           const prodLinkResult = await connection.query(prodLinkQuery);
           let linkNum = detail.PRODNUM;
           let linkQty = 1;
-          let isPrimary: any = 1;
 
           if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
             const row = (prodLinkResult as any[])[0];
             linkNum = row.PRODNUMLINK || detail.PRODNUM;
             linkQty = row.QUANTITY || 1;
-            isPrimary = row.ISPRIMARY;
           }
 
-          const outQty = (detail.QuantityOut || 0) * linkQty;
-          const retQty = (detail.QuantityReturn || 0) * linkQty;
+          // Tính tổng số lượng máy thực tế bị tác động (Dành riêng cho máy chính linkNum)
+          const totalOutQty = (detail.QuantityOut || 0) * linkQty;
+          const totalRetQty = (detail.QuantityReturn || 0) * linkQty;
+
           const queries: string[] = [];
 
           if ((existingDetail as unknown[]).length > 0) {
-            // OUT
+            // ================== OUT ==================
             if (data.Status === 1 && detail.QuantityOut > 0) {
               queries.push(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYOUT = ${detail.QuantityOut} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`,
               );
-              if (isPrimary == 0 || isPrimary === false) {
+
+              // 1. LUÔN TRỪ TỒN KHO CỦA CHÍNH ITEM ĐÓ (Cho cả lẻ và combo: vd 18 -> 17)
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM}`,
+              );
+
+              // 2. NẾU LÀ COMBO, TRỪ THÊM TỒN KHO MÁY CHÍNH (vd 180 -> 170)
+              if (linkNum !== detail.PRODNUM) {
                 queries.push(
-                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum}`,
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${totalOutQty} WHERE PRODNUM=${linkNum}`,
                 );
               }
+
+              // 3. Cập nhật vào POS Audio Storage (luôn nhắm vào máy chính)
               queries.push(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum}`,
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${totalOutQty},OUT=OUT+${totalOutQty} WHERE PRODNUM=${linkNum}`,
               );
             }
-            // RETURN (Đã fix logic đối xứng chuẩn với OUT)
+
+            // ================== RETURN ==================
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               queries.push(
                 `UPDATE DBA.TRANSACTIONDETAILPOSAUDIO SET QUANTITYRETURN = ${detail.QuantityReturn} WHERE TRANSACT = ${data.Transact} AND PRODNUM = ${detail.PRODNUM}`,
               );
-              if (isPrimary == 0 || isPrimary === false) {
+
+              // 1. LUÔN CỘNG LẠI TỒN KHO CỦA CHÍNH ITEM ĐÓ (Cho cả lẻ và combo: vd 17 -> 18)
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`,
+              );
+
+              // 2. NẾU LÀ COMBO, CỘNG LẠI TỒN KHO MÁY CHÍNH (vd 170 -> 180)
+              if (linkNum !== detail.PRODNUM) {
                 queries.push(
-                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum}`,
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${totalRetQty} WHERE PRODNUM=${linkNum}`,
                 );
               }
+
+              // 3. Cập nhật vào POS Audio Storage
               queries.push(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum}`,
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${totalRetQty},OUT=OUT-${totalRetQty} WHERE PRODNUM=${linkNum}`,
               );
             }
           } else {
-            // OUT
+            // ================== OUT (INSERT) ==================
             if (data.Status === 1 && detail.QuantityOut > 0) {
               queries.push(
                 `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYOUT) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityOut})`,
               );
-              if (isPrimary == 0 || isPrimary === false) {
+
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${detail.QuantityOut} WHERE PRODNUM=${detail.PRODNUM}`,
+              );
+              if (linkNum !== detail.PRODNUM) {
                 queries.push(
-                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${outQty} WHERE PRODNUM=${linkNum}`,
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN-${totalOutQty} WHERE PRODNUM=${linkNum}`,
                 );
               }
               queries.push(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${outQty},OUT=OUT+${outQty} WHERE PRODNUM=${linkNum}`,
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE-${totalOutQty},OUT=OUT+${totalOutQty} WHERE PRODNUM=${linkNum}`,
               );
             }
-            // RETURN (Đã fix logic đối xứng chuẩn với OUT)
+
+            // ================== RETURN (INSERT) ==================
             if (data.Status === 2 && detail.QuantityReturn > 0) {
               queries.push(
                 `INSERT INTO DBA.TRANSACTIONDETAILPOSAUDIO(TRANSACT,PRODNUM,QUANTITYRETURN) VALUES (${data.Transact},${detail.PRODNUM},${detail.QuantityReturn})`,
               );
-              if (isPrimary == 0 || isPrimary === false) {
+
+              queries.push(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${detail.QuantityReturn} WHERE PRODNUM=${detail.PRODNUM}`,
+              );
+              if (linkNum !== detail.PRODNUM) {
                 queries.push(
-                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${retQty} WHERE PRODNUM=${linkNum}`,
+                  `UPDATE DBA.PRODUCT SET COUNTDOWN=COUNTDOWN+${totalRetQty} WHERE PRODNUM=${linkNum}`,
                 );
               }
               queries.push(
-                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${retQty},OUT=OUT-${retQty} WHERE PRODNUM=${linkNum}`,
+                `UPDATE DBA.ProductPOSAudio SET STORAGE=STORAGE+${totalRetQty},OUT=OUT-${totalRetQty} WHERE PRODNUM=${linkNum}`,
               );
             }
           }
 
-          // Thực thi SQL
+          // Chạy Query
           for (const query of queries) {
             console.log("SQL EXEC:", query);
             await connection.query(query);
