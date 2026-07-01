@@ -354,24 +354,28 @@ export class OrderService {
 
       // 12.5 Update ProductPOSAudio STORAGE if status === 1 (Out)
       if (status === 1) {
-        const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
+        const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
         const prodLinkResult = await connection.query(prodLinkQuery, [PRODNUM]);
         let linkNum = PRODNUM;
         let linkQty = 1;
+        let isPrimary = 1;
         if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
           const row = (prodLinkResult as any[])[0];
           linkNum = row.PRODNUMLINK;
           linkQty = row.QUANTITY || 1;
+          isPrimary = row.ISPRIMARY;
         }
 
         const outQty = quantity * linkQty;
 
-        const updateProductSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN - ? WHERE PRODNUM = ?`;
-        logger.info("Executed Database Query", {
-          query: updateProductSql,
-          params: [outQty, linkNum],
-        });
-        await connection.query(updateProductSql, [outQty, linkNum]);
+        if (isPrimary === 0) {
+          const updateProductSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN - ? WHERE PRODNUM = ?`;
+          logger.info("Executed Database Query", {
+            query: updateProductSql,
+            params: [outQty, linkNum],
+          });
+          await connection.query(updateProductSql, [outQty, linkNum]);
+        }
 
         const updateStorageSql = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE - ?, OUT = OUT + ? WHERE PRODNUM = ?`;
         logger.info("Executed Database Query", {
