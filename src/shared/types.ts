@@ -2,7 +2,7 @@ export interface POSDETAIL {
   PRODNUM: number;
   DESCRIPT: string;
   QUAN: number;
-  PRICE: number;
+  COSTEACH: number;
   REFCODE?: string;
   [key: string]: unknown;
 }

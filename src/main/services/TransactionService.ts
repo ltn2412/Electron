@@ -92,7 +92,7 @@ export class TransactionService {
         FROM DBA.POSHEADER PH 
         LEFT JOIN DBA.TransactionPOSAudio TPA ON PH.TRANSACT = TPA.TRANSACT
         LEFT JOIN (
-            SELECT PD2.TRANSACT, SUM(PD2.QUAN * PD2.PRICE) AS Total
+            SELECT PD2.TRANSACT, SUM(PD2.QUAN * PD2.COSTEACH) AS Total
             FROM DBA.POSDETAIL PD2
             INNER JOIN DBA.PRODUCT P2 ON PD2.PRODNUM = P2.PRODNUM
             WHERE P2.REFCODE like '%_F:POS_AUDIO%'

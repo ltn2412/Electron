@@ -93,7 +93,7 @@ export default function PageOrder(): React.JSX.Element {
   const isExpired = statusName === "Expired";
 
   const filteredItems = transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE) || [];
-  const filteredTotal = filteredItems.reduce((sum, item) => sum + (item.PRICE || 0) * (item.QUAN || 1), 0);
+  const filteredTotal = filteredItems.reduce((sum, item) => sum + (item.COSTEACH || 0) * (item.QUAN || 1), 0);
 
   return (
     <>
@@ -170,8 +170,8 @@ export default function PageOrder(): React.JSX.Element {
                         <div style={styles.itemName}>{item.DESCRIPT}</div>
                       </div>
                       <div style={styles.itemPrice}>
-                        {item.PRICE != null && item.PRICE > 0
-                          ? `${item.PRICE.toLocaleString("en-US")} đ`
+                        {item.COSTEACH != null && item.COSTEACH > 0
+                          ? `${item.COSTEACH.toLocaleString("en-US")} đ`
                           : ""}
                       </div>
                     </div>
