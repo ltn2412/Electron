@@ -573,19 +573,19 @@ export default function PageMenu(): React.JSX.Element {
                             <span
                               style={{ fontSize: "14px", color: "#64748b" }}
                             >
-                              Available
+                              Booked
                             </span>
                             <span
                               style={{
                                 fontSize: "18px",
                                 fontWeight: 700,
                                 color:
-                                  s.availableMachines > 0
+                                  (s.maxMachines - s.bookedMachines) > 0
                                     ? "#10b981"
                                     : "#ef4444",
                               }}
                             >
-                              {s.availableMachines}/{s.maxMachines}
+                              {s.bookedMachines}/{s.maxMachines}
                             </span>
                           </div>
                         </div>
@@ -645,6 +645,28 @@ export default function PageMenu(): React.JSX.Element {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div style={{ ...styles.card, marginTop: "24px" }}>
+              <div style={styles.cardHeader}>
+                <h2 style={styles.cardTitle}>Booked Today</h2>
+              </div>
+              <div style={{ padding: "24px 24px" }}>
+                <div style={styles.productItem}>
+                  <span style={{ fontSize: "18px", fontWeight: 500 }}>
+                    Audio Guide Ticket
+                  </span>
+                  <span
+                    style={{
+                      fontSize: "22px",
+                      fontWeight: "bold",
+                      color: "#10b981",
+                    }}
+                  >
+                    {hoangVanSlots.reduce((sum, slot) => sum + slot.bookedMachines, 0)}
+                  </span>
+                </div>
               </div>
             </div>
           </div>

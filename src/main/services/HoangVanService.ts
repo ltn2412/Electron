@@ -46,7 +46,9 @@ class HoangVanService {
         username: config.hoangVanUser,
         password: config.hoangVanPass,
       };
-      logger.info(`HoangVanAPI Login Request to ${config.hoangVanURL}/login`, { payload });
+      logger.info(`HoangVanAPI Login Request to ${config.hoangVanURL}/login`, {
+        payload,
+      });
       const res = await axios.post(`${config.hoangVanURL}/login`, payload);
       logger.info("HoangVanAPI Login Response", { data: res.data });
 
@@ -170,10 +172,7 @@ class HoangVanService {
     }
   }
 
-  async getTransactions(
-    orderNo: string,
-    isRetry = false,
-  ): Promise<any> {
+  async getTransactions(orderNo: string, isRetry = false): Promise<any> {
     const config = ConfigManager.getConfig();
     if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) {
@@ -218,7 +217,9 @@ class HoangVanService {
     try {
       const url = `${config.hoangVanURL}/orders/expired?page=${page}&pageSize=${pageSize}`;
       logger.info(`HoangVanAPI GetExpiredOrders Request to ${url}`);
-      const res = await axios.get(url, { headers: { Authorization: `Bearer ${this.token}` } });
+      const res = await axios.get(url, {
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
       logger.info("HoangVanAPI GetExpiredOrders Response", { data: res.data });
       if (res.data.success && res.data.data) {
         return res.data;
@@ -251,13 +252,15 @@ class HoangVanService {
     try {
       const url = `${config.hoangVanURL}/orders/expired/confirm`;
       const payload = { orderNos };
-      logger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, { payload });
-      const res = await axios.post(
-        url,
+      logger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, {
         payload,
-        { headers: { Authorization: `Bearer ${this.token}` } },
-      );
-      logger.info("HoangVanAPI ConfirmExpiredOrders Response", { data: res.data });
+      });
+      const res = await axios.post(url, payload, {
+        headers: { Authorization: `Bearer ${this.token}` },
+      });
+      logger.info("HoangVanAPI ConfirmExpiredOrders Response", {
+        data: res.data,
+      });
       if (res.data.success) {
         return res.data;
       } else {

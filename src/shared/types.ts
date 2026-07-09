@@ -3,6 +3,7 @@ export interface POSDETAIL {
   DESCRIPT: string;
   QUAN: number;
   PRICE: number;
+  REFCODE?: string;
   [key: string]: unknown;
 }
 

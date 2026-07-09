@@ -155,23 +155,27 @@ export default function PageOrder(): React.JSX.Element {
             <div style={{ ...styles.card, marginTop: "24px", flex: 1 }}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>
-                  Items ({transaction.POSDETAILS?.length || 0})
+                  Items (
+                  {transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE).length || 0}
+                  )
                 </h2>
               </div>
               <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
-                {transaction.POSDETAILS?.map((item: POSDETAIL, idx: number) => (
-                  <div key={idx} style={styles.itemRow}>
-                    <div style={styles.itemLeft}>
-                      <div style={styles.itemQuantity}>{item.QUAN}x</div>
-                      <div style={styles.itemName}>{item.DESCRIPT}</div>
+                {transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE).map(
+                  (item: POSDETAIL, idx: number) => (
+                    <div key={idx} style={styles.itemRow}>
+                      <div style={styles.itemLeft}>
+                        <div style={styles.itemQuantity}>{item.QUAN}x</div>
+                        <div style={styles.itemName}>{item.DESCRIPT}</div>
+                      </div>
+                      <div style={styles.itemPrice}>
+                        {item.PRICE != null && item.PRICE > 0
+                          ? `${item.PRICE.toLocaleString("en-US")} đ`
+                          : "0 đ"}
+                      </div>
                     </div>
-                    <div style={styles.itemPrice}>
-                      {item.PRICE > 0
-                        ? `${item.PRICE.toLocaleString("en-US")} đ`
-                        : ""}
-                    </div>
-                  </div>
-                ))}
+                  ),
+                )}
               </div>
             </div>
           </div>

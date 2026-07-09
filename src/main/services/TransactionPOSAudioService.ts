@@ -1,5 +1,6 @@
 import { getConnection } from "@/main/config/database";
 import { TransactionPOSAudioPayload } from "@/shared/types";
+import logger from "@/main/utils/logger";
 
 export class TransactionPOSAudioService {
   static async createUpdateTransaction(
@@ -202,15 +203,12 @@ export class TransactionPOSAudioService {
         } catch (e) {}
       }
 
-      const dbError = error.odbcErrors
-        ? JSON.stringify(error.odbcErrors)
-        : error.message;
-
-      // ĐOẠN NÀY LÀ CỨU CÁNH CỦA BẠN: NÓ SẼ HIỆN THẲNG LÊN POPUP
-      const finalErrorMessage = `[SQL BỊ CHẾT]: \n${lastQuery}\n\n[LỖI GỐC TỪ DB]: \n${dbError}`;
-      console.error(finalErrorMessage);
-
-      throw new Error(finalErrorMessage); // Ném lỗi này ra Frontend
+      logger.error("Lỗi khi Create/Update Transaction POS Audio:", { error });
+      let errMsg = error.message || error.toString();
+      if (error.odbcErrors && error.odbcErrors.length > 0) {
+        errMsg += " | ODBC Details: " + error.odbcErrors.map((e: any) => e.message).join(", ");
+      }
+      throw new Error("Loi DB: " + errMsg);
     } finally {
       if (connection) {
         await connection.close();

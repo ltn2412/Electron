@@ -35,12 +35,14 @@ export class TransactionService {
         const posHeader = headerResult[0];
 
         const queryDetail = `
-          SELECT P.DESCRIPT AS DESCRIPT, PD.* FROM DBA.POSDETAIL PD 
+          SELECT P.DESCRIPT AS DESCRIPT, POAP.REFCODE AS REFCODE, PD.* FROM DBA.POSDETAIL PD 
           INNER JOIN DBA.PRODUCT P ON PD.PRODNUM = P.PRODNUM 
+          LEFT JOIN DBA.ProductPOSAudio POAP ON PD.PRODNUM = POAP.PRODNUM
           WHERE PD.TRANSACT = ? AND PD.PRODTYPE not in (100,101) 
           UNION ALL 
-          SELECT P.DESCRIPT AS DESCRIPT, PD.* FROM DBA.POSDETAIL PD 
+          SELECT P.DESCRIPT AS DESCRIPT, POAP.REFCODE AS REFCODE, PD.* FROM DBA.POSDETAIL PD 
           INNER JOIN DBA.PROMO P ON PD.PRODNUM = P.PROMONUM 
+          LEFT JOIN DBA.ProductPOSAudio POAP ON PD.PRODNUM = POAP.PRODNUM
           WHERE PD.TRANSACT = ? AND PD.PRODTYPE not in (100)
         `;
         const detailResult = await connection.query(queryDetail, [
