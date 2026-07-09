@@ -87,14 +87,17 @@ export class TransactionService {
                          WHEN (TPA.STATUS = 3) THEN 'Expired'
                          ELSE 'Return' END 
           END AS POSAudioStatusName, 
-          ISNULL((
-            SELECT SUM(PD2.QUAN * PD2.PRICE) 
+          ISNULL(AudioSum.Total, 0) AS FILTERED_TOTAL,
+          PH.* 
+        FROM DBA.POSHEADER PH 
+        LEFT JOIN DBA.TransactionPOSAudio TPA ON PH.TRANSACT = TPA.TRANSACT
+        LEFT JOIN (
+            SELECT PD2.TRANSACT, SUM(PD2.QUAN * PD2.PRICE) AS Total
             FROM DBA.POSDETAIL PD2
             INNER JOIN DBA.PRODUCT P2 ON PD2.PRODNUM = P2.PRODNUM
-            WHERE PD2.TRANSACT = PH.TRANSACT AND P2.REFCODE IS NOT NULL AND P2.REFCODE <> ''
-          ), 0) AS FILTERED_TOTAL,
-          PH.* FROM DBA.POSHEADER PH 
-        LEFT JOIN DBA.TransactionPOSAudio TPA ON PH.TRANSACT = TPA.TRANSACT
+            WHERE P2.REFCODE like '%_F:POS_AUDIO%'
+            GROUP BY PD2.TRANSACT
+        ) AudioSum ON PH.TRANSACT = AudioSum.TRANSACT
         WHERE PH.TRANSACT IN (
           SELECT PD.TRANSACT 
           FROM DBA.POSDETAIL PD 
