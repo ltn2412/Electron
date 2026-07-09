@@ -149,7 +149,7 @@ export default function PageOrder(): React.JSX.Element {
                       fontWeight: 700,
                     }}
                   >
-                    {filteredTotal > 0 ? `${filteredTotal.toLocaleString("en-US")} đ` : ""}
+                    {filteredTotal.toLocaleString("en-US")} đ
                   </span>
                 </div>
               </div>

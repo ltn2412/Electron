@@ -502,7 +502,7 @@ export default function PageMenu(): React.JSX.Element {
                           </span>
                         </div>
                         <div style={styles.txTotal}>
-                          Final Total: {tx.FINALTOTAL.toLocaleString("en-US")} đ
+                            Final Total: {((tx as any).FILTERED_TOTAL ?? tx.FINALTOTAL).toLocaleString("en-US")} đ
                         </div>
                       </div>
                       <div
