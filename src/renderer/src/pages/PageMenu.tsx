@@ -308,7 +308,7 @@ export default function PageMenu(): React.JSX.Element {
     const visitDateStr = hvOrderInfo.visitDate;
     const startTimeStr = svc.timeSlot?.startTime || "00:00";
     const endTimeStr = svc.timeSlot?.endTime || "23:59";
-    
+
     const now = new Date();
     // Parse using local time, assuming visitDateStr is YYYY-MM-DD and time is HH:mm
     const startDateTime = new Date(`${visitDateStr}T${startTimeStr}:00`);
@@ -323,7 +323,7 @@ export default function PageMenu(): React.JSX.Element {
         onConfirm: () => {
           setAlertConfig((prev) => ({ ...prev, isOpen: false }));
           executeUseHoangVanOrder();
-        }
+        },
       });
       return;
     }
@@ -580,7 +580,7 @@ export default function PageMenu(): React.JSX.Element {
                                 fontSize: "18px",
                                 fontWeight: 700,
                                 color:
-                                  (s.maxMachines - s.bookedMachines) > 0
+                                  s.maxMachines - s.bookedMachines > 0
                                     ? "#10b981"
                                     : "#ef4444",
                               }}
@@ -664,7 +664,10 @@ export default function PageMenu(): React.JSX.Element {
                       color: "#10b981",
                     }}
                   >
-                    {hoangVanSlots.reduce((sum, slot) => sum + slot.bookedMachines, 0)}
+                    {slots.reduce(
+                      (sum, slot) => sum + slot.bookedMachines,
+                      0,
+                    )}
                   </span>
                 </div>
               </div>
