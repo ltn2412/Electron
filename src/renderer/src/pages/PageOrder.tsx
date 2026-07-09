@@ -92,6 +92,9 @@ export default function PageOrder(): React.JSX.Element {
   const isReturn = statusName === "Return";
   const isExpired = statusName === "Expired";
 
+  const filteredItems = transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE) || [];
+  const filteredTotal = filteredItems.reduce((sum, item) => sum + (item.PRICE || 0) * (item.QUAN || 1), 0);
+
   return (
     <>
       <TitleBar />
@@ -146,7 +149,7 @@ export default function PageOrder(): React.JSX.Element {
                       fontWeight: 700,
                     }}
                   >
-                    {transaction.FINALTOTAL.toLocaleString("en-US")} đ
+                    {filteredTotal > 0 ? `${filteredTotal.toLocaleString("en-US")} đ` : ""}
                   </span>
                 </div>
               </div>
@@ -155,13 +158,11 @@ export default function PageOrder(): React.JSX.Element {
             <div style={{ ...styles.card, marginTop: "24px", flex: 1 }}>
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>
-                  Items (
-                  {transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE).length || 0}
-                  )
+                  Items ({filteredItems.length})
                 </h2>
               </div>
               <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
-                {transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE).map(
+                {filteredItems.map(
                   (item: POSDETAIL, idx: number) => (
                     <div key={idx} style={styles.itemRow}>
                       <div style={styles.itemLeft}>
@@ -171,7 +172,7 @@ export default function PageOrder(): React.JSX.Element {
                       <div style={styles.itemPrice}>
                         {item.PRICE != null && item.PRICE > 0
                           ? `${item.PRICE.toLocaleString("en-US")} đ`
-                          : "0 đ"}
+                          : ""}
                       </div>
                     </div>
                   ),
