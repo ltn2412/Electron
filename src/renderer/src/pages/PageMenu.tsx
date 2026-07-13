@@ -187,22 +187,27 @@ export default function PageMenu(): React.JSX.Element {
     }
   };
 
-  const handleCheckHoangVanOrder = async (scannedValue?: string): Promise<void> => {
+  const handleCheckHoangVanOrder = async (
+    scannedValue?: string,
+  ): Promise<void> => {
     // Lấy giá trị trực tiếp từ tham số (nếu có) để tránh lỗi trễ state của React khi máy quét gõ quá nhanh
-    const valueToCheck = (typeof scannedValue === 'string' ? scannedValue : hvOrderNo) || "";
+    const valueToCheck =
+      (typeof scannedValue === "string" ? scannedValue : hvOrderNo) || "";
     if (!valueToCheck || hvCheckingRef.current) return;
-    
+
     // Tự động bóc tách mã đơn hàng ở ĐÂY (khi đã quét xong hoàn toàn và nhấn Enter)
     let finalOrderNo = valueToCheck.trim();
     const match = finalOrderNo.match(/\/services\/([^\?]+)/);
     if (match) {
       finalOrderNo = match[1];
     }
-    
+
     setHvOrderNo(finalOrderNo); // Cập nhật lại UI cho gọn gàng sau khi đã lọc
 
     if (!finalOrderNo.includes("ORDER")) {
-      setHvCheckError("Mã quét không hợp lệ (Không chứa ORDER). Vui lòng quét lại.");
+      setHvCheckError(
+        "Mã quét không hợp lệ (Không chứa ORDER). Vui lòng quét lại.",
+      );
       return;
     }
 
@@ -892,17 +897,26 @@ export default function PageMenu(): React.JSX.Element {
                       autoFocus
                       style={{
                         ...styles.searchInput,
-                        color: hvOrderNo.startsWith("http") ? "transparent" : "#1e293b",
-                        textShadow: hvOrderNo.startsWith("http") ? "0 0 0 transparent" : "none",
+                        color: hvOrderNo.startsWith("http")
+                          ? "transparent"
+                          : "#1e293b",
+                        textShadow: hvOrderNo.startsWith("http")
+                          ? "0 0 0 transparent"
+                          : "none",
                       }}
-                      placeholder={hvOrderNo.startsWith("http") ? "Scanning..." : "Nhập hoặc quét mã đơn hàng..."}
+                      placeholder={
+                        hvOrderNo.startsWith("http")
+                          ? "Scanning..."
+                          : "Nhập hoặc quét mã đơn hàng..."
+                      }
                     />
                     <button
                       style={{
                         ...styles.primaryBtn,
                         marginTop: "16px",
                         opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
-                        cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
+                        cursor:
+                          hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
                       }}
                       onClick={() => handleCheckHoangVanOrder()}
                       disabled={!hvOrderNo || hvChecking}
@@ -1595,6 +1609,46 @@ export default function PageMenu(): React.JSX.Element {
             }}
           ></div>
           Checking and automatically confirming expired orders...
+          <style>
+            {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
+          </style>
+        </div>
+      )}
+
+      {/* Hoang Van Checking Overlay */}
+      {hvChecking && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.7)",
+            zIndex: 999999,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "white",
+            fontSize: "24px",
+            fontWeight: "bold",
+            fontFamily: "Inter, sans-serif",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          <div
+            className="spinner"
+            style={{
+              width: "40px",
+              height: "40px",
+              border: "4px solid #f3f3f3",
+              borderTop: "4px solid #3b82f6",
+              borderRadius: "50%",
+              animation: "spin 1s linear infinite",
+            }}
+          ></div>
+          Đang tải dữ liệu từ Hoàng Văn...
           <style>
             {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
           </style>
