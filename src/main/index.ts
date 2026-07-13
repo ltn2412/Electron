@@ -9,6 +9,7 @@ import { join } from "path";
 
 import HoangVanService from "@/main/services/HoangVanService";
 import { OrderService } from "@/main/services/OrderService";
+import logger from "@/main/utils/logger";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -160,9 +161,10 @@ app.whenReady().then(() => {
       try {
         const data = await HoangVanService.useOrder(orderNo, staffId);
         return { success: true, data };
-      } catch (error: unknown) {
-        const err = error as Error;
-        return { success: false, error: err.message };
+      } catch (error: any) {
+        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
   );
@@ -173,9 +175,10 @@ app.whenReady().then(() => {
       try {
         const data = await HoangVanService.getExpiredOrders(page, pageSize);
         return { success: true, data };
-      } catch (error: unknown) {
-        const err = error as Error;
-        return { success: false, error: err.message };
+      } catch (error: any) {
+        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
   );
@@ -186,9 +189,10 @@ app.whenReady().then(() => {
       try {
         const data = await HoangVanService.confirmExpiredOrders(orderNos);
         return { success: true, data };
-      } catch (error: unknown) {
-        const err = error as Error;
-        return { success: false, error: err.message };
+      } catch (error: any) {
+        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
   );
@@ -199,9 +203,10 @@ app.whenReady().then(() => {
       try {
         await TransactionPOSAudioService.createUpdateTransaction(data);
         return { success: true };
-      } catch (error: unknown) {
-        const err = error as Error;
-        return { success: false, error: err.message };
+      } catch (error: any) {
+        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
   );
@@ -235,10 +240,15 @@ app.whenReady().then(() => {
           status,
           onlineOrderId,
         );
-        return result;
-      } catch (error: unknown) {
-        const err = error as Error;
-        return { success: false, error: err.message };
+        return {
+          success: result.success,
+          data: { transact: result.transact },
+          message: result.message,
+        };
+      } catch (error: any) {
+        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
   );
@@ -246,20 +256,22 @@ app.whenReady().then(() => {
   ipcMain.handle("order:getOnlineStatus", async (_, orderId: string) => {
     try {
       const result = await OrderService.getOnlineOrderStatus(orderId);
-      return result;
-    } catch (error: unknown) {
-      const err = error as Error;
-      return { success: false, error: err.message };
+      return { success: result.success, data: { status: result.status }, error: result.error };
+    } catch (error: any) {
+      const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+      logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+      return { success: false, error: errStr || JSON.stringify(error) };
     }
   });
 
   ipcMain.handle("order:returnLocal", async (_, orderId: string) => {
     try {
       const result = await OrderService.returnOnlineOrder(orderId);
-      return result;
-    } catch (error: unknown) {
-      const err = error as Error;
-      return { success: false, error: err.message };
+      return { success: result.success, data: {}, error: result.error };
+    } catch (error: any) {
+      const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
+      logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+      return { success: false, error: errStr || JSON.stringify(error) };
     }
   });
 

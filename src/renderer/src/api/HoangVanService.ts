@@ -12,11 +12,11 @@ import {
 import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 const BASE_URL = "https://ticket.baotangchungtichchientranh.vn/api/speedpos";
-const TOKEN_KEY = "SPEEDPOS_JWT_TOKEN";
+const TOKEN_KEY = "HOANGVAN_JWT_TOKEN";
 
 // You can change these to load from environment variables if needed
-const SPEEDPOS_CREDENTIALS = {
-  username: "speedpos",
+const HOANGVAN_CREDENTIALS = {
+  username: "hoangvan",
   password: "password123", // Replace with real password or fetch from config
 };
 
@@ -98,7 +98,7 @@ api.interceptors.response.use(
         // Try to login again
         const res = await axios.post<LoginResponse>(
           `${BASE_URL}/login`,
-          SPEEDPOS_CREDENTIALS,
+          HOANGVAN_CREDENTIALS,
         );
 
         if (res.data.success && res.data.data?.token) {
@@ -123,7 +123,7 @@ api.interceptors.response.use(
           (refreshError as AxiosError<LoginResponse>)?.response?.data
             ?.message || (refreshError as Error).message;
         showAlert(
-          `Phiên đăng nhập hết hạn và tự động đăng nhập thất bại. Lỗi: ${errMessage}`,
+          `Session expired and auto-login failed. Error: ${errMessage}`,
         );
 
         return Promise.reject(refreshError);
@@ -139,23 +139,23 @@ api.interceptors.response.use(
         error?: string;
       };
       const msg = errData.message || errData.error || error.message;
-      showAlert(`Lỗi API: ${msg}`);
+      showAlert(`API Error: ${msg}`);
     } else {
-      showAlert(`Lỗi kết nối API: ${error.message}`);
+      showAlert(`API Connection Error: ${error.message}`);
     }
 
     return Promise.reject(error);
   },
 );
 
-export class SpeedPosService {
+export class HoangVanService {
   /**
-   * Bước 1: Đăng nhập lấy Token
+   * 1. Login and get Token
    */
   static async login(): Promise<LoginResponse> {
     const response = await api.post<LoginResponse>(
       "/login",
-      SPEEDPOS_CREDENTIALS,
+      HOANGVAN_CREDENTIALS,
     );
     if (response.data.success && response.data.data?.token) {
       localStorage.setItem(TOKEN_KEY, response.data.data.token);
@@ -164,7 +164,7 @@ export class SpeedPosService {
   }
 
   /**
-   * 4.1 Kiểm Tra Trạng Thái Đơn Hàng
+   * 4.1 Check Order Status
    */
   static async getOrderStatus(orderNo: string): Promise<OrderStatusResponse> {
     const response = await api.get<OrderStatusResponse>(
@@ -174,7 +174,7 @@ export class SpeedPosService {
   }
 
   /**
-   * 4.2 Sử Dụng Đơn Hàng
+   * 4.2 Use Order
    */
   static async useOrder(
     orderNo: string,
@@ -188,7 +188,7 @@ export class SpeedPosService {
   }
 
   /**
-   * 4.3 Lấy Danh Sách Đơn Hết Hạn
+   * 4.3 Get Expired Orders
    */
   static async getExpiredOrders(
     page: number = 1,
@@ -202,7 +202,7 @@ export class SpeedPosService {
   }
 
   /**
-   * 4.4 Xác Nhận Đơn Hết Hạn Đã Lưu
+   * 4.4 Confirm Expired Orders
    */
   static async confirmExpiredOrders(
     payload: ExpiredConfirmPayload,
@@ -217,10 +217,10 @@ export class SpeedPosService {
   }
 
   /**
-   * 4.5 Tình Trạng Máy Theo Ngày
+   * 4.5 Get Daily Slots
    */
   static async getSlots(date?: string): Promise<SlotsResponse> {
-    // Nếu không truyền date, lấy ngày hôm nay
+    // If date is not provided, use today
     const targetDate = date || new Date().toISOString().split("T")[0];
     const response = await api.get<SlotsResponse>(`/slots?date=${targetDate}`);
     return response.data;

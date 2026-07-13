@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SpeedPosService } from "@/api/SpeedPosService";
+import { HoangVanService } from "@/api/HoangVanService";
 import TitleBar from "@/components/TitleBar";
 import { ArrowLeft, Search, AlertCircle, X, FileText } from "lucide-react";
 import AlertModal from "@/components/AlertModal";
@@ -30,7 +30,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
     try {
       setLoading(true);
       setError(null);
-      const res: ExpiredOrdersResponse = await SpeedPosService.getExpiredOrders(
+      const res: ExpiredOrdersResponse = await HoangVanService.getExpiredOrders(
         pageNum,
         50,
       );
@@ -100,7 +100,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
       }
 
       // 2. Call HoangVan API to confirm expired order
-      const confirmRes = await SpeedPosService.confirmExpiredOrders({
+      const confirmRes = await HoangVanService.confirmExpiredOrders({
         orderNos: [selectedOrder.orderNo],
       });
 

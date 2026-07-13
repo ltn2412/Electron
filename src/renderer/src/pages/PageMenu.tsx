@@ -28,7 +28,7 @@ export default function PageMenu(): React.JSX.Element {
   const [transactions, setTransactions] = useState<POSHEADER[]>([]);
   const [products, setProducts] = useState<ProductPOSAudio[]>([]);
   const [slots, setSlots] = useState<HoangVanSlot[]>([]);
-  const [expiredCount, setExpiredCount] = useState<number>(0);
+
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
   const [transactCheckError, setTransactCheckError] = useState("");
@@ -62,11 +62,10 @@ export default function PageMenu(): React.JSX.Element {
   const fetchData = useCallback(async (): Promise<void> => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const [txRes, prodRes, slotRes, expiredRes] = await Promise.all([
+      const [txRes, prodRes, slotRes] = await Promise.all([
         window.api.getTransactions(),
         window.api.getProductPOSAudio(),
         window.api.getHoangVanSlots(today),
-        window.api.getExpiredOrders({ page: 1, pageSize: 1 }),
       ]);
 
       if (txRes.success && txRes.data) {
@@ -82,14 +81,6 @@ export default function PageMenu(): React.JSX.Element {
       if (slotRes && slotRes.success && slotRes.data) {
         setSlots(slotRes.data);
       }
-      if (expiredRes && expiredRes.success && expiredRes.data) {
-        const innerData = (
-          expiredRes.data as unknown as {
-            data?: { total?: number; totalCount?: number };
-          }
-        ).data;
-        setExpiredCount(innerData?.totalCount || innerData?.total || 0);
-      }
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -100,8 +91,8 @@ export default function PageMenu(): React.JSX.Element {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-    // Polling every 5 seconds
-    const intervalId = setInterval(fetchData, 5000);
+    // Polling every 10 seconds
+    const intervalId = setInterval(fetchData, 10000);
     return () => clearInterval(intervalId);
   }, [fetchData]);
 
@@ -174,9 +165,9 @@ export default function PageMenu(): React.JSX.Element {
     const scheduleNextRun = (): void => {
       const now = new Date();
       const nextRun = new Date();
-      nextRun.setHours(5, 20, 0, 0);
+      nextRun.setHours(17, 20, 0, 0);
 
-      // If it's already past 5:20 AM today, schedule for 5:20 AM tomorrow
+      // If it's already past 17:20 today, schedule for 17:20 tomorrow
       if (now.getTime() >= nextRun.getTime()) {
         nextRun.setDate(nextRun.getDate() + 1);
       }
@@ -545,27 +536,6 @@ export default function PageMenu(): React.JSX.Element {
               title="Expired Orders"
             >
               <Archive size={20} />
-              {expiredCount > 0 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-5px",
-                    right: "-5px",
-                    backgroundColor: "#ef4444",
-                    color: "white",
-                    borderRadius: "50%",
-                    width: "20px",
-                    height: "20px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {expiredCount > 99 ? "99+" : expiredCount}
-                </div>
-              )}
             </button>
             <button
               style={styles.iconBtn}

@@ -483,9 +483,10 @@ export class OrderService {
         transact: TRANSACT,
         message: "Order inserted successfully",
       };
-    } catch (error) {
+    } catch (error: any) {
       if (connection) await connection.rollback();
-      throw error;
+      const errMsg = error.message + (error.odbcErrors ? ' | ODBC Details: ' + JSON.stringify(error.odbcErrors) : '');
+      throw new Error("DB Error: " + (errMsg || JSON.stringify(error)));
     } finally {
       if (connection) await connection.close();
     }
@@ -552,9 +553,10 @@ export class OrderService {
       }
       if (connection) await connection.close();
       throw new Error("Transaction not found or already returned.");
-    } catch (error) {
+    } catch (error: any) {
       if (connection) await connection.close();
-      throw error;
+      const errMsg = error.message + (error.odbcErrors ? ' | ODBC Details: ' + JSON.stringify(error.odbcErrors) : '');
+      throw new Error("DB Error: " + (errMsg || JSON.stringify(error)));
     }
   }
 }

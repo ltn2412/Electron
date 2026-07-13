@@ -121,7 +121,6 @@ export default function HoangVanSearchModal({
                     paddingLeft: isScanning ? "48px" : "16px",
                     transition: "all 0.2s ease-in-out",
                   }}
-                  placeholder="Scan barcode or enter order ID..."
                 />
                 {isScanning && (
                   <div

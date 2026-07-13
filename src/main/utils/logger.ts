@@ -22,6 +22,7 @@ const logger = winston.createLogger({
       if (info.params) msg += `\nParams: ${JSON.stringify(info.params)}`;
       if (info.body) msg += `\nBody: ${JSON.stringify(info.body)}`;
       if (info.response) msg += `\nResponse: ${JSON.stringify(info.response)}`;
+      if (info.data) msg += `\nData: ${JSON.stringify(info.data)}`;
       if (info.error) {
         if (typeof info.error === "object") {
           const errObj = info.error as Error & { odbcErrors?: unknown };
