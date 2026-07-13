@@ -34,6 +34,7 @@ const api = {
     ipcRenderer.invoke("hoangvan:getExpiredOrders", payload),
   confirmExpiredOrders: (payload: { orderNos: string[] }) =>
     ipcRenderer.invoke("hoangvan:confirmExpiredOrders", payload),
+  printHtml: (htmlContent: string) => ipcRenderer.invoke("print:html", htmlContent),
 };
 
 // Expose api ra đối tượng window

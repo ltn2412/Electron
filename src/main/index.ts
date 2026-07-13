@@ -241,6 +241,34 @@ app.whenReady().then(() => {
     },
   );
 
+  ipcMain.handle("print:html", async (_, htmlContent: string) => {
+    return new Promise((resolve) => {
+      const printWindow = new BrowserWindow({
+        show: false,
+        webPreferences: {
+          nodeIntegration: true,
+        },
+      });
+
+      printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+
+      printWindow.webContents.on("did-finish-load", () => {
+        printWindow.webContents.print(
+          { 
+            silent: true, 
+            printBackground: false, 
+            deviceName: "",
+            margins: { marginType: 'none' }
+          },
+          (success, failureReason) => {
+            printWindow.close();
+            resolve({ success, error: failureReason });
+          }
+        );
+      });
+    });
+  });
+
   createWindow();
 
   app.on("activate", function () {

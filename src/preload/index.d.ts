@@ -62,6 +62,9 @@ declare global {
       confirmExpiredOrders: (payload: {
         orderNos: string[];
       }) => Promise<ApiResponse<unknown>>;
+      printHtml: (
+        htmlContent: string
+      ) => Promise<{ success: boolean; error?: string }>;
     };
   }
 }

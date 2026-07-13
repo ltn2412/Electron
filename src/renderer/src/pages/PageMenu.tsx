@@ -109,16 +109,6 @@ export default function PageMenu(): React.JSX.Element {
   // Auto-confirm logic
   useEffect(() => {
     const timeoutId = setTimeout(async () => {
-      const now = new Date();
-      const isPastTriggerTime =
-        now.getHours() > 17 ||
-        (now.getHours() === 17 && now.getMinutes() >= 20);
-      if (!isPastTriggerTime) return;
-
-      const todayStr = now.toISOString().split("T")[0];
-      const lastRun = localStorage.getItem("lastAutoConfirmDate");
-      if (lastRun === todayStr) return;
-
       setIsAutoConfirming(true);
       try {
         const res = await window.api.getExpiredOrders({
@@ -160,11 +150,7 @@ export default function PageMenu(): React.JSX.Element {
               message: `Successfully auto-confirmed ${orderNos.length} expired orders!`,
               type: "success",
             });
-            localStorage.setItem("lastAutoConfirmDate", todayStr);
           }
-        } else {
-          // No orders, but mark as run so we don't check again
-          localStorage.setItem("lastAutoConfirmDate", todayStr);
         }
       } catch (err: unknown) {
         console.error("Auto confirm error:", err);

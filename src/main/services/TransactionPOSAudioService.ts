@@ -206,7 +206,9 @@ export class TransactionPOSAudioService {
       logger.error("Lỗi khi Create/Update Transaction POS Audio:", { error });
       let errMsg = error.message || error.toString();
       if (error.odbcErrors && error.odbcErrors.length > 0) {
-        errMsg += " | ODBC Details: " + error.odbcErrors.map((e: any) => e.message).join(", ");
+        errMsg +=
+          " | ODBC Details: " +
+          error.odbcErrors.map((e: any) => e.message).join(", ");
       }
       throw new Error("Loi DB: " + errMsg);
     } finally {
