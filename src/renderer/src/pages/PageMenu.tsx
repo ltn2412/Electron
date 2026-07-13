@@ -201,6 +201,11 @@ export default function PageMenu(): React.JSX.Element {
     
     setHvOrderNo(finalOrderNo); // Cập nhật lại UI cho gọn gàng sau khi đã lọc
 
+    if (!finalOrderNo.includes("ORDER")) {
+      setHvCheckError("Mã quét không hợp lệ (Không chứa ORDER). Vui lòng quét lại.");
+      return;
+    }
+
     hvCheckingRef.current = true;
     setHvChecking(true);
     setHvCheckError("");
@@ -897,10 +902,9 @@ export default function PageMenu(): React.JSX.Element {
                         ...styles.primaryBtn,
                         marginTop: "16px",
                         opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
-                        cursor:
-                          hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
+                        cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
                       }}
-                      onClick={handleCheckHoangVanOrder}
+                      onClick={() => handleCheckHoangVanOrder()}
                       disabled={!hvOrderNo || hvChecking}
                     >
                       {hvChecking ? "Checking..." : "Check Online Order"}

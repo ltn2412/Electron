@@ -110,6 +110,7 @@ class HoangVanService {
       logger.info(`HoangVanAPI CheckOrder Request to ${url}`);
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.token}` },
+        timeout: 10000,
       });
       logger.info("HoangVanAPI CheckOrder Response", { data: res.data });
       if (res.data.success && res.data.data) {
