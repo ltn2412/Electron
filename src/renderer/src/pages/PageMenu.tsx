@@ -201,7 +201,7 @@ export default function PageMenu(): React.JSX.Element {
           setTransactCheckError(res.error || "Transaction not found!");
         }
       } catch (err: unknown) {
-        setTransactCheckError((err as Error).message || "Lỗi hệ thống");
+        setTransactCheckError((err as Error).message || "System error");
       } finally {
         setIsTransactChecking(false);
       }
@@ -221,7 +221,7 @@ export default function PageMenu(): React.JSX.Element {
 
     if (!finalOrderNo.toUpperCase().includes("ORDER")) {
       setHvCheckError(
-        "Mã quét không hợp lệ (Không chứa ORDER). Vui lòng quét lại.",
+        "Invalid scan code (Missing ORDER prefix). Please scan again.",
       );
       return;
     }
@@ -396,15 +396,16 @@ export default function PageMenu(): React.JSX.Element {
         setAlertConfig({
           isOpen: true,
           title: "Success",
-          message: "Đã cập nhật trạng thái trả thiết bị thành công!",
+          message: "Successfully returned device!",
           type: "success",
         });
         setHvLocalStatus("Return");
+        fetchData();
       } else {
         setAlertConfig({
           isOpen: true,
           title: "Error",
-          message: "Lỗi cập nhật: " + res.error,
+          message: "Update Error: " + res.error,
           type: "error",
         });
       }
@@ -412,7 +413,7 @@ export default function PageMenu(): React.JSX.Element {
       setAlertConfig({
         isOpen: true,
         title: "Error",
-        message: (err as Error).message || "Lỗi hệ thống",
+        message: (err as Error).message || "System error",
         type: "error",
       });
     } finally {
@@ -426,8 +427,8 @@ export default function PageMenu(): React.JSX.Element {
     if (services.length === 0) {
       setAlertConfig({
         isOpen: true,
-        title: "Lỗi",
-        message: "Đơn hàng không có dịch vụ nào.",
+        title: "Error",
+        message: "Order has no services.",
         type: "error",
       });
       return;
