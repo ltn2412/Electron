@@ -257,7 +257,6 @@ app.whenReady().then(() => {
           { 
             silent: true, 
             printBackground: false, 
-            deviceName: "",
             margins: { marginType: 'none' }
           },
           (success, failureReason) => {
