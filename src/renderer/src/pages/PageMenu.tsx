@@ -258,10 +258,41 @@ export default function PageMenu(): React.JSX.Element {
         return;
       }
 
+      // Format currency
+      const formatVnd = (val: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
+
+      // 4. Generate dynamic receipt HTML
+      const servicesHtml = hvOrderInfo.services?.map(s => `
+        <tr>
+          <td style="text-align: left;">${s.serviceName}<br><i>${s.serviceCode || ''}</i></td>
+          <td style="text-align: center;">${s.quantity}</td>
+          <td style="text-align: center;">${s.timeSlot?.startTime || ''}<br>${s.timeSlot?.endTime || ''}</td>
+          <td style="text-align: right;">${formatVnd(s.unitPrice * s.quantity)}</td>
+        </tr>
+      `).join('') || '';
+
+      const totalAmount = formatVnd((hvOrderInfo.services || []).reduce((sum, s) => sum + s.unitPrice * s.quantity, 0));
+
+      const finalHtml = receiptHtml
+        .replace(/{{ORDER_NO}}/g, hvOrderInfo.orderNo || '')
+        .replace(/{{CUSTOMER_NAME}}/g, hvOrderInfo.buyerName || '')
+        .replace(/{{EMAIL}}/g, hvOrderInfo.buyerEmail || '')
+        .replace(/{{VISIT_DATE}}/g, hvOrderInfo.visitDate || '')
+        .replace(/{{PURCHASE_DATE}}/g, hvOrderInfo.createdAt ? new Date(hvOrderInfo.createdAt).toLocaleString('vi-VN') : '')
+        .replace('{{SERVICES_HTML}}', servicesHtml)
+        .replace('{{TOTAL_AMOUNT}}', totalAmount);
+
+      // 5. Print the receipt silently
+      try {
+        await window.api.printHtml(finalHtml);
+      } catch (printErr: any) {
+        console.error("Failed to print receipt:", printErr);
+      }
+
       setAlertConfig({
         isOpen: true,
         title: "Success",
-        message: "Bill created successfully! Transact: " + createRes.transact,
+        message: "Order confirmed and bill printed! Transact: " + createRes.transact,
         type: "success",
       });
       setIsHoangVanSearchOpen(false);
