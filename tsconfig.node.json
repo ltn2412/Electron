@@ -10,10 +10,10 @@
     "composite": true,
     "types": ["electron-vite/node"],
     "baseUrl": ".",
+    "ignoreDeprecations": "5.0",
     "paths": {
       "@shared/*": ["src/shared/*"],
       "@/*": ["src/*"]
-    },
-    "ignoreDeprecations": "6.0"
+    }
   }
 }

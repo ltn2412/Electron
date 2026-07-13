@@ -1,6 +1,6 @@
+import { app } from "electron";
 import fs from "fs";
 import path from "path";
-import { app } from "electron";
 
 export interface AppConfig {
   hoangVanURL: string;
@@ -22,32 +22,22 @@ export class ConfigManager {
         : path.join(process.cwd(), "config.json");
 
       if (!fs.existsSync(configPath)) {
-        try {
-          fs.writeFileSync(configPath, JSON.stringify(DEFAULT_CONFIG, null, 2), "utf8");
-        } catch (writeErr) {
-          console.error("Could not auto-create config file (permission issue?)", writeErr);
-          // If we can't write, it will naturally fail in the next steps if file doesn't exist
-        }
+        fs.writeFileSync(
+          configPath,
+          JSON.stringify(DEFAULT_CONFIG, null, 2),
+          "utf8",
+        );
       }
 
       if (fs.existsSync(configPath)) {
         const data = fs.readFileSync(configPath, "utf8");
         const parsed = JSON.parse(data);
-        
-        if (
-          !parsed.hoangVanURL ||
-          !parsed.hoangVanUser ||
-          !parsed.hoangVanPass
-        ) {
-          return null;
-        }
 
+        if (!parsed.hoangVanURL || !parsed.hoangVanUser || !parsed.hoangVanPass)
+          return null;
         return parsed as AppConfig;
-      } else {
-        return null;
-      }
-    } catch (e) {
-      console.error("Error reading config", e);
+      } else return null;
+    } catch {
       return null;
     }
   }

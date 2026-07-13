@@ -92,8 +92,12 @@ export default function PageOrder(): React.JSX.Element {
   const isReturn = statusName === "Return";
   const isExpired = statusName === "Expired";
 
-  const filteredItems = transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE) || [];
-  const filteredTotal = filteredItems.reduce((sum, item) => sum + (item.COSTEACH || 0) * (item.QUAN || 1), 0);
+  const filteredItems =
+    transaction.POSDETAILS?.filter((item: POSDETAIL) => item.REFCODE) || [];
+  const filteredTotal = filteredItems.reduce(
+    (sum, item) => sum + (item.COSTEACH || 0) * (item.QUAN || 1),
+    0,
+  );
 
   return (
     <>
@@ -157,26 +161,22 @@ export default function PageOrder(): React.JSX.Element {
 
             <div style={{ ...styles.card, marginTop: "24px", flex: 1 }}>
               <div style={styles.cardHeader}>
-                <h2 style={styles.cardTitle}>
-                  Items ({filteredItems.length})
-                </h2>
+                <h2 style={styles.cardTitle}>Items ({filteredItems.length})</h2>
               </div>
               <div style={{ padding: "20px", overflowY: "auto", flex: 1 }}>
-                {filteredItems.map(
-                  (item: POSDETAIL, idx: number) => (
-                    <div key={idx} style={styles.itemRow}>
-                      <div style={styles.itemLeft}>
-                        <div style={styles.itemQuantity}>{item.QUAN}x</div>
-                        <div style={styles.itemName}>{item.DESCRIPT}</div>
-                      </div>
-                      <div style={styles.itemPrice}>
-                        {item.COSTEACH != null && item.COSTEACH > 0
-                          ? `${item.COSTEACH.toLocaleString("en-US")} đ`
-                          : ""}
-                      </div>
+                {filteredItems.map((item: POSDETAIL, idx: number) => (
+                  <div key={idx} style={styles.itemRow}>
+                    <div style={styles.itemLeft}>
+                      <div style={styles.itemQuantity}>{item.QUAN}x</div>
+                      <div style={styles.itemName}>{item.DESCRIPT}</div>
                     </div>
-                  ),
-                )}
+                    <div style={styles.itemPrice}>
+                      {item.COSTEACH != null && item.COSTEACH > 0
+                        ? `${item.COSTEACH.toLocaleString("en-US")} đ`
+                        : ""}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

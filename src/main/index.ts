@@ -1,14 +1,14 @@
-import { app, shell, BrowserWindow, ipcMain } from "electron";
-import { join } from "path";
-import { electronApp, optimizer, is } from "@electron-toolkit/utils";
+import { EmployeeService } from "@/main/services/EmployeeService";
+import { ProductService } from "@/main/services/ProductService";
+import { TransactionPOSAudioService } from "@/main/services/TransactionPOSAudioService";
+import { TransactionService } from "@/main/services/TransactionService";
 import icon from "../../resources/icon.png?asset";
-import { EmployeeService } from "./services/EmployeeService";
-import { TransactionService } from "./services/TransactionService";
-import { ProductService } from "./services/ProductService";
-import { TransactionPOSAudioService } from "./services/TransactionPOSAudioService";
+import { electronApp, is, optimizer } from "@electron-toolkit/utils";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { join } from "path";
 
-import HoangVanService from "./services/HoangVanService";
-import OrderService from "./services/OrderService";
+import HoangVanService from "@/main/services/HoangVanService";
+import { OrderService } from "@/main/services/OrderService";
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -37,19 +37,12 @@ function createWindow(): void {
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env["ELECTRON_RENDERER_URL"]) {
+  if (is.dev && process.env["ELECTRON_RENDERER_URL"])
     mainWindow.loadURL(process.env["ELECTRON_RENDERER_URL"]);
-  } else {
-    mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
-  }
+  else mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
 
-  ipcMain.on("window:minimize", () => {
-    mainWindow.minimize();
-  });
-
-  ipcMain.on("window:close", () => {
-    mainWindow.close();
-  });
+  ipcMain.on("window:minimize", () => mainWindow.minimize());
+  ipcMain.on("window:close", () => mainWindow.close());
 }
 
 // This method will be called when Electron has finished
@@ -91,7 +84,7 @@ app.whenReady().then(() => {
     try {
       const data = await TransactionService.getTransaction();
       return { success: true, data };
-    } catch (error: unknown) {
+    } catch (error) {
       const err = error as Error;
       return { success: false, error: err.message };
     }
@@ -101,7 +94,7 @@ app.whenReady().then(() => {
     try {
       const data = await TransactionService.getTransactionByTransact(transact);
       return { success: true, data };
-    } catch (error: unknown) {
+    } catch (error) {
       const err = error as Error;
       return { success: false, error: err.message };
     }
@@ -109,10 +102,10 @@ app.whenReady().then(() => {
 
   ipcMain.handle("config:get", async () => {
     try {
-      const { ConfigManager } = await import("./config/AppConfig");
+      const { ConfigManager } = await import("@/main/config/AppConfig");
       const config = ConfigManager.getConfig();
       return { success: true, data: config };
-    } catch (error: unknown) {
+    } catch (error) {
       const err = error as Error;
       return { success: false, error: err.message };
     }
@@ -122,7 +115,7 @@ app.whenReady().then(() => {
     try {
       const data = await ProductService.getProductPOSAudio();
       return { success: true, data };
-    } catch (error: unknown) {
+    } catch (error) {
       const err = error as Error;
       return { success: false, error: err.message };
     }
@@ -134,7 +127,7 @@ app.whenReady().then(() => {
       try {
         const result = await ProductService.resetProduct(products);
         return { success: true, data: result };
-      } catch (error: unknown) {
+      } catch (error) {
         const err = error as Error;
         return { success: false, error: err.message };
       }
@@ -224,7 +217,14 @@ app.whenReady().then(() => {
         swipe,
         status,
         onlineOrderId,
-      }: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number; onlineOrderId?: string },
+      }: {
+        refCode: string;
+        quantity: number;
+        costEach: number;
+        swipe: string;
+        status?: number;
+        onlineOrderId?: string;
+      },
     ) => {
       try {
         const result = await OrderService.createOrder(
@@ -272,19 +272,21 @@ app.whenReady().then(() => {
         },
       });
 
-      printWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`);
+      printWindow.loadURL(
+        `data:text/html;charset=utf-8,${encodeURIComponent(htmlContent)}`,
+      );
 
       printWindow.webContents.on("did-finish-load", () => {
         printWindow.webContents.print(
-          { 
-            silent: true, 
-            printBackground: false, 
-            margins: { marginType: 'none' }
+          {
+            silent: true,
+            printBackground: false,
+            margins: { marginType: "none" },
           },
           (success, failureReason) => {
             printWindow.close();
             resolve({ success, error: failureReason });
-          }
+          },
         );
       });
     });
@@ -303,9 +305,7 @@ app.whenReady().then(() => {
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-  }
+  if (process.platform !== "darwin") app.quit();
 });
 
 // In this file you can include the rest of your app's specific main process

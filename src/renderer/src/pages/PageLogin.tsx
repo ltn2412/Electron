@@ -35,11 +35,7 @@ export default function PageLogin(): React.JSX.Element {
       }
     } catch (err: unknown) {
       console.error("Login process error:", err);
-      if (err instanceof Error) {
-        showAlert(`System error: ${err.message}`);
-      } else {
-        showAlert("Undefined system error.");
-      }
+      showAlert(`System error: ${(err as Error).message}`);
       setPassword("");
     } finally {
       setIsLoading(false);

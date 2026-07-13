@@ -4,7 +4,7 @@ import { SpeedPosService } from "@/api/SpeedPosService";
 import TitleBar from "@/components/TitleBar";
 import { ArrowLeft, Search, AlertCircle, X, FileText } from "lucide-react";
 import AlertModal from "@/components/AlertModal";
-import { ExpiredOrder, ExpiredOrdersResponse } from "@shared/apiTypes";
+import { ExpiredOrder, ExpiredOrdersResponse } from "@shared/types";
 
 export default function PageExpiredOrders(): React.JSX.Element {
   const navigate = useNavigate();

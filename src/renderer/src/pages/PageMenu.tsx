@@ -1,5 +1,5 @@
 import AlertModal from "@/components/AlertModal";
-import KeypadControl from "@/components/KeypadControl";
+
 import TitleBar from "@/components/TitleBar";
 import {
   HoangVanOrder,
@@ -12,17 +12,17 @@ import {
   FileText,
   Globe,
   LogOut,
-  MinusCircle,
-  PlusCircle,
   RefreshCw,
   Search,
   Settings,
-  X,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import HoangVanSearchModal from "./PageMenuComponents/HoangVanSearchModal";
+import LogoutConfirmModal from "./PageMenuComponents/LogoutConfirmModal";
+import SetupModal from "./PageMenuComponents/SetupModal";
+import TransactionSearchModal from "./PageMenuComponents/TransactionSearchModal";
 import receiptHtml from "./receipt.html?raw";
-
 export default function PageMenu(): React.JSX.Element {
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState<POSHEADER[]>([]);
@@ -38,7 +38,6 @@ export default function PageMenu(): React.JSX.Element {
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // HoangVan Search State
-  const [hvOrderNo, setHvOrderNo] = useState("");
   const [hvOrderInfo, setHvOrderInfo] = useState<HoangVanOrder | null>(null);
   const [hvChecking, setHvChecking] = useState(false);
   const [hvCheckError, setHvCheckError] = useState("");
@@ -50,10 +49,7 @@ export default function PageMenu(): React.JSX.Element {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [setupProducts, setSetupProducts] = useState<ProductPOSAudio[]>([]);
-  const [editingProduct, setEditingProduct] = useState<ProductPOSAudio | null>(
-    null,
-  );
-  const [editQuantity, setEditQuantity] = useState("");
+
   const [alertConfig, setAlertConfig] = useState<{
     isOpen: boolean;
     title: string;
@@ -111,23 +107,34 @@ export default function PageMenu(): React.JSX.Element {
 
   // Auto-confirm logic at 5:20 AM daily
   useEffect(() => {
-    const executeAutoConfirm = async () => {
+    const executeAutoConfirm = async (): Promise<void> => {
       setIsAutoConfirming(true);
       try {
         const res = await window.api.getExpiredOrders({
           page: 1,
           pageSize: 1000,
         });
-        const dataRes = res as any;
+        const dataRes = res as {
+          success: boolean;
+          data?: {
+            items?: {
+              orderNo: string;
+              services?: {
+                serviceCode: string;
+                quantity: number;
+                unitPrice: number;
+              }[];
+            }[];
+          };
+        };
         const payload = dataRes.data;
         if (
           dataRes.success &&
           payload &&
-          payload.data &&
-          payload.data.items &&
-          payload.data.items.length > 0
+          payload.items &&
+          payload.items.length > 0
         ) {
-          const orders = payload.data.items;
+          const orders = payload.items;
           const swipe = localStorage.getItem("employeeSwipe") || "221278";
           const orderNos: string[] = [];
           for (const order of orders) {
@@ -164,12 +171,12 @@ export default function PageMenu(): React.JSX.Element {
     };
 
     let timeoutId: NodeJS.Timeout;
-    const scheduleNextRun = () => {
+    const scheduleNextRun = (): void => {
       const now = new Date();
       const nextRun = new Date();
       nextRun.setHours(5, 20, 0, 0);
 
-      // Nếu đã qua 5h20 sáng hôm nay, thì đặt lịch cho 5h20 sáng ngày mai
+      // If it's already past 5:20 AM today, schedule for 5:20 AM tomorrow
       if (now.getTime() >= nextRun.getTime()) {
         nextRun.setDate(nextRun.getDate() + 1);
       }
@@ -177,7 +184,7 @@ export default function PageMenu(): React.JSX.Element {
       const timeUntilNextRun = nextRun.getTime() - now.getTime();
       timeoutId = setTimeout(async () => {
         await executeAutoConfirm();
-        scheduleNextRun(); // Chạy xong thì đặt lịch tiếp cho ngày hôm sau
+        scheduleNextRun(); // Schedule for the next day after execution
       }, timeUntilNextRun);
     };
 
@@ -211,20 +218,15 @@ export default function PageMenu(): React.JSX.Element {
   };
 
   const handleCheckHoangVanOrder = async (
-    scannedValue?: string,
+    finalOrderNo: string,
   ): Promise<void> => {
-    const valueToCheck =
-      (typeof scannedValue === "string" ? scannedValue : hvOrderNo) || "";
+    if (!finalOrderNo || hvChecking) return;
 
-    if (!valueToCheck || hvChecking) return;
-
-    let finalOrderNo = valueToCheck.trim();
-    const match = finalOrderNo.match(/(ORDER[a-zA-Z0-9_]+)/i);
+    const orderNoToProcess = finalOrderNo.trim();
+    const match = orderNoToProcess.match(/(ORDER[a-zA-Z0-9_]+)/i);
     if (match) {
       finalOrderNo = match[1];
     }
-
-    setHvOrderNo(finalOrderNo);
 
     if (!finalOrderNo.toUpperCase().includes("ORDER")) {
       setHvCheckError(
@@ -245,9 +247,9 @@ export default function PageMenu(): React.JSX.Element {
           const locRes = await window.api.getOnlineOrderStatus(
             res.data.orderNo,
           );
-          if (locRes.success && locRes.status !== undefined) {
-            if (locRes.status === 1) setHvLocalStatus("Out");
-            else if (locRes.status === 2 || locRes.status === 3)
+          if (locRes.success && locRes.data?.status !== undefined) {
+            if (locRes.data.status === 1) setHvLocalStatus("Out");
+            else if (locRes.data.status === 2 || locRes.data.status === 3)
               setHvLocalStatus("Return");
             else setHvLocalStatus("Unknown");
           } else {
@@ -255,10 +257,10 @@ export default function PageMenu(): React.JSX.Element {
           }
         }
       } else {
-        setHvCheckError(res.error || "Không tìm thấy đơn hàng");
+        setHvCheckError(res.error || "Order not found");
       }
     } catch (err: unknown) {
-      setHvCheckError((err as Error).message || "Lỗi hệ thống");
+      setHvCheckError((err as Error).message || "System error");
     } finally {
       setHvChecking(false);
     }
@@ -319,7 +321,7 @@ export default function PageMenu(): React.JSX.Element {
       }
 
       // Format currency
-      const formatVnd = (val: number) =>
+      const formatVnd = (val: number): string =>
         new Intl.NumberFormat("vi-VN", {
           style: "currency",
           currency: "VND",
@@ -362,18 +364,23 @@ export default function PageMenu(): React.JSX.Element {
         .replace("{{TOTAL_AMOUNT}}", totalAmount);
 
       // 5. Print the receipt silently
+      let printSuccess = true;
       try {
         await window.api.printHtml(finalHtml);
-      } catch (printErr: any) {
+      } catch (printErr: unknown) {
         console.error("Failed to print receipt:", printErr);
+        printSuccess = false;
       }
 
       setAlertConfig({
         isOpen: true,
-        title: "Success",
-        message:
-          "Order confirmed and bill printed! Transact: " + createRes.transact,
-        type: "success",
+        title: printSuccess ? "Success" : "Partial Success",
+        message: printSuccess
+          ? "Order confirmed and bill printed! Transact: " +
+            createRes.data?.transact
+          : "Order confirmed, but failed to print bill! Transact: " +
+            createRes.data?.transact,
+        type: printSuccess ? "success" : "info",
       });
       setIsHoangVanSearchOpen(false);
       fetchData(); // Refresh UI
@@ -389,7 +396,7 @@ export default function PageMenu(): React.JSX.Element {
     }
   };
 
-  const handleReturnLocalOrder = async () => {
+  const handleReturnLocalOrder = async (): Promise<void> => {
     if (!hvOrderInfo?.orderNo) return;
     setHvReturning(true);
     try {
@@ -513,7 +520,6 @@ export default function PageMenu(): React.JSX.Element {
             <button
               style={styles.iconBtn}
               onClick={() => {
-                setHvOrderNo("");
                 setHvOrderInfo(null);
                 setHvCheckError("");
                 setIsHoangVanSearchOpen(true);
@@ -634,7 +640,8 @@ export default function PageMenu(): React.JSX.Element {
                         <div style={styles.txTotal}>
                           Final Total:{" "}
                           {(
-                            (tx as any).FILTERED_TOTAL ?? tx.FINALTOTAL
+                            (tx as POSHEADER & { FILTERED_TOTAL?: number })
+                              .FILTERED_TOTAL ?? tx.FINALTOTAL
                           ).toLocaleString("en-US")}{" "}
                           đ
                         </div>
@@ -821,864 +828,48 @@ export default function PageMenu(): React.JSX.Element {
           </div>
         </div>
 
-        {/* Search Modal (POS) */}
-        {isSearchOpen && (
-          <div style={styles.modalOverlay}>
-            <div style={styles.modalContent}>
-              <div style={styles.modalHeader}>
-                <h2 style={styles.cardTitle}>Find Transaction</h2>
-                <button
-                  style={{ ...styles.iconBtn, border: "none" }}
-                  onClick={() => setIsSearchOpen(false)}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-              <div style={{ padding: "24px" }}>
-                <input
-                  type="text"
-                  value={transactId}
-                  onChange={(e) =>
-                    setTransactId(e.target.value.replace(/[^0-9]/g, ""))
-                  }
-                  autoFocus
-                  style={styles.searchInput}
-                />
-                <KeypadControl
-                  onKeyPress={(key) => setTransactId((prev) => prev + key)}
-                  onBackspace={() => setTransactId((prev) => prev.slice(0, -1))}
-                  onClear={() => setTransactId("")}
-                />
-                <button
-                  style={{
-                    ...styles.primaryBtn,
-                    marginTop: "24px",
-                    opacity: transactId && !isTransactChecking ? 1 : 0.5,
-                    cursor:
-                      transactId && !isTransactChecking
-                        ? "pointer"
-                        : "not-allowed",
-                  }}
-                  onClick={handleSearchTransact}
-                  disabled={!transactId || isTransactChecking}
-                >
-                  {isTransactChecking ? "Searching..." : "Search"}
-                </button>
+        <TransactionSearchModal
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          transactId={transactId}
+          setTransactId={setTransactId}
+          isTransactChecking={isTransactChecking}
+          transactCheckError={transactCheckError}
+          onSearch={handleSearchTransact}
+          styles={styles}
+        />
 
-                {transactCheckError && (
-                  <div
-                    style={{
-                      color: "#dc2626",
-                      marginTop: "16px",
-                      textAlign: "center",
-                      fontWeight: 500,
-                      padding: "16px",
-                      backgroundColor: "#fee2e2",
-                      borderRadius: "8px",
-                      border: "1px solid #f87171",
-                    }}
-                  >
-                    {transactCheckError}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
+        <HoangVanSearchModal
+          isOpen={isHoangVanSearchOpen}
+          onClose={() => setIsHoangVanSearchOpen(false)}
+          hvOrderInfo={hvOrderInfo}
+          hvChecking={hvChecking}
+          hvCheckError={hvCheckError}
+          hvUsing={hvUsing}
+          hvLocalStatus={hvLocalStatus}
+          hvReturning={hvReturning}
+          handleCheckHoangVanOrder={handleCheckHoangVanOrder}
+          handleUseHoangVanOrder={handleUseHoangVanOrder}
+          handleReturnLocalOrder={handleReturnLocalOrder}
+          styles={styles}
+        />
 
-        {/* HoangVan Search Modal */}
-        {isHoangVanSearchOpen && (
-          <div style={styles.modalOverlay}>
-            <div
-              style={{
-                ...styles.modalContent,
-                width: "650px",
-                maxWidth: "95vw",
-                maxHeight: "90vh",
-                display: "flex",
-                flexDirection: "column",
-                margin: "auto",
-              }}
-            >
-              <style>
-                {`
-                  .hide-scroll::-webkit-scrollbar {
-                    display: none;
-                  }
-                `}
-              </style>
-
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "20px 24px",
-                  borderBottom: "1px solid #e2e8f0",
-                  backgroundColor: "white",
-                  zIndex: 10,
-                }}
-              >
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <Globe size={20} color="#1e3a8a" />
-                  <h2 style={styles.cardTitle}>Online Order Search</h2>
-                </div>
-                <button
-                  style={{ ...styles.iconBtn, border: "none" }}
-                  onClick={() => setIsHoangVanSearchOpen(false)}
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              <div
-                className="hide-scroll"
-                style={{
-                  padding: "24px",
-                  overflowY: "auto",
-                  flex: 1,
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none",
-                }}
-              >
-                {!hvOrderInfo && (
-                  <>
-                    <input
-                      type={hvOrderNo.startsWith("http") ? "password" : "text"}
-                      value={hvOrderNo}
-                      onChange={(e) => setHvOrderNo(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          handleCheckHoangVanOrder(e.currentTarget.value);
-                        }
-                      }}
-                      autoFocus
-                      style={{
-                        ...styles.searchInput,
-                        color: "#1e293b",
-                      }}
-                    />
-                    <button
-                      style={{
-                        ...styles.primaryBtn,
-                        marginTop: "16px",
-                        opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
-                        cursor:
-                          hvOrderNo && !hvChecking ? "pointer" : "not-allowed",
-                      }}
-                      onClick={() => handleCheckHoangVanOrder()}
-                      disabled={!hvOrderNo || hvChecking}
-                    >
-                      {hvChecking ? "Checking..." : "Check Online Order"}
-                    </button>
-                  </>
-                )}
-
-                {hvCheckError && (
-                  <div
-                    style={{
-                      color: "#dc2626",
-                      marginTop: "16px",
-                      textAlign: "center",
-                      fontWeight: 500,
-                      padding: "16px",
-                      backgroundColor: "#fee2e2",
-                      borderRadius: "8px",
-                      border: "1px solid #f87171",
-                    }}
-                  >
-                    {hvCheckError}
-                  </div>
-                )}
-
-                {hvOrderInfo && (
-                  <div
-                    style={{
-                      marginTop: "24px",
-                      backgroundColor: "#ffffff",
-                      borderRadius: "12px",
-                      border: "1px solid #e2e8f0",
-                      boxShadow:
-                        "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {/* Header Section */}
-                    <div
-                      style={{
-                        backgroundColor: "#f8fafc",
-                        padding: "16px 20px",
-                        borderBottom: "1px solid #e2e8f0",
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <div>
-                        <div
-                          style={{
-                            fontSize: "14px",
-                            color: "#64748b",
-                            marginBottom: "4px",
-                          }}
-                        >
-                          Order No.
-                        </div>
-                        <div
-                          style={{
-                            fontSize: "18px",
-                            fontWeight: "bold",
-                            color: "#0f172a",
-                          }}
-                        >
-                          {hvOrderInfo.orderNo}
-                        </div>
-                      </div>
-                      {(() => {
-                        const statusMap: Record<
-                          string,
-                          { text: string; color: string; bg: string }
-                        > = {
-                          ChuaSuDung: {
-                            text: "Unused",
-                            color: "#059669",
-                            bg: "#d1fae5",
-                          },
-                          DaSuDung: {
-                            text: "Used",
-                            color: "#2563eb",
-                            bg: "#dbeafe",
-                          },
-                          HetHan: {
-                            text: "Expired",
-                            color: "#dc2626",
-                            bg: "#fee2e2",
-                          },
-                          DaHuy: {
-                            text: "Cancelled",
-                            color: "#475569",
-                            bg: "#f1f5f9",
-                          },
-                        };
-                        const st = statusMap[hvOrderInfo.orderStatus] || {
-                          text: hvOrderInfo.orderStatus,
-                          color: "#475569",
-                          bg: "#f1f5f9",
-                        };
-                        return (
-                          <div style={{ display: "flex", gap: "8px" }}>
-                            <div
-                              style={{
-                                backgroundColor: st.bg,
-                                color: st.color,
-                                padding: "6px 12px",
-                                borderRadius: "999px",
-                                fontWeight: 600,
-                                fontSize: "14px",
-                              }}
-                            >
-                              {st.text}
-                            </div>
-                            {hvOrderInfo.orderStatus === "DaSuDung" &&
-                              hvLocalStatus && (
-                                <div
-                                  style={{
-                                    backgroundColor:
-                                      hvLocalStatus === "Out"
-                                        ? "#fef3c7"
-                                        : hvLocalStatus === "Return"
-                                          ? "#dcfce3"
-                                          : "#e2e8f0",
-                                    color:
-                                      hvLocalStatus === "Out"
-                                        ? "#d97706"
-                                        : hvLocalStatus === "Return"
-                                          ? "#16a34a"
-                                          : "#334155",
-                                    padding: "6px 12px",
-                                    borderRadius: "999px",
-                                    fontWeight: 600,
-                                    fontSize: "14px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: "4px",
-                                  }}
-                                >
-                                  {hvLocalStatus}
-                                </div>
-                              )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    {/* Body Section */}
-                    <div style={{ padding: "20px" }}>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: "16px",
-                          marginBottom: "20px",
-                        }}
-                      >
-                        <div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#64748b",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            Customer Name
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "15px",
-                              color: "#1e293b",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {hvOrderInfo.buyerName || "N/A"}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#64748b",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            Phone Number
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "15px",
-                              color: "#1e293b",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {hvOrderInfo.buyerPhone || "N/A"}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#64748b",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            Visit Date
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "15px",
-                              color: "#1e293b",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {hvOrderInfo.visitDate}
-                          </div>
-                        </div>
-                        <div>
-                          <div
-                            style={{
-                              fontSize: "13px",
-                              color: "#64748b",
-                              marginBottom: "4px",
-                            }}
-                          >
-                            Total Amount
-                          </div>
-                          <div
-                            style={{
-                              fontSize: "15px",
-                              color: "#1e293b",
-                              fontWeight: 500,
-                            }}
-                          >
-                            {new Intl.NumberFormat("vi-VN", {
-                              style: "currency",
-                              currency: "VND",
-                            }).format(
-                              (hvOrderInfo.services || []).reduce(
-                                (sum, svc) =>
-                                  sum + svc.unitPrice * svc.quantity,
-                                0,
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Services Section */}
-                      <div
-                        style={{
-                          borderTop: "1px dashed #cbd5e1",
-                          paddingTop: "16px",
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: "14px",
-                            fontWeight: "bold",
-                            color: "#334155",
-                            marginBottom: "12px",
-                          }}
-                        >
-                          Purchased Services
-                        </div>
-                        {hvOrderInfo.services?.map((svc, idx: number) => (
-                          <div
-                            key={idx}
-                            style={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                              backgroundColor: "#f8fafc",
-                              padding: "12px 16px",
-                              borderRadius: "8px",
-                              marginBottom: "8px",
-                            }}
-                          >
-                            <div>
-                              <div
-                                style={{
-                                  fontSize: "15px",
-                                  fontWeight: 500,
-                                  color: "#0f172a",
-                                }}
-                              >
-                                {svc.serviceName}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "13px",
-                                  color: "#64748b",
-                                  marginTop: "4px",
-                                }}
-                              >
-                                Time: {svc.timeSlot?.name}
-                              </div>
-                            </div>
-                            <div style={{ textAlign: "right" }}>
-                              <div
-                                style={{
-                                  fontSize: "15px",
-                                  fontWeight: "bold",
-                                  color: "#0f172a",
-                                }}
-                              >
-                                x{svc.quantity}
-                              </div>
-                              <div
-                                style={{
-                                  fontSize: "13px",
-                                  color: "#64748b",
-                                  marginTop: "4px",
-                                }}
-                              >
-                                {new Intl.NumberFormat("vi-VN", {
-                                  style: "currency",
-                                  currency: "VND",
-                                }).format(svc.unitPrice)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {hvOrderInfo.orderStatus === "ChuaSuDung" && (
-                      <div style={{ padding: "0 20px 20px 20px" }}>
-                        <button
-                          style={{
-                            ...styles.primaryBtn,
-                            backgroundColor: "#10b981",
-                            opacity: hvUsing ? 0.5 : 1,
-                          }}
-                          onClick={handleUseHoangVanOrder}
-                          disabled={hvUsing}
-                        >
-                          {hvUsing
-                            ? "Processing..."
-                            : "Confirm Usage & Print Bill"}
-                        </button>
-                      </div>
-                    )}
-                    {hvOrderInfo.orderStatus === "DaSuDung" &&
-                      hvLocalStatus === "Out" && (
-                        <div style={{ padding: "0 20px 20px 20px" }}>
-                          <button
-                            onClick={handleReturnLocalOrder}
-                            disabled={hvReturning}
-                            style={{
-                              width: "100%",
-                              padding: "12px",
-                              backgroundColor: hvReturning
-                                ? "#94a3b8"
-                                : "#f59e0b",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "8px",
-                              fontWeight: 600,
-                              fontSize: "16px",
-                              cursor: hvReturning ? "not-allowed" : "pointer",
-                              transition: "background-color 0.2s",
-                            }}
-                          >
-                            {hvReturning ? "Processing..." : "Confirm Return"}
-                          </button>
-                        </div>
-                      )}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Setup Modal */}
-        {isSetupOpen && (
-          <div style={{ ...styles.modalOverlay, zIndex: 1100 }}>
-            <div style={{ ...styles.modalContent, width: "500px" }}>
-              <div style={styles.modalHeader}>
-                <div
-                  style={{ display: "flex", alignItems: "center", gap: "8px" }}
-                >
-                  <Settings size={20} color="#1e3a8a" />
-                  <h2 style={{ ...styles.cardTitle, color: "#1e3a8a" }}>
-                    Setup
-                  </h2>
-                </div>
-              </div>
-              <div style={{ padding: "24px" }}>
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "16px",
-                    marginBottom: "32px",
-                  }}
-                >
-                  {setupProducts.map((p, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "space-between",
-                      }}
-                    >
-                      <div
-                        style={{
-                          fontSize: "16px",
-                          color: "#1e293b",
-                          fontWeight: 500,
-                          width: "140px",
-                        }}
-                      >
-                        {p.DESCRIPT}
-                      </div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px",
-                        }}
-                      >
-                        <button
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: "#1e3a8a",
-                            padding: 0,
-                            display: "flex",
-                          }}
-                          onClick={() =>
-                            setSetupProducts((prev) =>
-                              prev.map((sp) =>
-                                sp.PRODNUM === p.PRODNUM
-                                  ? {
-                                      ...sp,
-                                      STORAGE: Math.max(
-                                        0,
-                                        (sp.STORAGE || 0) - 1,
-                                      ),
-                                    }
-                                  : sp,
-                              ),
-                            )
-                          }
-                        >
-                          <MinusCircle size={24} />
-                        </button>
-                        <div
-                          style={{
-                            width: "80px",
-                            height: "36px",
-                            border: "1px solid #cbd5e1",
-                            borderRadius: "8px",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            fontSize: "16px",
-                            fontWeight: 600,
-                            color: "#1e293b",
-                            cursor: "pointer",
-                          }}
-                          onClick={() => {
-                            setEditingProduct(p);
-                            setEditQuantity(p.STORAGE?.toString() || "0");
-                          }}
-                        >
-                          {p.STORAGE}
-                        </div>
-                        <button
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            color: "#1e3a8a",
-                            padding: 0,
-                            display: "flex",
-                          }}
-                          onClick={() =>
-                            setSetupProducts((prev) =>
-                              prev.map((sp) =>
-                                sp.PRODNUM === p.PRODNUM
-                                  ? { ...sp, STORAGE: (sp.STORAGE || 0) + 1 }
-                                  : sp,
-                              ),
-                            )
-                          }
-                        >
-                          <PlusCircle size={24} />
-                        </button>
-                      </div>
-                      <div style={{ width: "32px" }}></div>
-                    </div>
-                  ))}
-                </div>
-
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    gap: "16px",
-                  }}
-                >
-                  <button
-                    style={{
-                      flex: 1,
-                      height: "48px",
-                      border: "1px solid #94a3b8",
-                      borderRadius: "12px",
-                      background: "white",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "#64748b",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => setIsSetupOpen(false)}
-                  >
-                    Close
-                  </button>
-                  <button
-                    style={{
-                      flex: 1,
-                      height: "48px",
-                      border: "none",
-                      borderRadius: "12px",
-                      background: "#1e3a8a",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                    onClick={async () => {
-                      if (window.api.resetProduct) {
-                        await window.api.resetProduct(
-                          setupProducts.map((p) => ({
-                            ...p,
-                            COUNT: p.STORAGE,
-                          })),
-                        );
-                        fetchData();
-                      } else {
-                        setProducts(setupProducts);
-                      }
-                      setIsSetupOpen(false);
-                    }}
-                  >
-                    Apply
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Edit Quantity Modal */}
-        {editingProduct && (
-          <div style={{ ...styles.modalOverlay, zIndex: 1200 }}>
-            <div style={styles.modalContent}>
-              <div
-                style={{
-                  ...styles.modalHeader,
-                  justifyContent: "center",
-                  borderBottom: "none",
-                  paddingBottom: 0,
-                }}
-              >
-                <h2
-                  style={{
-                    ...styles.cardTitle,
-                    color: "#1e3a8a",
-                    textAlign: "center",
-                  }}
-                >
-                  {editingProduct.DESCRIPT}
-                </h2>
-              </div>
-              <div style={{ padding: "24px" }}>
-                <input
-                  type="text"
-                  value={editQuantity}
-                  onChange={(e) =>
-                    setEditQuantity(e.target.value.replace(/[^0-9]/g, ""))
-                  }
-                  autoFocus
-                  style={{ ...styles.searchInput, marginBottom: "16px" }}
-                />
-                <KeypadControl
-                  onKeyPress={(key) => setEditQuantity((prev) => prev + key)}
-                  onBackspace={() =>
-                    setEditQuantity((prev) => prev.slice(0, -1))
-                  }
-                  onClear={() => setEditQuantity("")}
-                />
-                <div
-                  style={{ display: "flex", gap: "16px", marginTop: "24px" }}
-                >
-                  <button
-                    style={{
-                      flex: 1,
-                      height: "48px",
-                      border: "1px solid #94a3b8",
-                      borderRadius: "12px",
-                      background: "white",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "#64748b",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => setEditingProduct(null)}
-                  >
-                    Close
-                  </button>
-                  <button
-                    style={{
-                      flex: 1,
-                      height: "48px",
-                      border: "none",
-                      borderRadius: "12px",
-                      background: "#1e3a8a",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      const val = parseInt(editQuantity) || 0;
-                      setSetupProducts((prev) =>
-                        prev.map((p) =>
-                          p.PRODNUM === editingProduct.PRODNUM
-                            ? { ...p, STORAGE: val }
-                            : p,
-                        ),
-                      );
-                      setEditingProduct(null);
-                    }}
-                  >
-                    Enter
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Logout Confirm Modal */}
-        {isLogoutConfirmOpen && (
-          <div style={{ ...styles.modalOverlay, zIndex: 1200 }}>
-            <div style={{ ...styles.modalContent, width: "320px" }}>
-              <div
-                style={{
-                  ...styles.modalHeader,
-                  justifyContent: "center",
-                  borderBottom: "none",
-                  paddingBottom: 0,
-                }}
-              >
-                <h2
-                  style={{
-                    ...styles.cardTitle,
-                    color: "#1e3a8a",
-                    textAlign: "center",
-                  }}
-                >
-                  Confirm Logout
-                </h2>
-              </div>
-              <div style={{ padding: "24px", textAlign: "center" }}>
-                <p style={{ margin: "0 0 24px 0", color: "#64748b" }}>
-                  Are you sure you want to log out?
-                </p>
-                <div style={{ display: "flex", gap: "16px" }}>
-                  <button
-                    style={{
-                      flex: 1,
-                      height: "48px",
-                      border: "1px solid #94a3b8",
-                      borderRadius: "12px",
-                      background: "white",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "#64748b",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => setIsLogoutConfirmOpen(false)}
-                    disabled={isLoggingOut}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    style={{
-                      flex: 1,
-                      height: "48px",
-                      border: "none",
-                      borderRadius: "12px",
-                      background: "#ef4444",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "white",
-                      cursor: "pointer",
-                    }}
-                    onClick={handleLogoutConfirm}
-                    disabled={isLoggingOut}
-                  >
-                    {isLoggingOut ? "..." : "Logout"}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <SetupModal
+          isOpen={isSetupOpen}
+          onClose={() => setIsSetupOpen(false)}
+          setupProducts={setupProducts}
+          setSetupProducts={setSetupProducts}
+          setProducts={setProducts}
+          fetchData={fetchData}
+          styles={styles}
+        />
+        <LogoutConfirmModal
+          isOpen={isLogoutConfirmOpen}
+          onClose={() => setIsLogoutConfirmOpen(false)}
+          onConfirm={handleLogoutConfirm}
+          isLoggingOut={isLoggingOut}
+          styles={styles}
+        />
       </div>
       {/* Auto Confirm Overlay */}
       {isAutoConfirming && (

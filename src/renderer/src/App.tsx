@@ -15,7 +15,7 @@ function App(): React.JSX.Element {
   }>({ isOpen: false, title: "", message: "", type: "info" });
 
   useEffect(() => {
-    const handleGlobalAlert = (e: Event) => {
+    const handleGlobalAlert = (e: Event): void => {
       const customEvent = e as CustomEvent;
       setAlertConfig({
         isOpen: true,

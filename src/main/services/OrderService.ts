@@ -1,5 +1,6 @@
-import { getConnection } from "../config/database";
-import logger from "../utils/logger";
+import { getConnection } from "@/main/config/database";
+import logger from "@/main/utils/logger";
+import type { Connection } from "odbc";
 
 interface EmpResult {
   EmpNum: number;
@@ -48,7 +49,7 @@ interface RecPosResult {
 }
 
 export class OrderService {
-  public async createOrder(
+  public static async createOrder(
     refCode: string,
     quantity: number,
     costEach: number,
@@ -238,7 +239,7 @@ export class OrderService {
         WHOSTART,
         SALETYPEINDEX,
         STATNUM,
-        3, // ALWAYS 3 for POSHEADER (Closed)
+        3,
         FINALTOTAL,
         PUNCHINDEX,
         OPENDATE,
@@ -246,7 +247,7 @@ export class OrderService {
         PUNCHINDEX,
         STATNUM,
         refCode,
-      ];
+      ] as (string | number)[];
       logger.info("Executed Database Query", {
         query: posHeaderSql,
         params: posHeaderParams,
@@ -306,14 +307,13 @@ export class OrderService {
         UNIQUEID,
         costEach,
         useVat ? netTotalAmount / quantity : costEach,
-      ];
+      ] as (string | number)[];
       logger.info("Executed Database Query", {
         query: posDetailSql,
         params: posDetailParams,
       });
       await connection.query(posDetailSql, posDetailParams);
 
-      // 11. Insert TransactionPOSAudio
       if (status === 1) {
         const sql = `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
@@ -321,9 +321,17 @@ export class OrderService {
         `;
         logger.info("Executed Database Query", {
           query: sql,
-          params: [TRANSACT, status, onlineOrderId || null],
+          params: [TRANSACT, status, onlineOrderId || null] as (
+            | string
+            | number
+            | null
+          )[],
         });
-        await connection.query(sql, [TRANSACT, status, onlineOrderId || null]);
+        await connection.query(sql, [
+          TRANSACT,
+          status,
+          onlineOrderId || null,
+        ] as (string | number | null)[] as (string | number)[]);
       } else {
         const sql = `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
@@ -331,12 +339,19 @@ export class OrderService {
         `;
         logger.info("Executed Database Query", {
           query: sql,
-          params: [TRANSACT, status, onlineOrderId || null],
+          params: [TRANSACT, status, onlineOrderId || null] as (
+            | string
+            | number
+            | null
+          )[],
         });
-        await connection.query(sql, [TRANSACT, status, onlineOrderId || null]);
+        await connection.query(sql, [
+          TRANSACT,
+          status,
+          onlineOrderId || null,
+        ] as (string | number | null)[] as (string | number)[]);
       }
 
-      // 12. Insert TransactionDetailPOSAudio
       const tdSql = `
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
         VALUES (?, ?, ?, ?)
@@ -353,7 +368,6 @@ export class OrderService {
       });
       await connection.query(tdSql, tdParams);
 
-      // 12.5 Update ProductPOSAudio STORAGE if status === 1 (Out)
       if (status === 1) {
         const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
         const prodLinkResult = await connection.query(prodLinkQuery, [PRODNUM]);
@@ -361,7 +375,13 @@ export class OrderService {
         let linkQty = 1;
         let isPrimary = 1;
         if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
-          const row = (prodLinkResult as any[])[0];
+          const row = (
+            prodLinkResult as {
+              PRODNUMLINK: number;
+              QUANTITY?: number;
+              ISPRIMARY: number;
+            }[]
+          )[0];
           linkNum = row.PRODNUMLINK;
           linkQty = row.QUANTITY || 1;
           isPrimary = row.ISPRIMARY;
@@ -386,13 +406,12 @@ export class OrderService {
         await connection.query(updateStorageSql, [outQty, outQty, linkNum]);
       }
 
-      // 13. Payment: Insert into Howpaid
       const methodRes = await connection.query(
         `SELECT METHODNUM FROM DBA.MethodPay WHERE ISACTIVE = 1 AND SwipeStarts like '%HOANGVAN%'`,
       );
       if (methodRes.length === 0)
         throw new Error("No payment method found for HoangVan");
-      const methodNum = (methodRes as unknown as unknown[])[0].METHODNUM;
+      const methodNum = (methodRes as { METHODNUM: number }[])[0].METHODNUM;
 
       const nextHowPaidRes = await connection.query(
         `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_HowPaid'`,
@@ -430,14 +449,13 @@ export class OrderService {
         PUNCHINDEX,
         STATNUM,
         methodNum,
-      ];
+      ] as (string | number)[];
       logger.info("Executed Database Query", {
         query: hpSql,
         params: hpParams,
       });
       await connection.query(hpSql, hpParams);
 
-      // 14. Update TillBalance in PunchClock
       if (PUNCHINDEX > 0) {
         const updateTillSql = `
           UPDATE DBA.PUNCHCLOCK 
@@ -451,7 +469,6 @@ export class OrderService {
         await connection.query(updateTillSql, [FINALTOTAL, PUNCHINDEX]);
       }
 
-      // 15. Update NeedsCashout for Employee
       const updateNeedsCashoutSql = `UPDATE DBA.EMPLOYEE SET NEEDSCASHOUT = 1 WHERE EMPNUM = ?`;
       logger.info("Executed Database Query", {
         query: updateNeedsCashoutSql,
@@ -466,46 +483,38 @@ export class OrderService {
         transact: TRANSACT,
         message: "Order inserted successfully",
       };
-    } catch (error: unknown) {
-      console.error("OrderService createOrder error:", error);
-      if (connection) {
-        try {
-          await connection.rollback();
-        } catch (e) {}
-      }
-      const err = error as Error;
-      return { success: false, error: err.message };
+    } catch (error) {
+      if (connection) await connection.rollback();
+      throw error;
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 
-  public static async getOnlineOrderStatus(orderId: string): Promise<{ success: boolean; status?: number; error?: string }> {
-    try {
-      const connection = await getConnection();
-      const sql = `
-        SELECT TOP 1 Status 
-        FROM DBA.TransactionPOSAudio 
-        WHERE OnlineOrderTransaction = ? 
-        ORDER BY Transact DESC
-      `;
-      const result = await connection.query(sql, [orderId]) as any[];
-      await connection.close();
-      if (result && result.length > 0) {
-        return { success: true, status: result[0].Status };
-      }
-      return { success: true, status: undefined }; // Not found or no status
-    } catch (error: unknown) {
-      console.error("OrderService getOnlineOrderStatus error:", error);
-      const err = error as Error;
-      return { success: false, error: err.message };
+  public static async getOnlineOrderStatus(
+    orderId: string,
+  ): Promise<{ success: boolean; status?: number; error?: string }> {
+    const connection = await getConnection();
+    const sql = `
+      SELECT TOP 1 Status 
+      FROM DBA.TransactionPOSAudio 
+      WHERE OnlineOrderTransaction = ? 
+      ORDER BY Transact DESC
+    `;
+    const result = (await connection.query(sql, [orderId])) as {
+      Status: number;
+    }[];
+    await connection.close();
+    if (result && result.length > 0) {
+      return { success: true, status: result[0].Status };
     }
+    return { success: true, status: undefined };
   }
 
-  public static async returnOnlineOrder(orderId: string): Promise<{ success: boolean; error?: string }> {
-    let connection;
+  public static async returnOnlineOrder(
+    orderId: string,
+  ): Promise<{ success: boolean; error?: string }> {
+    let connection: Connection | undefined;
     try {
       connection = await getConnection();
       const sql = `
@@ -514,38 +523,38 @@ export class OrderService {
         WHERE OnlineOrderTransaction = ? AND Status = 1
         ORDER BY Transact DESC
       `;
-      const result = await connection.query(sql, [orderId]) as any[];
+      const result = (await connection.query(sql, [orderId])) as {
+        Transact: number;
+      }[];
       if (result && result.length > 0) {
         const transactId = result[0].Transact;
         const detailsSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
-        const details = await connection.query(detailsSql, [transactId]) as any[];
-        
-        await connection.close(); // Close so we can call the service
+        const details = (await connection.query(detailsSql, [transactId])) as {
+          PRODNUM: number;
+          QuantityOut: number;
+        }[];
 
-        const { TransactionPOSAudioService } = require('./TransactionPOSAudioService');
+        await connection.close();
+
+        const { TransactionPOSAudioService } =
+          await import("@/main/services/TransactionPOSAudioService");
         await TransactionPOSAudioService.createUpdateTransaction({
           Transact: transactId,
-          Status: 2, // Return
+          Status: 2,
           PhoneNumber: "",
-          TransactionDetailPOSAudios: details.map(d => ({
+          TransactionDetailPOSAudios: details.map((d) => ({
             PRODNUM: d.PRODNUM,
             QuantityOut: d.QuantityOut,
-            QuantityReturn: d.QuantityOut // Return all out quantity
-          }))
+            QuantityReturn: d.QuantityOut,
+          })),
         });
         return { success: true };
       }
       if (connection) await connection.close();
-      return { success: false, error: "Transaction not found or already returned." };
-    } catch (error: unknown) {
-      console.error("OrderService returnOnlineOrder error:", error);
-      if (connection) {
-        try { await connection.close(); } catch (e) {}
-      }
-      const err = error as Error;
-      return { success: false, error: err.message };
+      throw new Error("Transaction not found or already returned.");
+    } catch (error) {
+      if (connection) await connection.close();
+      throw error;
     }
   }
 }
-
-export default new OrderService();

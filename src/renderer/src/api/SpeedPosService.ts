@@ -1,15 +1,15 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 import { showAlert } from "@/utils/alert";
 import {
+  ExpiredConfirmPayload,
+  ExpiredConfirmResponse,
+  ExpiredOrdersResponse,
   LoginResponse,
   OrderStatusResponse,
   OrderUsePayload,
   OrderUseResponse,
-  ExpiredOrdersResponse,
-  ExpiredConfirmPayload,
-  ExpiredConfirmResponse,
   SlotsResponse,
-} from "@shared/apiTypes";
+} from "@shared/types";
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
 
 const BASE_URL = "https://ticket.baotangchungtichchientranh.vn/api/speedpos";
 const TOKEN_KEY = "SPEEDPOS_JWT_TOKEN";

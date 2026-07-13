@@ -29,14 +29,14 @@ declare global {
       getTransactionByTransact: (
         transact: string,
       ) => Promise<ApiResponse<POSHEADER>>;
-      getConfig: () => Promise<ApiResponse<any>>;
+      getConfig: () => Promise<ApiResponse<Record<string, unknown>>>;
       getProductPOSAudio: () => Promise<ApiResponse<ProductPOSAudio[]>>;
       createUpdatePOSAudio: (
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
       resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
-      getHoangVanSlots: (date: string) => Promise<ApiResponse<unknown>>;
-      checkOrder: (orderNo: string) => Promise<ApiResponse<unknown>>;
+      getHoangVanSlots: (date: string) => Promise<ApiResponse<import("@/shared/types").HoangVanSlot[]>>;
+      checkOrder: (orderNo: string) => Promise<ApiResponse<import("@/shared/types").HoangVanOrder>>;
       useOrder: (payload: {
         orderNo: string;
         staffId: string;
@@ -56,8 +56,14 @@ declare global {
           error?: string;
         }>
       >;
-      getOnlineOrderStatus: (orderId: string) => Promise<ApiResponse<{ success: boolean; status?: number; error?: string }>>;
-      returnLocalOrder: (orderId: string) => Promise<ApiResponse<{ success: boolean; error?: string }>>;
+      getOnlineOrderStatus: (
+        orderId: string,
+      ) => Promise<
+        ApiResponse<{ success: boolean; status?: number; error?: string }>
+      >;
+      returnLocalOrder: (
+        orderId: string,
+      ) => Promise<ApiResponse<{ success: boolean; error?: string }>>;
       getExpiredOrders: (payload: {
         page: number;
         pageSize: number;
@@ -66,7 +72,7 @@ declare global {
         orderNos: string[];
       }) => Promise<ApiResponse<unknown>>;
       printHtml: (
-        htmlContent: string
+        htmlContent: string,
       ) => Promise<{ success: boolean; error?: string }>;
     };
   }

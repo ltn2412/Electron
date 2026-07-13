@@ -1,9 +1,10 @@
 import { getConnection } from "@/main/config/database";
 import { ProductPOSAudio } from "@/shared/types";
+import type { Connection } from "odbc";
 
 export class ProductService {
   static async getProductPOSAudio(): Promise<ProductPOSAudio[]> {
-    let connection;
+    let connection: Connection | undefined;
     try {
       connection = await getConnection();
       const query = `
@@ -16,20 +17,15 @@ export class ProductService {
         FROM DBA.ProductPOSAudio POAP
         WHERE POAP.ISPRIMARY = 1
       `;
-      const result = await connection.query(query);
+      const result = (await connection.query(query)) as ProductPOSAudio[];
       return JSON.parse(JSON.stringify(result)) as ProductPOSAudio[];
-    } catch (error) {
-      console.error("Lỗi khi lấy danh sách Product POS Audio:", error);
-      throw error;
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 
   static async outProduct(products: ProductPOSAudio[]): Promise<boolean> {
-    let connection;
+    let connection: Connection | undefined;
     try {
       connection = await getConnection();
       const querySecondary = `
@@ -75,18 +71,13 @@ export class ProductService {
         }
       }
       return true;
-    } catch (error) {
-      console.error("Lỗi khi Out Product:", error);
-      throw error;
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 
   static async resetProduct(products: ProductPOSAudio[]): Promise<boolean> {
-    let connection;
+    let connection: Connection | undefined;
     try {
       connection = await getConnection();
       const querySecondary = `
@@ -128,13 +119,8 @@ export class ProductService {
         }
       }
       return true;
-    } catch (error) {
-      console.error("Lỗi khi Reset Product:", error);
-      throw error;
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 }

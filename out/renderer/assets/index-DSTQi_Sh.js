@@ -15685,6 +15685,943 @@ const styles$3 = {
     transition: "opacity 0.2s, transform 0.1s"
   }
 };
+function HoangVanSearchModal({
+  isOpen,
+  onClose,
+  hvOrderNo,
+  setHvOrderNo,
+  hvOrderInfo,
+  hvChecking,
+  hvCheckError,
+  hvUsing,
+  hvLocalStatus,
+  hvReturning,
+  handleCheckHoangVanOrder,
+  handleUseHoangVanOrder,
+  handleReturnLocalOrder,
+  styles: styles2
+}) {
+  if (!isOpen) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles2.modalOverlay, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      style: {
+        ...styles2.modalContent,
+        width: "650px",
+        maxWidth: "95vw",
+        maxHeight: "90vh",
+        display: "flex",
+        flexDirection: "column",
+        margin: "auto"
+      },
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
+            .hide-scroll::-webkit-scrollbar {
+              display: none;
+            }
+          ` }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            style: {
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              padding: "20px 24px",
+              borderBottom: "1px solid #e2e8f0",
+              backgroundColor: "white",
+              zIndex: 10
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { size: 20, color: "#1e3a8a" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: styles2.cardTitle, children: "Online Order Search" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  style: { ...styles2.iconBtn, border: "none" },
+                  onClick: onClose,
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 24 })
+                }
+              )
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            className: "hide-scroll",
+            style: {
+              padding: "24px",
+              overflowY: "auto",
+              flex: 1,
+              scrollbarWidth: "none",
+              msOverflowStyle: "none"
+            },
+            children: [
+              !hvOrderInfo && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    type: hvOrderNo.startsWith("http") ? "password" : "text",
+                    value: hvOrderNo,
+                    onChange: (e) => setHvOrderNo(e.target.value),
+                    onKeyDown: (e) => {
+                      if (e.key === "Enter") {
+                        handleCheckHoangVanOrder(e.currentTarget.value);
+                      }
+                    },
+                    autoFocus: true,
+                    style: {
+                      ...styles2.searchInput,
+                      color: "#1e293b"
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "button",
+                  {
+                    style: {
+                      ...styles2.primaryBtn,
+                      marginTop: "16px",
+                      opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
+                      cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed"
+                    },
+                    onClick: () => handleCheckHoangVanOrder(),
+                    disabled: !hvOrderNo || hvChecking,
+                    children: hvChecking ? "Checking..." : "Check Online Order"
+                  }
+                )
+              ] }),
+              hvCheckError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "div",
+                {
+                  style: {
+                    color: "#dc2626",
+                    marginTop: "16px",
+                    textAlign: "center",
+                    fontWeight: 500,
+                    padding: "16px",
+                    backgroundColor: "#fee2e2",
+                    borderRadius: "8px",
+                    border: "1px solid #f87171"
+                  },
+                  children: hvCheckError
+                }
+              ),
+              hvOrderInfo && /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  style: {
+                    marginTop: "24px",
+                    backgroundColor: "#ffffff",
+                    borderRadius: "12px",
+                    border: "1px solid #e2e8f0",
+                    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+                    overflow: "hidden"
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                      "div",
+                      {
+                        style: {
+                          backgroundColor: "#f8fafc",
+                          padding: "16px 20px",
+                          borderBottom: "1px solid #e2e8f0",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center"
+                        },
+                        children: [
+                          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "div",
+                              {
+                                style: {
+                                  fontSize: "14px",
+                                  color: "#64748b",
+                                  marginBottom: "4px"
+                                },
+                                children: "Order No."
+                              }
+                            ),
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "div",
+                              {
+                                style: {
+                                  fontSize: "18px",
+                                  fontWeight: "bold",
+                                  color: "#0f172a"
+                                },
+                                children: hvOrderInfo.orderNo
+                              }
+                            )
+                          ] }),
+                          (() => {
+                            const statusMap = {
+                              ChuaSuDung: {
+                                text: "Unused",
+                                color: "#059669",
+                                bg: "#d1fae5"
+                              },
+                              DaSuDung: {
+                                text: "Used",
+                                color: "#2563eb",
+                                bg: "#dbeafe"
+                              },
+                              HetHan: {
+                                text: "Expired",
+                                color: "#dc2626",
+                                bg: "#fee2e2"
+                              },
+                              DaHuy: {
+                                text: "Cancelled",
+                                color: "#475569",
+                                bg: "#f1f5f9"
+                              }
+                            };
+                            const st = statusMap[hvOrderInfo.orderStatus] || {
+                              text: hvOrderInfo.orderStatus,
+                              color: "#475569",
+                              bg: "#f1f5f9"
+                            };
+                            return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: "8px" }, children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    backgroundColor: st.bg,
+                                    color: st.color,
+                                    padding: "6px 12px",
+                                    borderRadius: "999px",
+                                    fontWeight: 600,
+                                    fontSize: "14px"
+                                  },
+                                  children: st.text
+                                }
+                              ),
+                              hvOrderInfo.orderStatus === "DaSuDung" && hvLocalStatus && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    backgroundColor: hvLocalStatus === "Out" ? "#fef3c7" : hvLocalStatus === "Return" ? "#dcfce3" : "#e2e8f0",
+                                    color: hvLocalStatus === "Out" ? "#d97706" : hvLocalStatus === "Return" ? "#16a34a" : "#334155",
+                                    padding: "6px 12px",
+                                    borderRadius: "999px",
+                                    fontWeight: 600,
+                                    fontSize: "14px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px"
+                                  },
+                                  children: hvLocalStatus
+                                }
+                              )
+                            ] });
+                          })()
+                        ]
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "20px" }, children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          style: {
+                            display: "grid",
+                            gridTemplateColumns: "1fr 1fr",
+                            gap: "16px",
+                            marginBottom: "20px"
+                          },
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "13px",
+                                    color: "#64748b",
+                                    marginBottom: "4px"
+                                  },
+                                  children: "Customer Name"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "15px",
+                                    color: "#1e293b",
+                                    fontWeight: 500
+                                  },
+                                  children: hvOrderInfo.buyerName || "N/A"
+                                }
+                              )
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "13px",
+                                    color: "#64748b",
+                                    marginBottom: "4px"
+                                  },
+                                  children: "Phone Number"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "15px",
+                                    color: "#1e293b",
+                                    fontWeight: 500
+                                  },
+                                  children: hvOrderInfo.buyerPhone || "N/A"
+                                }
+                              )
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "13px",
+                                    color: "#64748b",
+                                    marginBottom: "4px"
+                                  },
+                                  children: "Visit Date"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "15px",
+                                    color: "#1e293b",
+                                    fontWeight: 500
+                                  },
+                                  children: hvOrderInfo.visitDate
+                                }
+                              )
+                            ] }),
+                            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "13px",
+                                    color: "#64748b",
+                                    marginBottom: "4px"
+                                  },
+                                  children: "Total Amount"
+                                }
+                              ),
+                              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                "div",
+                                {
+                                  style: {
+                                    fontSize: "15px",
+                                    color: "#1e293b",
+                                    fontWeight: 500
+                                  },
+                                  children: new Intl.NumberFormat("vi-VN", {
+                                    style: "currency",
+                                    currency: "VND"
+                                  }).format(
+                                    (hvOrderInfo.services || []).reduce(
+                                      (sum, svc) => sum + svc.unitPrice * svc.quantity,
+                                      0
+                                    )
+                                  )
+                                }
+                              )
+                            ] })
+                          ]
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                        "div",
+                        {
+                          style: {
+                            borderTop: "1px dashed #cbd5e1",
+                            paddingTop: "16px"
+                          },
+                          children: [
+                            /* @__PURE__ */ jsxRuntimeExports.jsx(
+                              "div",
+                              {
+                                style: {
+                                  fontSize: "14px",
+                                  fontWeight: "bold",
+                                  color: "#334155",
+                                  marginBottom: "12px"
+                                },
+                                children: "Purchased Services"
+                              }
+                            ),
+                            hvOrderInfo.services?.map((svc, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                              "div",
+                              {
+                                style: {
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  alignItems: "center",
+                                  backgroundColor: "#f8fafc",
+                                  padding: "12px 16px",
+                                  borderRadius: "8px",
+                                  marginBottom: "8px"
+                                },
+                                children: [
+                                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                      "div",
+                                      {
+                                        style: {
+                                          fontSize: "15px",
+                                          fontWeight: 500,
+                                          color: "#0f172a"
+                                        },
+                                        children: svc.serviceName
+                                      }
+                                    ),
+                                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                                      "div",
+                                      {
+                                        style: {
+                                          fontSize: "13px",
+                                          color: "#64748b",
+                                          marginTop: "4px"
+                                        },
+                                        children: [
+                                          "Time: ",
+                                          svc.timeSlot?.name
+                                        ]
+                                      }
+                                    )
+                                  ] }),
+                                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "right" }, children: [
+                                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                                      "div",
+                                      {
+                                        style: {
+                                          fontSize: "15px",
+                                          fontWeight: "bold",
+                                          color: "#0f172a"
+                                        },
+                                        children: [
+                                          "x",
+                                          svc.quantity
+                                        ]
+                                      }
+                                    ),
+                                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                                      "div",
+                                      {
+                                        style: {
+                                          fontSize: "13px",
+                                          color: "#64748b",
+                                          marginTop: "4px"
+                                        },
+                                        children: new Intl.NumberFormat("vi-VN", {
+                                          style: "currency",
+                                          currency: "VND"
+                                        }).format(svc.unitPrice)
+                                      }
+                                    )
+                                  ] })
+                                ]
+                              },
+                              idx
+                            ))
+                          ]
+                        }
+                      )
+                    ] }),
+                    hvOrderInfo.orderStatus === "ChuaSuDung" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { padding: "0 20px 20px 20px" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        style: {
+                          ...styles2.primaryBtn,
+                          backgroundColor: "#10b981",
+                          opacity: hvUsing ? 0.5 : 1
+                        },
+                        onClick: handleUseHoangVanOrder,
+                        disabled: hvUsing,
+                        children: hvUsing ? "Processing..." : "Confirm Usage & Print Bill"
+                      }
+                    ) }),
+                    hvOrderInfo.orderStatus === "DaSuDung" && hvLocalStatus === "Out" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { padding: "0 20px 20px 20px" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "button",
+                      {
+                        onClick: handleReturnLocalOrder,
+                        disabled: hvReturning,
+                        style: {
+                          width: "100%",
+                          padding: "12px",
+                          backgroundColor: hvReturning ? "#94a3b8" : "#f59e0b",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "8px",
+                          fontWeight: 600,
+                          fontSize: "16px",
+                          cursor: hvReturning ? "not-allowed" : "pointer",
+                          transition: "background-color 0.2s"
+                        },
+                        children: hvReturning ? "Processing..." : "Confirm Return"
+                      }
+                    ) })
+                  ]
+                }
+              )
+            ]
+          }
+        )
+      ]
+    }
+  ) });
+}
+function LogoutConfirmModal({
+  isOpen,
+  onClose,
+  onConfirm,
+  isLoggingOut,
+  styles: styles2
+}) {
+  if (!isOpen) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { ...styles2.modalOverlay, zIndex: 1200 }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { ...styles2.modalContent, width: "320px" }, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        style: {
+          ...styles2.modalHeader,
+          justifyContent: "center",
+          borderBottom: "none",
+          paddingBottom: 0
+        },
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "h2",
+          {
+            style: {
+              ...styles2.cardTitle,
+              color: "#1e3a8a",
+              textAlign: "center"
+            },
+            children: "Confirm Logout"
+          }
+        )
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px", textAlign: "center" }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: { margin: "0 0 24px 0", color: "#64748b" }, children: "Are you sure you want to log out?" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: "16px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            style: {
+              flex: 1,
+              height: "48px",
+              border: "1px solid #94a3b8",
+              borderRadius: "12px",
+              background: "white",
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "#64748b",
+              cursor: "pointer"
+            },
+            onClick: onClose,
+            disabled: isLoggingOut,
+            children: "Cancel"
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            style: {
+              flex: 1,
+              height: "48px",
+              border: "none",
+              borderRadius: "12px",
+              background: "#ef4444",
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "white",
+              cursor: "pointer"
+            },
+            onClick: onConfirm,
+            disabled: isLoggingOut,
+            children: isLoggingOut ? "..." : "Logout"
+          }
+        )
+      ] })
+    ] })
+  ] }) });
+}
+function SetupModal({
+  isOpen,
+  onClose,
+  setupProducts,
+  setSetupProducts,
+  setProducts,
+  fetchData,
+  styles: styles2
+}) {
+  const [editingProduct, setEditingProduct] = reactExports.useState(
+    null
+  );
+  const [editQuantity, setEditQuantity] = reactExports.useState("");
+  if (!isOpen) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { ...styles2.modalOverlay, zIndex: 1100 }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { ...styles2.modalContent, width: "500px" }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles2.modalHeader, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", alignItems: "center", gap: "8px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { size: 20, color: "#1e3a8a" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: { ...styles2.cardTitle, color: "#1e3a8a" }, children: "Setup" })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            style: {
+              display: "flex",
+              flexDirection: "column",
+              gap: "16px",
+              marginBottom: "32px"
+            },
+            children: setupProducts.map((p, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "div",
+              {
+                style: {
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between"
+                },
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    "div",
+                    {
+                      style: {
+                        fontSize: "16px",
+                        color: "#1e293b",
+                        fontWeight: 500,
+                        width: "140px"
+                      },
+                      children: p.DESCRIPT
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    "div",
+                    {
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px"
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
+                          {
+                            style: {
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "#1e3a8a",
+                              padding: 0,
+                              display: "flex"
+                            },
+                            onClick: () => setSetupProducts(
+                              (prev) => prev.map(
+                                (sp) => sp.PRODNUM === p.PRODNUM ? {
+                                  ...sp,
+                                  STORAGE: Math.max(0, (sp.STORAGE || 0) - 1)
+                                } : sp
+                              )
+                            ),
+                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleMinus, { size: 24 })
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "div",
+                          {
+                            style: {
+                              width: "80px",
+                              height: "36px",
+                              border: "1px solid #cbd5e1",
+                              borderRadius: "8px",
+                              display: "flex",
+                              justifyContent: "center",
+                              alignItems: "center",
+                              fontSize: "16px",
+                              fontWeight: 600,
+                              color: "#1e293b",
+                              cursor: "pointer"
+                            },
+                            onClick: () => {
+                              setEditingProduct(p);
+                              setEditQuantity(p.STORAGE?.toString() || "0");
+                            },
+                            children: p.STORAGE
+                          }
+                        ),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(
+                          "button",
+                          {
+                            style: {
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              color: "#1e3a8a",
+                              padding: 0,
+                              display: "flex"
+                            },
+                            onClick: () => setSetupProducts(
+                              (prev) => prev.map(
+                                (sp) => sp.PRODNUM === p.PRODNUM ? { ...sp, STORAGE: (sp.STORAGE || 0) + 1 } : sp
+                              )
+                            ),
+                            children: /* @__PURE__ */ jsxRuntimeExports.jsx(CirclePlus, { size: 24 })
+                          }
+                        )
+                      ]
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { width: "32px" } })
+                ]
+              },
+              idx
+            ))
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            style: {
+              display: "flex",
+              justifyContent: "space-between",
+              gap: "16px"
+            },
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  style: {
+                    flex: 1,
+                    height: "48px",
+                    border: "1px solid #94a3b8",
+                    borderRadius: "12px",
+                    background: "white",
+                    fontSize: "16px",
+                    fontWeight: 600,
+                    color: "#64748b",
+                    cursor: "pointer"
+                  },
+                  onClick: onClose,
+                  children: "Close"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  style: {
+                    flex: 1,
+                    height: "48px",
+                    border: "none",
+                    borderRadius: "12px",
+                    background: "#1e3a8a",
+                    fontSize: "16px",
+                    fontWeight: 600,
+                    color: "white",
+                    cursor: "pointer"
+                  },
+                  onClick: async () => {
+                    if (window.api.resetProduct) {
+                      await window.api.resetProduct(
+                        setupProducts.map((p) => ({
+                          ...p,
+                          COUNT: p.STORAGE
+                        }))
+                      );
+                      await fetchData();
+                    } else {
+                      setProducts(setupProducts);
+                    }
+                    onClose();
+                  },
+                  children: "Apply"
+                }
+              )
+            ]
+          }
+        )
+      ] })
+    ] }) }),
+    editingProduct && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { ...styles2.modalOverlay, zIndex: 1200 }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles2.modalContent, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "div",
+        {
+          style: {
+            ...styles2.modalHeader,
+            justifyContent: "center",
+            borderBottom: "none",
+            paddingBottom: 0
+          },
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "h2",
+            {
+              style: {
+                ...styles2.cardTitle,
+                color: "#1e3a8a",
+                textAlign: "center"
+              },
+              children: editingProduct.DESCRIPT
+            }
+          )
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px" }, children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "text",
+            value: editQuantity,
+            onChange: (e) => setEditQuantity(e.target.value.replace(/[^0-9]/g, "")),
+            autoFocus: true,
+            style: { ...styles2.searchInput, marginBottom: "16px" }
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          KeypadControl,
+          {
+            onKeyPress: (key) => setEditQuantity((prev) => prev + key),
+            onBackspace: () => setEditQuantity((prev) => prev.slice(0, -1)),
+            onClear: () => setEditQuantity("")
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: "16px", marginTop: "24px" }, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              style: {
+                flex: 1,
+                height: "48px",
+                border: "1px solid #94a3b8",
+                borderRadius: "12px",
+                background: "white",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "#64748b",
+                cursor: "pointer"
+              },
+              onClick: () => setEditingProduct(null),
+              children: "Close"
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              style: {
+                flex: 1,
+                height: "48px",
+                border: "none",
+                borderRadius: "12px",
+                background: "#1e3a8a",
+                fontSize: "16px",
+                fontWeight: 600,
+                color: "white",
+                cursor: "pointer"
+              },
+              onClick: () => {
+                const val = parseInt(editQuantity) || 0;
+                setSetupProducts(
+                  (prev) => prev.map(
+                    (p) => p.PRODNUM === editingProduct.PRODNUM ? { ...p, STORAGE: val } : p
+                  )
+                );
+                setEditingProduct(null);
+              },
+              children: "Enter"
+            }
+          )
+        ] })
+      ] })
+    ] }) })
+  ] });
+}
+function TransactionSearchModal({
+  isOpen,
+  onClose,
+  transactId,
+  setTransactId,
+  isTransactChecking,
+  transactCheckError,
+  onSearch,
+  styles: styles2
+}) {
+  if (!isOpen) return null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles2.modalOverlay, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles2.modalContent, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles2.modalHeader, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: styles2.cardTitle, children: "Find Transaction" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          style: { ...styles2.iconBtn, border: "none" },
+          onClick: onClose,
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 24 })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px" }, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "input",
+        {
+          type: "text",
+          value: transactId,
+          onChange: (e) => setTransactId(e.target.value.replace(/[^0-9]/g, "")),
+          autoFocus: true,
+          style: styles2.searchInput
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        KeypadControl,
+        {
+          onKeyPress: (key) => setTransactId((prev) => prev + key),
+          onBackspace: () => setTransactId((prev) => prev.slice(0, -1)),
+          onClear: () => setTransactId("")
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          style: {
+            ...styles2.primaryBtn,
+            marginTop: "24px",
+            opacity: transactId && !isTransactChecking ? 1 : 0.5,
+            cursor: transactId && !isTransactChecking ? "pointer" : "not-allowed"
+          },
+          onClick: onSearch,
+          disabled: !transactId || isTransactChecking,
+          children: isTransactChecking ? "Searching..." : "Search"
+        }
+      ),
+      transactCheckError && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "div",
+        {
+          style: {
+            color: "#dc2626",
+            marginTop: "16px",
+            textAlign: "center",
+            fontWeight: 500,
+            padding: "16px",
+            backgroundColor: "#fee2e2",
+            borderRadius: "8px",
+            border: "1px solid #f87171"
+          },
+          children: transactCheckError
+        }
+      )
+    ] })
+  ] }) });
+}
 const receiptHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -15855,10 +16792,6 @@ function PageMenu() {
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = reactExports.useState(false);
   const [isLoggingOut, setIsLoggingOut] = reactExports.useState(false);
   const [setupProducts, setSetupProducts] = reactExports.useState([]);
-  const [editingProduct, setEditingProduct] = reactExports.useState(
-    null
-  );
-  const [editQuantity, setEditQuantity] = reactExports.useState("");
   const [alertConfig, setAlertConfig] = reactExports.useState({ isOpen: false, title: "", message: "", type: "info" });
   const [isAutoConfirming, setIsAutoConfirming] = reactExports.useState(false);
   const fetchData = reactExports.useCallback(async () => {
@@ -15908,8 +16841,8 @@ function PageMenu() {
         });
         const dataRes = res;
         const payload = dataRes.data;
-        if (dataRes.success && payload && payload.data && payload.data.items && payload.data.items.length > 0) {
-          const orders = payload.data.items;
+        if (dataRes.success && payload && payload.items && payload.items.length > 0) {
+          const orders = payload.items;
           const swipe = localStorage.getItem("employeeSwipe") || "221278";
           const orderNos = [];
           for (const order of orders) {
@@ -16007,10 +16940,13 @@ function PageMenu() {
       if (res.success && res.data) {
         setHvOrderInfo(res.data);
         if (res.data.orderStatus === "DaSuDung") {
-          const locRes = await window.api.getOnlineOrderStatus(res.data.orderNo);
+          const locRes = await window.api.getOnlineOrderStatus(
+            res.data.orderNo
+          );
           if (locRes.success && locRes.status !== void 0) {
             if (locRes.status === 1) setHvLocalStatus("Out");
-            else if (locRes.status === 2 || locRes.status === 3) setHvLocalStatus("Return");
+            else if (locRes.status === 2 || locRes.status === 3)
+              setHvLocalStatus("Return");
             else setHvLocalStatus("Unknown");
           } else {
             setHvLocalStatus("Unknown");
@@ -16546,908 +17482,60 @@ function PageMenu() {
           }
         )
       ] }),
-      isSearchOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$2.modalOverlay, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$2.modalContent, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$2.modalHeader, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: styles$2.cardTitle, children: "Find Transaction" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              style: { ...styles$2.iconBtn, border: "none" },
-              onClick: () => setIsSearchOpen(false),
-              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 24 })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "input",
-            {
-              type: "text",
-              value: transactId,
-              onChange: (e) => setTransactId(e.target.value.replace(/[^0-9]/g, "")),
-              autoFocus: true,
-              style: styles$2.searchInput
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            KeypadControl,
-            {
-              onKeyPress: (key) => setTransactId((prev) => prev + key),
-              onBackspace: () => setTransactId((prev) => prev.slice(0, -1)),
-              onClear: () => setTransactId("")
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              style: {
-                ...styles$2.primaryBtn,
-                marginTop: "24px",
-                opacity: transactId && !isTransactChecking ? 1 : 0.5,
-                cursor: transactId && !isTransactChecking ? "pointer" : "not-allowed"
-              },
-              onClick: handleSearchTransact,
-              disabled: !transactId || isTransactChecking,
-              children: isTransactChecking ? "Searching..." : "Search"
-            }
-          ),
-          transactCheckError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              style: {
-                color: "#dc2626",
-                marginTop: "16px",
-                textAlign: "center",
-                fontWeight: 500,
-                padding: "16px",
-                backgroundColor: "#fee2e2",
-                borderRadius: "8px",
-                border: "1px solid #f87171"
-              },
-              children: transactCheckError
-            }
-          )
-        ] })
-      ] }) }),
-      isHoangVanSearchOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$2.modalOverlay, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "div",
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        TransactionSearchModal,
         {
-          style: {
-            ...styles$2.modalContent,
-            width: "650px",
-            maxWidth: "95vw",
-            maxHeight: "90vh",
-            display: "flex",
-            flexDirection: "column",
-            margin: "auto"
-          },
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("style", { children: `
-                  .hide-scroll::-webkit-scrollbar {
-                    display: none;
-                  }
-                ` }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "div",
-              {
-                style: {
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  padding: "20px 24px",
-                  borderBottom: "1px solid #e2e8f0",
-                  backgroundColor: "white",
-                  zIndex: 10
-                },
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "div",
-                    {
-                      style: { display: "flex", alignItems: "center", gap: "8px" },
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsx(Globe, { size: 20, color: "#1e3a8a" }),
-                        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: styles$2.cardTitle, children: "Online Order Search" })
-                      ]
-                    }
-                  ),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "button",
-                    {
-                      style: { ...styles$2.iconBtn, border: "none" },
-                      onClick: () => setIsHoangVanSearchOpen(false),
-                      children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { size: 24 })
-                    }
-                  )
-                ]
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "div",
-              {
-                className: "hide-scroll",
-                style: {
-                  padding: "24px",
-                  overflowY: "auto",
-                  flex: 1,
-                  scrollbarWidth: "none",
-                  msOverflowStyle: "none"
-                },
-                children: [
-                  !hvOrderInfo && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "input",
-                      {
-                        type: hvOrderNo.startsWith("http") ? "password" : "text",
-                        value: hvOrderNo,
-                        onChange: (e) => setHvOrderNo(e.target.value),
-                        onKeyDown: (e) => {
-                          if (e.key === "Enter") {
-                            handleCheckHoangVanOrder(e.currentTarget.value);
-                          }
-                        },
-                        autoFocus: true,
-                        style: {
-                          ...styles$2.searchInput,
-                          color: "#1e293b"
-                        }
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "button",
-                      {
-                        style: {
-                          ...styles$2.primaryBtn,
-                          marginTop: "16px",
-                          opacity: hvOrderNo && !hvChecking ? 1 : 0.5,
-                          cursor: hvOrderNo && !hvChecking ? "pointer" : "not-allowed"
-                        },
-                        onClick: () => handleCheckHoangVanOrder(),
-                        disabled: !hvOrderNo || hvChecking,
-                        children: hvChecking ? "Checking..." : "Check Online Order"
-                      }
-                    )
-                  ] }),
-                  hvCheckError && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "div",
-                    {
-                      style: {
-                        color: "#dc2626",
-                        marginTop: "16px",
-                        textAlign: "center",
-                        fontWeight: 500,
-                        padding: "16px",
-                        backgroundColor: "#fee2e2",
-                        borderRadius: "8px",
-                        border: "1px solid #f87171"
-                      },
-                      children: hvCheckError
-                    }
-                  ),
-                  hvOrderInfo && /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                    "div",
-                    {
-                      style: {
-                        marginTop: "24px",
-                        backgroundColor: "#ffffff",
-                        borderRadius: "12px",
-                        border: "1px solid #e2e8f0",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
-                        overflow: "hidden"
-                      },
-                      children: [
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                          "div",
-                          {
-                            style: {
-                              backgroundColor: "#f8fafc",
-                              padding: "16px 20px",
-                              borderBottom: "1px solid #e2e8f0",
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center"
-                            },
-                            children: [
-                              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "div",
-                                  {
-                                    style: {
-                                      fontSize: "14px",
-                                      color: "#64748b",
-                                      marginBottom: "4px"
-                                    },
-                                    children: "Order No."
-                                  }
-                                ),
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "div",
-                                  {
-                                    style: {
-                                      fontSize: "18px",
-                                      fontWeight: "bold",
-                                      color: "#0f172a"
-                                    },
-                                    children: hvOrderInfo.orderNo
-                                  }
-                                )
-                              ] }),
-                              (() => {
-                                const statusMap = {
-                                  ChuaSuDung: {
-                                    text: "Unused",
-                                    color: "#059669",
-                                    bg: "#d1fae5"
-                                  },
-                                  DaSuDung: {
-                                    text: "Used",
-                                    color: "#2563eb",
-                                    bg: "#dbeafe"
-                                  },
-                                  HetHan: {
-                                    text: "Expired",
-                                    color: "#dc2626",
-                                    bg: "#fee2e2"
-                                  },
-                                  DaHuy: {
-                                    text: "Cancelled",
-                                    color: "#475569",
-                                    bg: "#f1f5f9"
-                                  }
-                                };
-                                const st = statusMap[hvOrderInfo.orderStatus] || {
-                                  text: hvOrderInfo.orderStatus,
-                                  color: "#475569",
-                                  bg: "#f1f5f9"
-                                };
-                                return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: "8px" }, children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        backgroundColor: st.bg,
-                                        color: st.color,
-                                        padding: "6px 12px",
-                                        borderRadius: "999px",
-                                        fontWeight: 600,
-                                        fontSize: "14px"
-                                      },
-                                      children: st.text
-                                    }
-                                  ),
-                                  hvOrderInfo.orderStatus === "DaSuDung" && hvLocalStatus && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        backgroundColor: hvLocalStatus === "Out" ? "#fef3c7" : hvLocalStatus === "Return" ? "#dcfce3" : "#e2e8f0",
-                                        color: hvLocalStatus === "Out" ? "#d97706" : hvLocalStatus === "Return" ? "#16a34a" : "#334155",
-                                        padding: "6px 12px",
-                                        borderRadius: "999px",
-                                        fontWeight: 600,
-                                        fontSize: "14px",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        gap: "4px"
-                                      },
-                                      children: hvLocalStatus
-                                    }
-                                  )
-                                ] });
-                              })()
-                            ]
-                          }
-                        ),
-                        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "20px" }, children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                            "div",
-                            {
-                              style: {
-                                display: "grid",
-                                gridTemplateColumns: "1fr 1fr",
-                                gap: "16px",
-                                marginBottom: "20px"
-                              },
-                              children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "13px",
-                                        color: "#64748b",
-                                        marginBottom: "4px"
-                                      },
-                                      children: "Customer Name"
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "15px",
-                                        color: "#1e293b",
-                                        fontWeight: 500
-                                      },
-                                      children: hvOrderInfo.buyerName || "N/A"
-                                    }
-                                  )
-                                ] }),
-                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "13px",
-                                        color: "#64748b",
-                                        marginBottom: "4px"
-                                      },
-                                      children: "Phone Number"
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "15px",
-                                        color: "#1e293b",
-                                        fontWeight: 500
-                                      },
-                                      children: hvOrderInfo.buyerPhone || "N/A"
-                                    }
-                                  )
-                                ] }),
-                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "13px",
-                                        color: "#64748b",
-                                        marginBottom: "4px"
-                                      },
-                                      children: "Visit Date"
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "15px",
-                                        color: "#1e293b",
-                                        fontWeight: 500
-                                      },
-                                      children: hvOrderInfo.visitDate
-                                    }
-                                  )
-                                ] }),
-                                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "13px",
-                                        color: "#64748b",
-                                        marginBottom: "4px"
-                                      },
-                                      children: "Total Amount"
-                                    }
-                                  ),
-                                  /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                    "div",
-                                    {
-                                      style: {
-                                        fontSize: "15px",
-                                        color: "#1e293b",
-                                        fontWeight: 500
-                                      },
-                                      children: new Intl.NumberFormat("vi-VN", {
-                                        style: "currency",
-                                        currency: "VND"
-                                      }).format(
-                                        (hvOrderInfo.services || []).reduce(
-                                          (sum, svc) => sum + svc.unitPrice * svc.quantity,
-                                          0
-                                        )
-                                      )
-                                    }
-                                  )
-                                ] })
-                              ]
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                            "div",
-                            {
-                              style: {
-                                borderTop: "1px dashed #cbd5e1",
-                                paddingTop: "16px"
-                              },
-                              children: [
-                                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                  "div",
-                                  {
-                                    style: {
-                                      fontSize: "14px",
-                                      fontWeight: "bold",
-                                      color: "#334155",
-                                      marginBottom: "12px"
-                                    },
-                                    children: "Purchased Services"
-                                  }
-                                ),
-                                hvOrderInfo.services?.map((svc, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                                  "div",
-                                  {
-                                    style: {
-                                      display: "flex",
-                                      justifyContent: "space-between",
-                                      alignItems: "center",
-                                      backgroundColor: "#f8fafc",
-                                      padding: "12px 16px",
-                                      borderRadius: "8px",
-                                      marginBottom: "8px"
-                                    },
-                                    children: [
-                                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-                                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                          "div",
-                                          {
-                                            style: {
-                                              fontSize: "15px",
-                                              fontWeight: 500,
-                                              color: "#0f172a"
-                                            },
-                                            children: svc.serviceName
-                                          }
-                                        ),
-                                        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                                          "div",
-                                          {
-                                            style: {
-                                              fontSize: "13px",
-                                              color: "#64748b",
-                                              marginTop: "4px"
-                                            },
-                                            children: [
-                                              "Time: ",
-                                              svc.timeSlot?.name
-                                            ]
-                                          }
-                                        )
-                                      ] }),
-                                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { textAlign: "right" }, children: [
-                                        /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                                          "div",
-                                          {
-                                            style: {
-                                              fontSize: "15px",
-                                              fontWeight: "bold",
-                                              color: "#0f172a"
-                                            },
-                                            children: [
-                                              "x",
-                                              svc.quantity
-                                            ]
-                                          }
-                                        ),
-                                        /* @__PURE__ */ jsxRuntimeExports.jsx(
-                                          "div",
-                                          {
-                                            style: {
-                                              fontSize: "13px",
-                                              color: "#64748b",
-                                              marginTop: "4px"
-                                            },
-                                            children: new Intl.NumberFormat("vi-VN", {
-                                              style: "currency",
-                                              currency: "VND"
-                                            }).format(svc.unitPrice)
-                                          }
-                                        )
-                                      ] })
-                                    ]
-                                  },
-                                  idx
-                                ))
-                              ]
-                            }
-                          )
-                        ] }),
-                        hvOrderInfo.orderStatus === "ChuaSuDung" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { padding: "0 20px 20px 20px" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "button",
-                          {
-                            style: {
-                              ...styles$2.primaryBtn,
-                              backgroundColor: "#10b981",
-                              opacity: hvUsing ? 0.5 : 1
-                            },
-                            onClick: handleUseHoangVanOrder,
-                            disabled: hvUsing,
-                            children: hvUsing ? "Processing..." : "Confirm Usage & Print Bill"
-                          }
-                        ) }),
-                        hvOrderInfo.orderStatus === "DaSuDung" && hvLocalStatus === "Out" && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { padding: "0 20px 20px 20px" }, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-                          "button",
-                          {
-                            onClick: handleReturnLocalOrder,
-                            disabled: hvReturning,
-                            style: {
-                              width: "100%",
-                              padding: "12px",
-                              backgroundColor: hvReturning ? "#94a3b8" : "#f59e0b",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "8px",
-                              fontWeight: 600,
-                              fontSize: "16px",
-                              cursor: hvReturning ? "not-allowed" : "pointer",
-                              transition: "background-color 0.2s"
-                            },
-                            children: hvReturning ? "Đang xử lý..." : "Xác nhận Khách Trả Máy"
-                          }
-                        ) })
-                      ]
-                    }
-                  )
-                ]
-              }
-            )
-          ]
+          isOpen: isSearchOpen,
+          onClose: () => setIsSearchOpen(false),
+          transactId,
+          setTransactId,
+          isTransactChecking,
+          transactCheckError,
+          onSearch: handleSearchTransact,
+          styles: styles$2
         }
-      ) }),
-      isSetupOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { ...styles$2.modalOverlay, zIndex: 1100 }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { ...styles$2.modalContent, width: "500px" }, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$2.modalHeader, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
-          {
-            style: { display: "flex", alignItems: "center", gap: "8px" },
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { size: 20, color: "#1e3a8a" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { style: { ...styles$2.cardTitle, color: "#1e3a8a" }, children: "Setup" })
-            ]
-          }
-        ) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "div",
-            {
-              style: {
-                display: "flex",
-                flexDirection: "column",
-                gap: "16px",
-                marginBottom: "32px"
-              },
-              children: setupProducts.map((p, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                "div",
-                {
-                  style: {
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between"
-                  },
-                  children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx(
-                      "div",
-                      {
-                        style: {
-                          fontSize: "16px",
-                          color: "#1e293b",
-                          fontWeight: 500,
-                          width: "140px"
-                        },
-                        children: p.DESCRIPT
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-                      "div",
-                      {
-                        style: {
-                          display: "flex",
-                          alignItems: "center",
-                          gap: "12px"
-                        },
-                        children: [
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              style: {
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "#1e3a8a",
-                                padding: 0,
-                                display: "flex"
-                              },
-                              onClick: () => setSetupProducts(
-                                (prev) => prev.map(
-                                  (sp) => sp.PRODNUM === p.PRODNUM ? {
-                                    ...sp,
-                                    STORAGE: Math.max(
-                                      0,
-                                      (sp.STORAGE || 0) - 1
-                                    )
-                                  } : sp
-                                )
-                              ),
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleMinus, { size: 24 })
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "div",
-                            {
-                              style: {
-                                width: "80px",
-                                height: "36px",
-                                border: "1px solid #cbd5e1",
-                                borderRadius: "8px",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                fontSize: "16px",
-                                fontWeight: 600,
-                                color: "#1e293b",
-                                cursor: "pointer"
-                              },
-                              onClick: () => {
-                                setEditingProduct(p);
-                                setEditQuantity(p.STORAGE?.toString() || "0");
-                              },
-                              children: p.STORAGE
-                            }
-                          ),
-                          /* @__PURE__ */ jsxRuntimeExports.jsx(
-                            "button",
-                            {
-                              style: {
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                color: "#1e3a8a",
-                                padding: 0,
-                                display: "flex"
-                              },
-                              onClick: () => setSetupProducts(
-                                (prev) => prev.map(
-                                  (sp) => sp.PRODNUM === p.PRODNUM ? { ...sp, STORAGE: (sp.STORAGE || 0) + 1 } : sp
-                                )
-                              ),
-                              children: /* @__PURE__ */ jsxRuntimeExports.jsx(CirclePlus, { size: 24 })
-                            }
-                          )
-                        ]
-                      }
-                    ),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { width: "32px" } })
-                  ]
-                },
-                idx
-              ))
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              style: {
-                display: "flex",
-                justifyContent: "space-between",
-                gap: "16px"
-              },
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    style: {
-                      flex: 1,
-                      height: "48px",
-                      border: "1px solid #94a3b8",
-                      borderRadius: "12px",
-                      background: "white",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "#64748b",
-                      cursor: "pointer"
-                    },
-                    onClick: () => setIsSetupOpen(false),
-                    children: "Close"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    style: {
-                      flex: 1,
-                      height: "48px",
-                      border: "none",
-                      borderRadius: "12px",
-                      background: "#1e3a8a",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "white",
-                      cursor: "pointer"
-                    },
-                    onClick: async () => {
-                      if (window.api.resetProduct) {
-                        await window.api.resetProduct(
-                          setupProducts.map((p) => ({
-                            ...p,
-                            COUNT: p.STORAGE
-                          }))
-                        );
-                        fetchData();
-                      } else {
-                        setProducts(setupProducts);
-                      }
-                      setIsSetupOpen(false);
-                    },
-                    children: "Apply"
-                  }
-                )
-              ]
-            }
-          )
-        ] })
-      ] }) }),
-      editingProduct && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { ...styles$2.modalOverlay, zIndex: 1200 }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$2.modalContent, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            style: {
-              ...styles$2.modalHeader,
-              justifyContent: "center",
-              borderBottom: "none",
-              paddingBottom: 0
-            },
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "h2",
-              {
-                style: {
-                  ...styles$2.cardTitle,
-                  color: "#1e3a8a",
-                  textAlign: "center"
-                },
-                children: editingProduct.DESCRIPT
-              }
-            )
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "input",
-            {
-              type: "text",
-              value: editQuantity,
-              onChange: (e) => setEditQuantity(e.target.value.replace(/[^0-9]/g, "")),
-              autoFocus: true,
-              style: { ...styles$2.searchInput, marginBottom: "16px" }
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            KeypadControl,
-            {
-              onKeyPress: (key) => setEditQuantity((prev) => prev + key),
-              onBackspace: () => setEditQuantity((prev) => prev.slice(0, -1)),
-              onClear: () => setEditQuantity("")
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              style: { display: "flex", gap: "16px", marginTop: "24px" },
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    style: {
-                      flex: 1,
-                      height: "48px",
-                      border: "1px solid #94a3b8",
-                      borderRadius: "12px",
-                      background: "white",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "#64748b",
-                      cursor: "pointer"
-                    },
-                    onClick: () => setEditingProduct(null),
-                    children: "Close"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    style: {
-                      flex: 1,
-                      height: "48px",
-                      border: "none",
-                      borderRadius: "12px",
-                      background: "#1e3a8a",
-                      fontSize: "16px",
-                      fontWeight: 600,
-                      color: "white",
-                      cursor: "pointer"
-                    },
-                    onClick: () => {
-                      const val = parseInt(editQuantity) || 0;
-                      setSetupProducts(
-                        (prev) => prev.map(
-                          (p) => p.PRODNUM === editingProduct.PRODNUM ? { ...p, STORAGE: val } : p
-                        )
-                      );
-                      setEditingProduct(null);
-                    },
-                    children: "Enter"
-                  }
-                )
-              ]
-            }
-          )
-        ] })
-      ] }) }),
-      isLogoutConfirmOpen && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { ...styles$2.modalOverlay, zIndex: 1200 }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { ...styles$2.modalContent, width: "320px" }, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "div",
-          {
-            style: {
-              ...styles$2.modalHeader,
-              justifyContent: "center",
-              borderBottom: "none",
-              paddingBottom: 0
-            },
-            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "h2",
-              {
-                style: {
-                  ...styles$2.cardTitle,
-                  color: "#1e3a8a",
-                  textAlign: "center"
-                },
-                children: "Confirm Logout"
-              }
-            )
-          }
-        ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { padding: "24px", textAlign: "center" }, children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("p", { style: { margin: "0 0 24px 0", color: "#64748b" }, children: "Are you sure you want to log out?" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: { display: "flex", gap: "16px" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                style: {
-                  flex: 1,
-                  height: "48px",
-                  border: "1px solid #94a3b8",
-                  borderRadius: "12px",
-                  background: "white",
-                  fontSize: "16px",
-                  fontWeight: 600,
-                  color: "#64748b",
-                  cursor: "pointer"
-                },
-                onClick: () => setIsLogoutConfirmOpen(false),
-                disabled: isLoggingOut,
-                children: "Cancel"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "button",
-              {
-                style: {
-                  flex: 1,
-                  height: "48px",
-                  border: "none",
-                  borderRadius: "12px",
-                  background: "#ef4444",
-                  fontSize: "16px",
-                  fontWeight: 600,
-                  color: "white",
-                  cursor: "pointer"
-                },
-                onClick: handleLogoutConfirm,
-                disabled: isLoggingOut,
-                children: isLoggingOut ? "..." : "Logout"
-              }
-            )
-          ] })
-        ] })
-      ] }) })
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        HoangVanSearchModal,
+        {
+          isOpen: isHoangVanSearchOpen,
+          onClose: () => setIsHoangVanSearchOpen(false),
+          hvOrderNo,
+          setHvOrderNo,
+          hvOrderInfo,
+          hvChecking,
+          hvCheckError,
+          hvUsing,
+          hvLocalStatus,
+          hvReturning,
+          handleCheckHoangVanOrder,
+          handleUseHoangVanOrder,
+          handleReturnLocalOrder,
+          styles: styles$2
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        SetupModal,
+        {
+          isOpen: isSetupOpen,
+          onClose: () => setIsSetupOpen(false),
+          setupProducts,
+          setSetupProducts,
+          setProducts,
+          fetchData,
+          styles: styles$2
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        LogoutConfirmModal,
+        {
+          isOpen: isLogoutConfirmOpen,
+          onClose: () => setIsLogoutConfirmOpen(false),
+          onConfirm: handleLogoutConfirm,
+          isLoggingOut,
+          styles: styles$2
+        }
+      )
     ] }),
     isAutoConfirming && /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -17601,6 +17689,15 @@ const styles$2 = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center"
+  },
+  tabBtn: {
+    flex: 1,
+    padding: "12px",
+    background: "none",
+    fontSize: "15px",
+    fontWeight: "bold",
+    cursor: "pointer",
+    outline: "none"
   },
   cardTitle: {
     margin: 0,
@@ -17826,7 +17923,10 @@ function PageOrder() {
   const isReturn = statusName === "Return";
   const isExpired = statusName === "Expired";
   const filteredItems = transaction.POSDETAILS?.filter((item) => item.REFCODE) || [];
-  const filteredTotal = filteredItems.reduce((sum, item) => sum + (item.COSTEACH || 0) * (item.QUAN || 1), 0);
+  const filteredTotal = filteredItems.reduce(
+    (sum, item) => sum + (item.COSTEACH || 0) * (item.QUAN || 1),
+    0
+  );
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(TitleBar, {}),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.container, children: [
@@ -17891,18 +17991,16 @@ function PageOrder() {
               filteredItems.length,
               ")"
             ] }) }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { padding: "20px", overflowY: "auto", flex: 1 }, children: filteredItems.map(
-              (item, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.itemRow, children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.itemLeft, children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.itemQuantity, children: [
-                    item.QUAN,
-                    "x"
-                  ] }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$1.itemName, children: item.DESCRIPT })
+            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: { padding: "20px", overflowY: "auto", flex: 1 }, children: filteredItems.map((item, idx) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.itemRow, children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.itemLeft, children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { style: styles$1.itemQuantity, children: [
+                  item.QUAN,
+                  "x"
                 ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$1.itemPrice, children: item.COSTEACH != null && item.COSTEACH > 0 ? `${item.COSTEACH.toLocaleString("en-US")} đ` : "" })
-              ] }, idx)
-            ) })
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$1.itemName, children: item.DESCRIPT })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$1.itemPrice, children: item.COSTEACH != null && item.COSTEACH > 0 ? `${item.COSTEACH.toLocaleString("en-US")} đ` : "" })
+            ] }, idx)) })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("div", { style: styles$1.rightCol, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(

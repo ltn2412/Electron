@@ -1,4 +1,5 @@
 import { getConnection } from "@/main/config/database";
+import type { Connection } from "odbc";
 import { TransactionPOSAudioPayload } from "@/shared/types";
 import logger from "@/main/utils/logger";
 
@@ -6,42 +7,37 @@ export class TransactionPOSAudioService {
   static async createUpdateTransaction(
     data: TransactionPOSAudioPayload,
   ): Promise<void> {
-    let connection;
-    let lastQuery = "Khởi tạo kết nối";
+    let connection: Connection | undefined;
 
     try {
       connection = await getConnection();
 
-      try {
-        await connection.query(
-          `SET TEMPORARY OPTION blocking_timeout = '3000'`,
-        );
-      } catch (e) {}
+      // await connection.query(`SET TEMPORARY OPTION blocking_timeout = '3000'`);
 
       await connection.beginTransaction();
 
-      lastQuery = "SELECT TRANSACTIONPOSAUDIO";
       const existing = await connection.query(
         `SELECT * FROM DBA.TRANSACTIONPOSAUDIO WHERE TRANSACT = ?`,
         [data.Transact],
       );
 
-      if ((existing as unknown[]).length > 0) {
-        lastQuery = "UPDATE TRANSACTIONPOSAUDIO";
+      if ((existing as { TRANSACT: number }[]).length > 0) {
         await connection.query(
           `UPDATE DBA.TRANSACTIONPOSAUDIO SET STATUS = ? WHERE TRANSACT = ?`,
           [data.Status, data.Transact],
         );
       } else {
-        lastQuery = "INSERT TRANSACTIONPOSAUDIO";
         await connection.query(
           `INSERT INTO DBA.TRANSACTIONPOSAUDIO(TRANSACT,STATUS,PHONENUMBER,DATEOUT,DATERETURN) VALUES (?, ?, ?, GETDATE(), GETDATE())`,
-          [data.Transact, data.Status, data.PhoneNumber],
+          [data.Transact, data.Status, data.PhoneNumber] as (
+            | string
+            | number
+            | null
+          )[] as (string | number)[],
         );
       }
 
       if (data.Status === 2) {
-        lastQuery = "UPDATE DATERETURN";
         await connection.query(
           `UPDATE DBA.TRANSACTIONPOSAUDIO SET DATERETURN = GETDATE() WHERE TRANSACT = ?`,
           [data.Transact],
@@ -50,21 +46,21 @@ export class TransactionPOSAudioService {
 
       const productCountdownChanges = new Map<number, number>();
       const posAudioStorageChanges = new Map<number, number>();
-      const detailOutQueries: any[] = [];
-      const detailRetQueries: any[] = [];
+      const detailOutQueries: { sql: string; params: (string | number)[] }[] =
+        [];
+      const detailRetQueries: { sql: string; params: (string | number)[] }[] =
+        [];
 
       if (
         data.TransactionDetailPOSAudios &&
         data.TransactionDetailPOSAudios.length > 0
       ) {
         for (const detail of data.TransactionDetailPOSAudios) {
-          lastQuery = `SELECT TRANSACTIONDETAILPOSAUDIO (PRODNUM=${detail.PRODNUM})`;
           const existingDetail = await connection.query(
             `SELECT * FROM DBA.TRANSACTIONDETAILPOSAUDIO WHERE TRANSACT = ? AND PRODNUM = ?`,
             [data.Transact, detail.PRODNUM],
           );
 
-          lastQuery = `SELECT ProductPOSAudio (PRODNUM=${detail.PRODNUM})`;
           const prodLinkResult = await connection.query(
             `SELECT PRODNUMLINK, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`,
             [detail.PRODNUM],
@@ -73,15 +69,22 @@ export class TransactionPOSAudioService {
           let linkNum = detail.PRODNUM;
           let linkQty = 1;
 
-          if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
-            const row = (prodLinkResult as any[])[0];
+          if (
+            prodLinkResult &&
+            (prodLinkResult as { PRODNUMLINK: number; QUANTITY: number }[])
+              .length > 0
+          ) {
+            const row = (
+              prodLinkResult as { PRODNUMLINK: number; QUANTITY: number }[]
+            )[0];
             linkNum = row.PRODNUMLINK || detail.PRODNUM;
             linkQty = row.QUANTITY || 1;
           }
 
           const totalOutQty = (detail.QuantityOut || 0) * linkQty;
           const totalRetQty = (detail.QuantityReturn || 0) * linkQty;
-          const isUpdate = (existingDetail as unknown[]).length > 0;
+          const isUpdate =
+            (existingDetail as { TRANSACT: number }[]).length > 0;
 
           // ================= OUT (New -> Out) =================
           if (data.Status === 1 && detail.QuantityOut > 0) {
@@ -97,7 +100,7 @@ export class TransactionPOSAudioService {
               });
             }
 
-            // Trừ kho máy con nếu là Combo
+            // Deduct sub-machine inventory if it's a Combo
             if (linkNum !== detail.PRODNUM) {
               productCountdownChanges.set(
                 linkNum,
@@ -124,13 +127,13 @@ export class TransactionPOSAudioService {
               });
             }
 
-            // 1. Phục hồi vé
+            // 1. Restore ticket
             productCountdownChanges.set(
               detail.PRODNUM,
               (productCountdownChanges.get(detail.PRODNUM) || 0) +
                 detail.QuantityReturn,
             );
-            // 2. Phục hồi máy con nếu là combo
+            // 2. Restore sub-machine if it's a combo
             if (linkNum !== detail.PRODNUM) {
               productCountdownChanges.set(
                 linkNum,
@@ -145,14 +148,14 @@ export class TransactionPOSAudioService {
         }
 
         // ==============================================================
-        // THỰC THI GỘP: SINH RA 1 CÂU SQL DUY NHẤT ĐỂ TRÁNH LỖI KẸT ODBC
+        // BULK EXECUTION: GENERATE A SINGLE SQL QUERY TO AVOID ODBC DEADLOCKS
         // ==============================================================
 
-        // 1. UPDATE DBA.PRODUCT (Gộp 2 ID vào 1 câu truy vấn)
+        // 1. UPDATE DBA.PRODUCT (Merge 2 IDs into 1 query)
         let productSql = "";
         if (productCountdownChanges.size > 0) {
           let caseStr = "";
-          let ids: number[] = [];
+          const ids: number[] = [];
           for (const [pNum, qty] of productCountdownChanges.entries()) {
             if (qty !== 0) {
               caseStr += ` WHEN PRODNUM = ${pNum} THEN ${qty}`;
@@ -161,17 +164,16 @@ export class TransactionPOSAudioService {
           }
           if (ids.length > 0) {
             productSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + CASE ${caseStr} ELSE 0 END WHERE PRODNUM IN (${ids.join(",")})`;
-            lastQuery = productSql; // Ghi vết lại
             await connection.query(productSql);
           }
         }
 
-        // 2. UPDATE DBA.ProductPOSAudio (Gộp 2 ID vào 1 câu truy vấn)
+        // 2. UPDATE DBA.ProductPOSAudio (Merge 2 IDs into 1 query)
         let posAudioSql = "";
         if (posAudioStorageChanges.size > 0) {
           let caseStrStorage = "";
           let caseStrOut = "";
-          let ids: number[] = [];
+          const ids: number[] = [];
           for (const [pNum, qty] of posAudioStorageChanges.entries()) {
             if (qty !== 0) {
               caseStrStorage += ` WHEN PRODNUM = ${pNum} THEN ${qty}`;
@@ -181,40 +183,33 @@ export class TransactionPOSAudioService {
           }
           if (ids.length > 0) {
             posAudioSql = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + CASE ${caseStrStorage} ELSE 0 END, OUT = OUT - CASE ${caseStrOut} ELSE 0 END WHERE PRODNUM IN (${ids.join(",")})`;
-            lastQuery = posAudioSql; // Ghi vết lại
             await connection.query(posAudioSql);
           }
         }
 
-        // 3. THỰC THI BẢNG DETAIL CUỐI CÙNG
+        // 3. EXECUTE FINAL DETAIL TABLE
         const allDetails = [...detailOutQueries, ...detailRetQueries];
         for (const q of allDetails) {
-          lastQuery = q.sql + " | Biến: " + JSON.stringify(q.params);
           await connection.query(q.sql, q.params);
         }
       }
 
-      lastQuery = "Đang Commit Database";
       await connection.commit();
-    } catch (error: any) {
-      if (connection) {
-        try {
-          await connection.rollback();
-        } catch (e) {}
-      }
+    } catch (error: unknown) {
+      if (connection) await connection.rollback();
 
-      logger.error("Lỗi khi Create/Update Transaction POS Audio:", { error });
-      let errMsg = error.message || error.toString();
-      if (error.odbcErrors && error.odbcErrors.length > 0) {
+      logger.error("Error during Create/Update Transaction POS Audio:", {
+        error,
+      });
+      const err = error as Error & { odbcErrors?: { message: string }[] };
+      let errMsg = err.message || err.toString();
+      if (err.odbcErrors && err.odbcErrors.length > 0) {
         errMsg +=
-          " | ODBC Details: " +
-          error.odbcErrors.map((e: any) => e.message).join(", ");
+          " | ODBC Details: " + err.odbcErrors.map((e) => e.message).join(", ");
       }
-      throw new Error("Loi DB: " + errMsg);
+      throw new Error("DB Error: " + errMsg);
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 }

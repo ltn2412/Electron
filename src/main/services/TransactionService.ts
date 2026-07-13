@@ -1,14 +1,38 @@
 import { getConnection } from "@/main/config/database";
+import type { Connection } from "odbc";
+
+export interface TransactionDetail {
+  DESCRIPT: string;
+  REFCODE: string;
+  TRANSACT: number;
+  PRODNUM: number;
+  COSTEACH: number;
+  QUAN: number;
+  [key: string]: string | number | null;
+}
+
+export interface TransactionHeader {
+  POSAudioStatus: number;
+  POSAudioStatusName: string;
+  EMPNAME?: string;
+  FILTERED_TOTAL?: number;
+  TRANSACT: number;
+  TIMEEND: string;
+  FINALTOTAL: number;
+  POSDETAILS?: TransactionDetail[];
+  [key: string]: string | number | null | TransactionDetail[] | undefined;
+}
 
 export class TransactionService {
-  static async getTransactionByTransact(transact: string): Promise<unknown> {
-    let connection;
+  static async getTransactionByTransact(
+    transact: string,
+  ): Promise<TransactionHeader | null> {
+    let connection: Connection | undefined;
     try {
       connection = await getConnection();
       let searchTransact = transact;
-      if (searchTransact.startsWith("696")) {
+      if (searchTransact.startsWith("696"))
         searchTransact = searchTransact.substring(3);
-      }
 
       const queryHeader = `
         SELECT TOP 1 
@@ -26,10 +50,10 @@ export class TransactionService {
           AND PH.STATUS = 3 
         ORDER BY PH.TIMEEND DESC
       `;
-      const headerResult = await connection.query(queryHeader, [
+      const headerResult = (await connection.query(queryHeader, [
         searchTransact,
         searchTransact,
-      ]);
+      ])) as TransactionHeader[];
 
       if (headerResult.length > 0) {
         const posHeader = headerResult[0];
@@ -45,38 +69,30 @@ export class TransactionService {
           LEFT JOIN DBA.ProductPOSAudio POAP ON PD.PRODNUM = POAP.PRODNUM
           WHERE PD.TRANSACT = ? AND PD.PRODTYPE not in (100)
         `;
-        const detailResult = await connection.query(queryDetail, [
+        const detailResult = (await connection.query(queryDetail, [
           posHeader.TRANSACT,
           posHeader.TRANSACT,
-        ]);
+        ])) as TransactionDetail[];
 
         posHeader.POSDETAILS = detailResult;
 
-        // [QUAN TRỌNG NHẤT]: Nhả Lock sau khi Select xong để hàm Update không bị treo
         await connection.commit();
 
-        return JSON.parse(JSON.stringify(posHeader));
+        return JSON.parse(JSON.stringify(posHeader)) as TransactionHeader;
       }
 
       await connection.commit();
       return null;
     } catch (error) {
-      if (connection) {
-        try {
-          await connection.rollback();
-        } catch (e) {}
-      }
-      console.error("Lỗi khi lấy thông tin Transaction By Transact:", error);
+      if (connection) await connection.rollback();
       throw error;
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 
-  static async getTransaction(): Promise<unknown[]> {
-    let connection;
+  static async getTransaction(): Promise<TransactionHeader[]> {
+    let connection: Connection | undefined;
     try {
       connection = await getConnection();
       const query = `
@@ -111,24 +127,17 @@ export class TransactionService {
         AND PH.FINALTOTAL > 0 
         ORDER BY PH.TIMEEND DESC
       `;
-      const result = await connection.query(query);
+      const result = (await connection.query(query)) as TransactionHeader[];
 
-      // [QUAN TRỌNG NHẤT]: Nhả Lock cho danh sách
       await connection.commit();
 
-      return JSON.parse(JSON.stringify(result)) as unknown[];
+      return JSON.parse(JSON.stringify(result)) as TransactionHeader[];
     } catch (error) {
-      if (connection) {
-        try {
-          await connection.rollback();
-        } catch (e) {}
-      }
-      console.error("Lỗi khi lấy thông tin Transaction list:", error);
+      if (connection) await connection.rollback();
+
       throw error;
     } finally {
-      if (connection) {
-        await connection.close();
-      }
+      if (connection) await connection.close();
     }
   }
 }
