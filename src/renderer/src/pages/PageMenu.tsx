@@ -187,17 +187,18 @@ export default function PageMenu(): React.JSX.Element {
     }
   };
 
-  const handleCheckHoangVanOrder = async (): Promise<void> => {
-    if (!hvOrderNo || hvCheckingRef.current) return;
-
+  const handleCheckHoangVanOrder = async (scannedValue?: string): Promise<void> => {
+    // Lấy giá trị trực tiếp từ tham số (nếu có) để tránh lỗi trễ state của React khi máy quét gõ quá nhanh
+    const valueToCheck = (typeof scannedValue === 'string' ? scannedValue : hvOrderNo) || "";
+    if (!valueToCheck || hvCheckingRef.current) return;
+    
     // Tự động bóc tách mã đơn hàng ở ĐÂY (khi đã quét xong hoàn toàn và nhấn Enter)
-    // Để tránh lỗi race-condition khi máy quét đang gõ từng ký tự
-    let finalOrderNo = hvOrderNo.trim();
+    let finalOrderNo = valueToCheck.trim();
     const match = finalOrderNo.match(/\/services\/([^\?]+)/);
     if (match) {
       finalOrderNo = match[1];
     }
-
+    
     setHvOrderNo(finalOrderNo); // Cập nhật lại UI cho gọn gàng sau khi đã lọc
 
     hvCheckingRef.current = true;
@@ -205,6 +206,14 @@ export default function PageMenu(): React.JSX.Element {
     setHvCheckError("");
     setHvOrderInfo(null);
     try {
+      // Failsafe timeout in case API hangs
+      setTimeout(() => {
+        if (hvCheckingRef.current) {
+          hvCheckingRef.current = false;
+          setHvChecking(false);
+        }
+      }, 10000);
+
       const res = await window.api.checkOrder(finalOrderNo);
       if (res.success && res.data) {
         setHvOrderInfo(res.data);
@@ -872,7 +881,7 @@ export default function PageMenu(): React.JSX.Element {
                       onChange={(e) => setHvOrderNo(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
-                          handleCheckHoangVanOrder();
+                          handleCheckHoangVanOrder(e.currentTarget.value);
                         }
                       }}
                       autoFocus
