@@ -189,14 +189,16 @@ export default function PageMenu(): React.JSX.Element {
 
   const handleCheckHoangVanOrder = async (): Promise<void> => {
     if (!hvOrderNo) return;
-    
-    // Tự động bóc tách mã đơn hàng nếu dùng máy quét quét nguyên cái link URL
+
+    // Tự động bóc tách mã đơn hàng ở ĐÂY (khi đã quét xong hoàn toàn và nhấn Enter)
+    // Để tránh lỗi race-condition khi máy quét đang gõ từng ký tự
     let finalOrderNo = hvOrderNo.trim();
     const match = finalOrderNo.match(/\/services\/([^\?]+)/);
     if (match) {
       finalOrderNo = match[1];
-      setHvOrderNo(finalOrderNo); // Cập nhật lại thanh search cho gọn gàng
     }
+
+    setHvOrderNo(finalOrderNo); // Cập nhật lại UI cho gọn gàng sau khi đã lọc
 
     setHvChecking(true);
     setHvCheckError("");
@@ -269,28 +271,47 @@ export default function PageMenu(): React.JSX.Element {
       }
 
       // Format currency
-      const formatVnd = (val: number) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val);
+      const formatVnd = (val: number) =>
+        new Intl.NumberFormat("vi-VN", {
+          style: "currency",
+          currency: "VND",
+        }).format(val);
 
       // 4. Generate dynamic receipt HTML
-      const servicesHtml = hvOrderInfo.services?.map(s => `
+      const servicesHtml =
+        hvOrderInfo.services
+          ?.map(
+            (s) => `
         <tr>
-          <td style="text-align: left;">${s.serviceName}<br><i>${s.serviceCode || ''}</i></td>
+          <td style="text-align: left;">${s.serviceName}<br><i>${s.serviceCode || ""}</i></td>
           <td style="text-align: center;">${s.quantity}</td>
-          <td style="text-align: center;">${s.timeSlot?.startTime || ''}<br>${s.timeSlot?.endTime || ''}</td>
+          <td style="text-align: center;">${s.timeSlot?.startTime || ""}<br>${s.timeSlot?.endTime || ""}</td>
           <td style="text-align: right;">${formatVnd(s.unitPrice * s.quantity)}</td>
         </tr>
-      `).join('') || '';
+      `,
+          )
+          .join("") || "";
 
-      const totalAmount = formatVnd((hvOrderInfo.services || []).reduce((sum, s) => sum + s.unitPrice * s.quantity, 0));
+      const totalAmount = formatVnd(
+        (hvOrderInfo.services || []).reduce(
+          (sum, s) => sum + s.unitPrice * s.quantity,
+          0,
+        ),
+      );
 
       const finalHtml = receiptHtml
-        .replace(/{{ORDER_NO}}/g, hvOrderInfo.orderNo || '')
-        .replace(/{{CUSTOMER_NAME}}/g, hvOrderInfo.buyerName || '')
-        .replace(/{{EMAIL}}/g, hvOrderInfo.buyerEmail || '')
-        .replace(/{{VISIT_DATE}}/g, hvOrderInfo.visitDate || '')
-        .replace(/{{PURCHASE_DATE}}/g, hvOrderInfo.createdAt ? new Date(hvOrderInfo.createdAt).toLocaleString('vi-VN') : '')
-        .replace('{{SERVICES_HTML}}', servicesHtml)
-        .replace('{{TOTAL_AMOUNT}}', totalAmount);
+        .replace(/{{ORDER_NO}}/g, hvOrderInfo.orderNo || "")
+        .replace(/{{CUSTOMER_NAME}}/g, hvOrderInfo.buyerName || "")
+        .replace(/{{EMAIL}}/g, hvOrderInfo.buyerEmail || "")
+        .replace(/{{VISIT_DATE}}/g, hvOrderInfo.visitDate || "")
+        .replace(
+          /{{PURCHASE_DATE}}/g,
+          hvOrderInfo.createdAt
+            ? new Date(hvOrderInfo.createdAt).toLocaleString("vi-VN")
+            : "",
+        )
+        .replace("{{SERVICES_HTML}}", servicesHtml)
+        .replace("{{TOTAL_AMOUNT}}", totalAmount);
 
       // 5. Print the receipt silently
       try {
@@ -302,7 +323,8 @@ export default function PageMenu(): React.JSX.Element {
       setAlertConfig({
         isOpen: true,
         title: "Success",
-        message: "Order confirmed and bill printed! Transact: " + createRes.transact,
+        message:
+          "Order confirmed and bill printed! Transact: " + createRes.transact,
         type: "success",
       });
       setIsHoangVanSearchOpen(false);
@@ -529,7 +551,11 @@ export default function PageMenu(): React.JSX.Element {
                           </span>
                         </div>
                         <div style={styles.txTotal}>
-                            Final Total: {((tx as any).FILTERED_TOTAL ?? tx.FINALTOTAL).toLocaleString("en-US")} đ
+                          Final Total:{" "}
+                          {(
+                            (tx as any).FILTERED_TOTAL ?? tx.FINALTOTAL
+                          ).toLocaleString("en-US")}{" "}
+                          đ
                         </div>
                       </div>
                       <div
@@ -625,8 +651,23 @@ export default function PageMenu(): React.JSX.Element {
           </div>
 
           {/* Right Column: Products */}
-          <div style={{ ...styles.rightColumn, minWidth: 0, display: "flex", flexDirection: "column" }}>
-            <div style={{ ...styles.card, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+          <div
+            style={{
+              ...styles.rightColumn,
+              minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <div
+              style={{
+                ...styles.card,
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+              }}
+            >
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Products</h2>
                 <button
@@ -691,10 +732,7 @@ export default function PageMenu(): React.JSX.Element {
                       color: "#10b981",
                     }}
                   >
-                    {slots.reduce(
-                      (sum, slot) => sum + slot.bookedMachines,
-                      0,
-                    )}
+                    {slots.reduce((sum, slot) => sum + slot.bookedMachines, 0)}
                   </span>
                 </div>
               </div>
@@ -836,7 +874,12 @@ export default function PageMenu(): React.JSX.Element {
                         }
                       }}
                       autoFocus
-                      style={styles.searchInput}
+                      style={{
+                        ...styles.searchInput,
+                        color: hvOrderNo.startsWith("http") ? "transparent" : "#1e293b",
+                        textShadow: hvOrderNo.startsWith("http") ? "0 0 0 transparent" : "none",
+                      }}
+                      placeholder={hvOrderNo.startsWith("http") ? "Scanning..." : "Nhập hoặc quét mã đơn hàng..."}
                     />
                     <button
                       style={{
