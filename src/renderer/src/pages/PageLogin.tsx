@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import KeypadControl from "@/components/KeypadControl";
 import TitleBar from "@/components/TitleBar";
 import { showAlert } from "@/utils/alert";
-import receiptHtml from "./receipt.html?raw";
 
 export default function PageLogin(): React.JSX.Element {
   const navigate = useNavigate();
@@ -150,25 +149,7 @@ export default function PageLogin(): React.JSX.Element {
                 {isLoading ? "Authenticating..." : "Login"}
               </button>
 
-              <button
-                style={{
-                  ...btnStyle,
-                  marginTop: "12px",
-                  background: "#f59e0b",
-                }}
-                onClick={async () => {
-                  try {
-                    const res = await window.api.printHtml(receiptHtml);
-                    if (!res.success) {
-                      showAlert(`Print failed: ${res.error}`);
-                    }
-                  } catch (e: any) {
-                    showAlert(`Print error: ${e.message}`);
-                  }
-                }}
-              >
-                Test Print Barcode
-              </button>
+
             </>
           )}
         </div>

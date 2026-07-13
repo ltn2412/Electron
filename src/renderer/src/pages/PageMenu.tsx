@@ -21,6 +21,7 @@ import {
   HoangVanSlot,
   HoangVanOrder,
 } from "@shared/types";
+import receiptHtml from "./receipt.html?raw";
 
 export default function PageMenu(): React.JSX.Element {
   const navigate = useNavigate();
@@ -188,11 +189,20 @@ export default function PageMenu(): React.JSX.Element {
 
   const handleCheckHoangVanOrder = async (): Promise<void> => {
     if (!hvOrderNo) return;
+    
+    // Tự động bóc tách mã đơn hàng nếu dùng máy quét quét nguyên cái link URL
+    let finalOrderNo = hvOrderNo.trim();
+    const match = finalOrderNo.match(/\/services\/([^\?]+)/);
+    if (match) {
+      finalOrderNo = match[1];
+      setHvOrderNo(finalOrderNo); // Cập nhật lại thanh search cho gọn gàng
+    }
+
     setHvChecking(true);
     setHvCheckError("");
     setHvOrderInfo(null);
     try {
-      const res = await window.api.checkOrder(hvOrderNo);
+      const res = await window.api.checkOrder(finalOrderNo);
       if (res.success && res.data) {
         setHvOrderInfo(res.data);
       } else {
@@ -820,6 +830,11 @@ export default function PageMenu(): React.JSX.Element {
                       type="text"
                       value={hvOrderNo}
                       onChange={(e) => setHvOrderNo(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleCheckHoangVanOrder();
+                        }
+                      }}
                       autoFocus
                       style={styles.searchInput}
                     />
