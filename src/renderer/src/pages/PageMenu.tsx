@@ -1,26 +1,26 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import {
-  Settings,
-  RefreshCw,
-  FileText,
-  Search,
-  X,
-  MinusCircle,
-  PlusCircle,
-  LogOut,
-  Globe,
-  Archive,
-} from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import TitleBar from "@/components/TitleBar";
 import AlertModal from "@/components/AlertModal";
 import KeypadControl from "@/components/KeypadControl";
+import TitleBar from "@/components/TitleBar";
 import {
+  HoangVanOrder,
+  HoangVanSlot,
   POSHEADER,
   ProductPOSAudio,
-  HoangVanSlot,
-  HoangVanOrder,
 } from "@shared/types";
+import {
+  Archive,
+  FileText,
+  Globe,
+  LogOut,
+  MinusCircle,
+  PlusCircle,
+  RefreshCw,
+  Search,
+  Settings,
+  X,
+} from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import receiptHtml from "./receipt.html?raw";
 
 export default function PageMenu(): React.JSX.Element {
@@ -43,6 +43,8 @@ export default function PageMenu(): React.JSX.Element {
   const [hvChecking, setHvChecking] = useState(false);
   const [hvCheckError, setHvCheckError] = useState("");
   const [hvUsing, setHvUsing] = useState(false);
+  const [hvLocalStatus, setHvLocalStatus] = useState<string | null>(null);
+  const [hvReturning, setHvReturning] = useState(false);
 
   const [isSetupOpen, setIsSetupOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
@@ -107,9 +109,9 @@ export default function PageMenu(): React.JSX.Element {
     return () => clearInterval(intervalId);
   }, [fetchData]);
 
-  // Auto-confirm logic
+  // Auto-confirm logic at 5:20 AM daily
   useEffect(() => {
-    const timeoutId = setTimeout(async () => {
+    const executeAutoConfirm = async () => {
       setIsAutoConfirming(true);
       try {
         const res = await window.api.getExpiredOrders({
@@ -117,7 +119,7 @@ export default function PageMenu(): React.JSX.Element {
           pageSize: 1000,
         });
         const dataRes = res as any;
-        const payload = dataRes.data; // This is the HoangVan API response body
+        const payload = dataRes.data;
         if (
           dataRes.success &&
           payload &&
@@ -138,6 +140,7 @@ export default function PageMenu(): React.JSX.Element {
                 costEach: svc.unitPrice,
                 swipe: swipe,
                 status: 3,
+                onlineOrderId: order.orderNo,
               });
             }
           }
@@ -158,7 +161,27 @@ export default function PageMenu(): React.JSX.Element {
       } finally {
         setIsAutoConfirming(false);
       }
-    }, 5000);
+    };
+
+    let timeoutId: NodeJS.Timeout;
+    const scheduleNextRun = () => {
+      const now = new Date();
+      const nextRun = new Date();
+      nextRun.setHours(5, 20, 0, 0);
+
+      // Nếu đã qua 5h20 sáng hôm nay, thì đặt lịch cho 5h20 sáng ngày mai
+      if (now.getTime() >= nextRun.getTime()) {
+        nextRun.setDate(nextRun.getDate() + 1);
+      }
+
+      const timeUntilNextRun = nextRun.getTime() - now.getTime();
+      timeoutId = setTimeout(async () => {
+        await executeAutoConfirm();
+        scheduleNextRun(); // Chạy xong thì đặt lịch tiếp cho ngày hôm sau
+      }, timeUntilNextRun);
+    };
+
+    scheduleNextRun();
 
     return () => clearTimeout(timeoutId);
   }, []);
@@ -190,43 +213,47 @@ export default function PageMenu(): React.JSX.Element {
   const handleCheckHoangVanOrder = async (
     scannedValue?: string,
   ): Promise<void> => {
-    // Lấy giá trị trực tiếp từ tham số (nếu có) để tránh lỗi trễ state của React khi máy quét gõ quá nhanh
     const valueToCheck =
       (typeof scannedValue === "string" ? scannedValue : hvOrderNo) || "";
-    if (!valueToCheck || hvCheckingRef.current) return;
 
-    // Tự động bóc tách mã đơn hàng ở ĐÂY (khi đã quét xong hoàn toàn và nhấn Enter)
+    if (!valueToCheck || hvChecking) return;
+
     let finalOrderNo = valueToCheck.trim();
-    const match = finalOrderNo.match(/\/services\/([^\?]+)/);
+    const match = finalOrderNo.match(/(ORDER[a-zA-Z0-9_]+)/i);
     if (match) {
       finalOrderNo = match[1];
     }
 
-    setHvOrderNo(finalOrderNo); // Cập nhật lại UI cho gọn gàng sau khi đã lọc
+    setHvOrderNo(finalOrderNo);
 
-    if (!finalOrderNo.includes("ORDER")) {
+    if (!finalOrderNo.toUpperCase().includes("ORDER")) {
       setHvCheckError(
         "Mã quét không hợp lệ (Không chứa ORDER). Vui lòng quét lại.",
       );
       return;
     }
 
-    hvCheckingRef.current = true;
     setHvChecking(true);
     setHvCheckError("");
     setHvOrderInfo(null);
+    setHvLocalStatus(null);
     try {
-      // Failsafe timeout in case API hangs
-      setTimeout(() => {
-        if (hvCheckingRef.current) {
-          hvCheckingRef.current = false;
-          setHvChecking(false);
-        }
-      }, 10000);
-
       const res = await window.api.checkOrder(finalOrderNo);
       if (res.success && res.data) {
         setHvOrderInfo(res.data);
+        if (res.data.orderStatus === "DaSuDung") {
+          const locRes = await window.api.getOnlineOrderStatus(
+            res.data.orderNo,
+          );
+          if (locRes.success && locRes.status !== undefined) {
+            if (locRes.status === 1) setHvLocalStatus("Out");
+            else if (locRes.status === 2 || locRes.status === 3)
+              setHvLocalStatus("Return");
+            else setHvLocalStatus("Unknown");
+          } else {
+            setHvLocalStatus("Unknown");
+          }
+        }
       } else {
         setHvCheckError(res.error || "Không tìm thấy đơn hàng");
       }
@@ -234,7 +261,6 @@ export default function PageMenu(): React.JSX.Element {
       setHvCheckError((err as Error).message || "Lỗi hệ thống");
     } finally {
       setHvChecking(false);
-      hvCheckingRef.current = false;
     }
   };
 
@@ -263,6 +289,7 @@ export default function PageMenu(): React.JSX.Element {
         quantity: svc.quantity,
         costEach: svc.unitPrice,
         swipe: swipe,
+        onlineOrderId: hvOrderInfo.orderNo,
       });
 
       if (!createRes.success) {
@@ -359,6 +386,39 @@ export default function PageMenu(): React.JSX.Element {
       });
     } finally {
       setHvUsing(false);
+    }
+  };
+
+  const handleReturnLocalOrder = async () => {
+    if (!hvOrderInfo?.orderNo) return;
+    setHvReturning(true);
+    try {
+      const res = await window.api.returnLocalOrder(hvOrderInfo.orderNo);
+      if (res.success) {
+        setAlertConfig({
+          isOpen: true,
+          title: "Success",
+          message: "Đã cập nhật trạng thái trả thiết bị thành công!",
+          type: "success",
+        });
+        setHvLocalStatus("Return");
+      } else {
+        setAlertConfig({
+          isOpen: true,
+          title: "Error",
+          message: "Lỗi cập nhật: " + res.error,
+          type: "error",
+        });
+      }
+    } catch (err: unknown) {
+      setAlertConfig({
+        isOpen: true,
+        title: "Error",
+        message: (err as Error).message || "Lỗi hệ thống",
+        type: "error",
+      });
+    } finally {
+      setHvReturning(false);
     }
   };
 
@@ -886,7 +946,7 @@ export default function PageMenu(): React.JSX.Element {
                 {!hvOrderInfo && (
                   <>
                     <input
-                      type="text"
+                      type={hvOrderNo.startsWith("http") ? "password" : "text"}
                       value={hvOrderNo}
                       onChange={(e) => setHvOrderNo(e.target.value)}
                       onKeyDown={(e) => {
@@ -897,18 +957,8 @@ export default function PageMenu(): React.JSX.Element {
                       autoFocus
                       style={{
                         ...styles.searchInput,
-                        color: hvOrderNo.startsWith("http")
-                          ? "transparent"
-                          : "#1e293b",
-                        textShadow: hvOrderNo.startsWith("http")
-                          ? "0 0 0 transparent"
-                          : "none",
+                        color: "#1e293b",
                       }}
-                      placeholder={
-                        hvOrderNo.startsWith("http")
-                          ? "Scanning..."
-                          : "Nhập hoặc quét mã đơn hàng..."
-                      }
                     />
                     <button
                       style={{
@@ -1018,17 +1068,47 @@ export default function PageMenu(): React.JSX.Element {
                           bg: "#f1f5f9",
                         };
                         return (
-                          <div
-                            style={{
-                              backgroundColor: st.bg,
-                              color: st.color,
-                              padding: "6px 12px",
-                              borderRadius: "999px",
-                              fontWeight: 600,
-                              fontSize: "14px",
-                            }}
-                          >
-                            {st.text}
+                          <div style={{ display: "flex", gap: "8px" }}>
+                            <div
+                              style={{
+                                backgroundColor: st.bg,
+                                color: st.color,
+                                padding: "6px 12px",
+                                borderRadius: "999px",
+                                fontWeight: 600,
+                                fontSize: "14px",
+                              }}
+                            >
+                              {st.text}
+                            </div>
+                            {hvOrderInfo.orderStatus === "DaSuDung" &&
+                              hvLocalStatus && (
+                                <div
+                                  style={{
+                                    backgroundColor:
+                                      hvLocalStatus === "Out"
+                                        ? "#fef3c7"
+                                        : hvLocalStatus === "Return"
+                                          ? "#dcfce3"
+                                          : "#e2e8f0",
+                                    color:
+                                      hvLocalStatus === "Out"
+                                        ? "#d97706"
+                                        : hvLocalStatus === "Return"
+                                          ? "#16a34a"
+                                          : "#334155",
+                                    padding: "6px 12px",
+                                    borderRadius: "999px",
+                                    fontWeight: 600,
+                                    fontSize: "14px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  {hvLocalStatus}
+                                </div>
+                              )}
                           </div>
                         );
                       })()}
@@ -1230,6 +1310,31 @@ export default function PageMenu(): React.JSX.Element {
                         </button>
                       </div>
                     )}
+                    {hvOrderInfo.orderStatus === "DaSuDung" &&
+                      hvLocalStatus === "Out" && (
+                        <div style={{ padding: "0 20px 20px 20px" }}>
+                          <button
+                            onClick={handleReturnLocalOrder}
+                            disabled={hvReturning}
+                            style={{
+                              width: "100%",
+                              padding: "12px",
+                              backgroundColor: hvReturning
+                                ? "#94a3b8"
+                                : "#f59e0b",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "8px",
+                              fontWeight: 600,
+                              fontSize: "16px",
+                              cursor: hvReturning ? "not-allowed" : "pointer",
+                              transition: "background-color 0.2s",
+                            }}
+                          >
+                            {hvReturning ? "Processing..." : "Confirm Return"}
+                          </button>
+                        </div>
+                      )}
                   </div>
                 )}
               </div>
@@ -1624,31 +1729,26 @@ export default function PageMenu(): React.JSX.Element {
             left: 0,
             width: "100vw",
             height: "100vh",
-            backgroundColor: "rgba(0,0,0,0.7)",
+            backgroundColor: "rgba(255, 255, 255, 0.4)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
             zIndex: 999999,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "white",
-            fontSize: "24px",
-            fontWeight: "bold",
-            fontFamily: "Inter, sans-serif",
-            flexDirection: "column",
-            gap: "16px",
           }}
         >
           <div
             className="spinner"
             style={{
-              width: "40px",
-              height: "40px",
-              border: "4px solid #f3f3f3",
+              width: "50px",
+              height: "50px",
+              border: "4px solid rgba(59, 130, 246, 0.2)",
               borderTop: "4px solid #3b82f6",
               borderRadius: "50%",
               animation: "spin 1s linear infinite",
             }}
           ></div>
-          Đang tải dữ liệu từ Hoàng Văn...
           <style>
             {`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}
           </style>

@@ -101,7 +101,7 @@ export default function PageLogin(): React.JSX.Element {
       <TitleBar />
       <div style={styles.container}>
         <div style={styles.card}>
-          <h1 style={styles.title}>POS System</h1>
+          <h1 style={styles.title}>POS Audio</h1>
           <p style={styles.subtitle}>Please enter your PIN to continue</p>
 
           {configError ? (
@@ -148,8 +148,6 @@ export default function PageLogin(): React.JSX.Element {
               >
                 {isLoading ? "Authenticating..." : "Login"}
               </button>
-
-
             </>
           )}
         </div>

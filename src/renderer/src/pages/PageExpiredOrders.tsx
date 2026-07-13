@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SpeedPosService } from "@/api/SpeedPosService";
 import TitleBar from "@/components/TitleBar";

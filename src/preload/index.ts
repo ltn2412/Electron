@@ -29,7 +29,12 @@ const api = {
     costEach: number;
     swipe: string;
     status?: number;
+    onlineOrderId?: string;
   }) => ipcRenderer.invoke("order:create", payload),
+  getOnlineOrderStatus: (orderId: string) =>
+    ipcRenderer.invoke("order:getOnlineStatus", orderId),
+  returnLocalOrder: (orderId: string) =>
+    ipcRenderer.invoke("order:returnLocal", orderId),
   getExpiredOrders: (payload: { page: number; pageSize: number }) =>
     ipcRenderer.invoke("hoangvan:getExpiredOrders", payload),
   confirmExpiredOrders: (payload: { orderNos: string[] }) =>

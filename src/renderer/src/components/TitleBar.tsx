@@ -5,7 +5,7 @@ const TitleBar: React.FC = () => {
   return (
     <div style={styles.titleBar}>
       <div style={styles.dragRegion}>
-        <span style={styles.title}>POS System</span>
+        <span style={styles.title}>POS Audio</span>
       </div>
       <div style={styles.controls}>
         <button

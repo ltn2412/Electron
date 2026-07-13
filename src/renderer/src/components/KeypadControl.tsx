@@ -1,5 +1,5 @@
-import React, { useState } from "react";
 import { Delete } from "lucide-react";
+import React, { useState } from "react";
 
 interface KeypadControlProps {
   onKeyPress: (key: string) => void;

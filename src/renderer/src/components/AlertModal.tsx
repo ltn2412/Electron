@@ -1,5 +1,4 @@
-import React from "react";
-import { CheckCircle, AlertCircle, Info, X } from "lucide-react";
+import { AlertCircle, CheckCircle, Info, X } from "lucide-react";
 
 interface AlertModalProps {
   isOpen: boolean;
@@ -66,7 +65,14 @@ export default function AlertModal({
         <div style={styles.iconContainer}>{getIcon()}</div>
         <h2 style={styles.title}>{title}</h2>
         <p style={styles.message}>{message}</p>
-        <div style={{ display: "flex", gap: "12px", width: "100%", maxWidth: "300px" }}>
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            width: "100%",
+            maxWidth: "300px",
+          }}
+        >
           {type === "confirm" && (
             <button
               style={{
@@ -80,7 +86,11 @@ export default function AlertModal({
             </button>
           )}
           <button
-            style={{ ...styles.actionBtn, backgroundColor: getButtonColor(), flex: 1 }}
+            style={{
+              ...styles.actionBtn,
+              backgroundColor: getButtonColor(),
+              flex: 1,
+            }}
             onClick={type === "confirm" && onConfirm ? onConfirm : onClose}
           >
             {type === "confirm" ? "Confirm" : "OK"}

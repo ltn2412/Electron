@@ -223,7 +223,8 @@ app.whenReady().then(() => {
         costEach,
         swipe,
         status,
-      }: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number },
+        onlineOrderId,
+      }: { refCode: string; quantity: number; costEach: number; swipe: string; status?: number; onlineOrderId?: string },
     ) => {
       try {
         const result = await OrderService.createOrder(
@@ -232,6 +233,7 @@ app.whenReady().then(() => {
           costEach,
           swipe,
           status,
+          onlineOrderId,
         );
         return result;
       } catch (error: unknown) {
@@ -240,6 +242,26 @@ app.whenReady().then(() => {
       }
     },
   );
+
+  ipcMain.handle("order:getOnlineStatus", async (_, orderId: string) => {
+    try {
+      const result = await OrderService.getOnlineOrderStatus(orderId);
+      return result;
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle("order:returnLocal", async (_, orderId: string) => {
+    try {
+      const result = await OrderService.returnOnlineOrder(orderId);
+      return result;
+    } catch (error: unknown) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
 
   ipcMain.handle("print:html", async (_, htmlContent: string) => {
     return new Promise((resolve) => {

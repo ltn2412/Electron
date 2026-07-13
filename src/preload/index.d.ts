@@ -47,6 +47,7 @@ declare global {
         costEach: number;
         swipe: string;
         status?: number;
+        onlineOrderId?: string;
       }) => Promise<
         ApiResponse<{
           success: boolean;
@@ -55,6 +56,8 @@ declare global {
           error?: string;
         }>
       >;
+      getOnlineOrderStatus: (orderId: string) => Promise<ApiResponse<{ success: boolean; status?: number; error?: string }>>;
+      returnLocalOrder: (orderId: string) => Promise<ApiResponse<{ success: boolean; error?: string }>>;
       getExpiredOrders: (payload: {
         page: number;
         pageSize: number;

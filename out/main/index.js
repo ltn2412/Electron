@@ -788,7 +788,8 @@ class HoangVanService {
       const url = `${config.hoangVanURL}/orders/${orderNo}/status`;
       logger.info(`HoangVanAPI CheckOrder Request to ${url}`);
       const res = await axios.get(url, {
-        headers: { Authorization: `Bearer ${this.token}` }
+        headers: { Authorization: `Bearer ${this.token}` },
+        timeout: 1e4
       });
       logger.info("HoangVanAPI CheckOrder Response", { data: res.data });
       if (res.data.success && res.data.data) {
@@ -946,7 +947,7 @@ class HoangVanService {
 }
 const HoangVanService$1 = new HoangVanService();
 class OrderService {
-  async createOrder(refCode, quantity, costEach, swipe, status = 1) {
+  async createOrder(refCode, quantity, costEach, swipe, status = 1, onlineOrderId) {
     const connection = await getConnection();
     try {
       await connection.beginTransaction();
@@ -1165,24 +1166,24 @@ class OrderService {
       await connection.query(posDetailSql, posDetailParams);
       if (status === 1) {
         const sql = `
-          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
-          VALUES (?, '', ?, GETDATE(), NULL)
+          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
+          VALUES (?, '', ?, GETDATE(), NULL, ?)
         `;
         logger.info("Executed Database Query", {
           query: sql,
-          params: [TRANSACT, status]
+          params: [TRANSACT, status, onlineOrderId || null]
         });
-        await connection.query(sql, [TRANSACT, status]);
+        await connection.query(sql, [TRANSACT, status, onlineOrderId || null]);
       } else {
         const sql = `
-          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn)
-          VALUES (?, '', ?, NULL, GETDATE())
+          INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
+          VALUES (?, '', ?, NULL, GETDATE(), ?)
         `;
         logger.info("Executed Database Query", {
           query: sql,
-          params: [TRANSACT, status]
+          params: [TRANSACT, status, onlineOrderId || null]
         });
-        await connection.query(sql, [TRANSACT, status]);
+        await connection.query(sql, [TRANSACT, status, onlineOrderId || null]);
       }
       const tdSql = `
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
@@ -1297,22 +1298,85 @@ class OrderService {
         message: "Order inserted successfully"
       };
     } catch (error) {
+      console.error("OrderService createOrder error:", error);
       if (connection) {
         try {
           await connection.rollback();
         } catch (e) {
         }
       }
-      logger.error("Lỗi khi Create Order POS Audio:", { error });
-      let errMsg = error.message || error.toString();
-      if (error.odbcErrors && error.odbcErrors.length > 0) {
-        errMsg += " | ODBC Details: " + error.odbcErrors.map((e) => e.message).join(", ");
-      }
-      throw new Error(errMsg);
+      const err = error;
+      return { success: false, error: err.message };
     } finally {
       if (connection) {
         await connection.close();
       }
+    }
+  }
+  static async getOnlineOrderStatus(orderId) {
+    try {
+      const connection = await getConnection();
+      const sql = `
+        SELECT TOP 1 Status 
+        FROM DBA.TransactionPOSAudio 
+        WHERE OnlineOrderTransaction = ? 
+        ORDER BY Transact DESC
+      `;
+      const result = await connection.query(sql, [orderId]);
+      await connection.close();
+      if (result && result.length > 0) {
+        return { success: true, status: result[0].Status };
+      }
+      return { success: true, status: void 0 };
+    } catch (error) {
+      console.error("OrderService getOnlineOrderStatus error:", error);
+      const err = error;
+      return { success: false, error: err.message };
+    }
+  }
+  static async returnOnlineOrder(orderId) {
+    let connection;
+    try {
+      connection = await getConnection();
+      const sql = `
+        SELECT TOP 1 Transact 
+        FROM DBA.TransactionPOSAudio 
+        WHERE OnlineOrderTransaction = ? AND Status = 1
+        ORDER BY Transact DESC
+      `;
+      const result = await connection.query(sql, [orderId]);
+      if (result && result.length > 0) {
+        const transactId = result[0].Transact;
+        const detailsSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
+        const details = await connection.query(detailsSql, [transactId]);
+        await connection.close();
+        const { TransactionPOSAudioService: TransactionPOSAudioService2 } = require("./TransactionPOSAudioService");
+        await TransactionPOSAudioService2.createUpdateTransaction({
+          Transact: transactId,
+          Status: 2,
+          // Return
+          PhoneNumber: "",
+          TransactionDetailPOSAudios: details.map((d) => ({
+            PRODNUM: d.PRODNUM,
+            QuantityOut: d.QuantityOut,
+            QuantityReturn: d.QuantityOut
+            // Return all out quantity
+          }))
+        });
+        return { success: true };
+      }
+      if (connection) await connection.close();
+      return { success: false, error: "Transaction not found or already returned." };
+    } catch (error) {
+      console.error("OrderService returnOnlineOrder error:", error);
+      if (connection) {
+        try {
+          await connection.close();
+        } catch (e) {
+        }
+      }
+      const err = error;
+      return { success: false, error: err.message };
     }
   }
 }
@@ -1496,7 +1560,8 @@ electron.app.whenReady().then(() => {
       quantity,
       costEach,
       swipe,
-      status
+      status,
+      onlineOrderId
     }) => {
       try {
         const result = await OrderService$1.createOrder(
@@ -1504,7 +1569,8 @@ electron.app.whenReady().then(() => {
           quantity,
           costEach,
           swipe,
-          status
+          status,
+          onlineOrderId
         );
         return result;
       } catch (error) {
@@ -1513,6 +1579,24 @@ electron.app.whenReady().then(() => {
       }
     }
   );
+  electron.ipcMain.handle("order:getOnlineStatus", async (_, orderId) => {
+    try {
+      const result = await OrderService$1.getOnlineOrderStatus(orderId);
+      return result;
+    } catch (error) {
+      const err = error;
+      return { success: false, error: err.message };
+    }
+  });
+  electron.ipcMain.handle("order:returnLocal", async (_, orderId) => {
+    try {
+      const result = await OrderService$1.returnOnlineOrder(orderId);
+      return result;
+    } catch (error) {
+      const err = error;
+      return { success: false, error: err.message };
+    }
+  });
   electron.ipcMain.handle("print:html", async (_, htmlContent) => {
     return new Promise((resolve) => {
       const printWindow = new electron.BrowserWindow({
@@ -1527,7 +1611,6 @@ electron.app.whenReady().then(() => {
           {
             silent: true,
             printBackground: false,
-            deviceName: "",
             margins: { marginType: "none" }
           },
           (success, failureReason) => {
