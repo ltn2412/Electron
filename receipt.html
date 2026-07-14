@@ -11,7 +11,7 @@
         margin: 0;
         padding: 0;
         color: #000;
-        width: 260px;
+        width: 265px;
         box-sizing: border-box;
         font-weight: 900 !important;
       }
@@ -24,13 +24,13 @@
         color: #000;
         font-size: 11px;
         padding-right: 2px;
-        flex: 0 0 35%;
+        flex: 0 0 38%;
       }
       .value {
         text-align: right;
         font-size: 11px;
         word-break: break-word;
-        flex: 0 0 65%;
+        flex: 0 0 62%;
       }
       .divider {
         border-top: 1px dashed #000;
@@ -92,11 +92,13 @@
   </head>
   <body>
     <div class="row">
-      <div class="label">Mã đơn hàng / Order No:</div>
-      <div class="value">{{ORDER_NO}}</div>
+      <div class="label" style="flex: 0 0 33%">
+        Mã đơn hàng /<br />Order No:
+      </div>
+      <div class="value" style="flex: 0 0 67%">{{ORDER_NO}}</div>
     </div>
     <div class="row">
-      <div class="label">Khách hàng / Customer:</div>
+      <div class="label">Khách hàng /<br />Customer:</div>
       <div class="value">{{CUSTOMER_NAME}}</div>
     </div>
     <div class="row">
@@ -104,11 +106,11 @@
       <div class="value">{{EMAIL}}</div>
     </div>
     <div class="row">
-      <div class="label">Ngày tham quan / Visit Date:</div>
+      <div class="label">Ngày tham quan /<br />Visit Date:</div>
       <div class="value">{{VISIT_DATE}}</div>
     </div>
     <div class="row">
-      <div class="label">Ngày mua / Purchase Date:</div>
+      <div class="label">Ngày mua /<br />Purchase Date:</div>
       <div class="value">{{PURCHASE_DATE}}</div>
     </div>
 
