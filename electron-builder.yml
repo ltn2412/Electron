@@ -43,3 +43,7 @@ publish:
   url: https://example.com/auto-updates
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/
+
+extraFiles:
+  - from: "receipt.html"
+    to: "."

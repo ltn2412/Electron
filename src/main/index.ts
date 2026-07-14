@@ -5,6 +5,7 @@ import { TransactionService } from "@/main/services/TransactionService";
 import icon from "../../resources/icon.png?asset";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
+import fs from "fs";
 
 import { join } from "path";
 
@@ -277,6 +278,24 @@ app.whenReady().then(() => {
   });
 
   
+
+  ipcMain.handle("getReceiptTemplate", async () => {
+    try {
+      let templatePath = "";
+      if (is.dev) {
+        templatePath = join(process.cwd(), "receipt.html");
+      } else {
+        templatePath = join(app.getPath("exe"), "..", "receipt.html");
+      }
+      if (fs.existsSync(templatePath)) {
+        return fs.readFileSync(templatePath, "utf8");
+      }
+      return "";
+    } catch (error) {
+      logger.error("Error reading receipt.html: " + error);
+      return "";
+    }
+  });
 
   ipcMain.handle("print:html", async (_, htmlContent: string) => {
     return new Promise((resolve) => {
