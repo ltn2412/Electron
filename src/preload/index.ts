@@ -41,8 +41,7 @@ const api = {
     ipcRenderer.invoke("hoangvan:confirmExpiredOrders", payload),
   printHtml: (htmlContent: string) =>
     ipcRenderer.invoke("print:html", htmlContent),
-  getReceiptTemplate: () =>
-    ipcRenderer.invoke("getReceiptTemplate"),
+  
 };
 
 if (process.contextIsolated) {
