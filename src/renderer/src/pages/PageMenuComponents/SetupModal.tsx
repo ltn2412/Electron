@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Settings, MinusCircle, PlusCircle } from "lucide-react";
-import { ProductPOSAudio } from "@shared/types";
 import KeypadControl from "@/components/KeypadControl";
+import { ProductPOSAudio } from "@shared/types";
+import { MinusCircle, PlusCircle, Settings } from "lucide-react";
+import { useState } from "react";
 
 interface SetupModalProps {
   isOpen: boolean;

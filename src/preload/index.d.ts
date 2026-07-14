@@ -74,6 +74,7 @@ declare global {
       printHtml: (
         htmlContent: string,
       ) => Promise<{ success: boolean; error?: string }>;
+      getReceiptTemplate: () => Promise<string>;
     };
   }
 }

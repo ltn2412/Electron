@@ -1,5 +1,3 @@
-import React from "react";
-
 interface LogoutConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;

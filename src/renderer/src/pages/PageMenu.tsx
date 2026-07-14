@@ -1,5 +1,4 @@
 import AlertModal from "@/components/AlertModal";
-
 import TitleBar from "@/components/TitleBar";
 import {
   HoangVanOrder,
@@ -340,7 +339,10 @@ export default function PageMenu(): React.JSX.Element {
         ),
       );
 
-      const finalHtml = receiptHtml
+      const externalTemplate = await window.api.getReceiptTemplate();
+      const templateToUse = externalTemplate || receiptHtml;
+
+      const finalHtml = templateToUse
         .replace(/{{ORDER_NO}}/g, hvOrderInfo.orderNo || "")
         .replace(/{{CUSTOMER_NAME}}/g, hvOrderInfo.buyerName || "")
         .replace(/{{EMAIL}}/g, hvOrderInfo.buyerEmail || "")

@@ -1,9 +1,9 @@
 import TitleBar from "@/components/TitleBar";
+import { showAlert } from "@/utils/alert";
 import { POSDETAIL, POSHEADER } from "@shared/types";
 import { ArrowLeft, CheckCircle, Clock, Package } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { showAlert } from "@/utils/alert";
 
 export default function PageOrder(): React.JSX.Element {
   const navigate = useNavigate();
