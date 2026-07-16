@@ -274,13 +274,13 @@ export default function PageMenu(): React.JSX.Element {
       const svc = services[0];
 
       // 2. Post to our local DB first
-      const swipe = localStorage.getItem("employeeSwipe") || "221278";
+      const swipe = localStorage.getItem("employeeSwipe");
 
       const createRes = await window.api.createOrder({
         refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
         quantity: svc.quantity,
         costEach: svc.unitPrice,
-        swipe: swipe,
+        swipe: swipe || "",
         onlineOrderId: hvOrderInfo.orderNo,
       });
 
@@ -359,7 +359,9 @@ export default function PageMenu(): React.JSX.Element {
       // 5. Print the receipt silently
       let printSuccess = true;
       try {
-        await window.api.printHtml(finalHtml);
+        for (let i = 0; i < 2; i++) {
+          await window.api.printHtml(finalHtml);
+        }
       } catch (printErr: unknown) {
         console.error("Failed to print receipt:", printErr);
         printSuccess = false;
