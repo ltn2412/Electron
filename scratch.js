@@ -1,27 +1,26 @@
 const fs = require("fs");
-let content = fs.readFileSync("src/renderer/src/pages/PageMenu.tsx", "utf8");
 
-// Fix expiredCount
-content = content.replace(
-  "setExpiredCount((expiredRes.data as { totalRecords: number }).totalRecords);",
-  "setExpiredCount((expiredRes.data as any).data?.totalRecords || 0);"
+// 1. PageLogin.tsx
+let login = fs.readFileSync("src/renderer/src/pages/PageLogin.tsx", "utf8");
+login = login.replace(
+  'if (result?.success && result?.data) {',
+  `if (result?.success && result?.data) {
+        localStorage.setItem("employeeSwipe", password);`
 );
+fs.writeFileSync("src/renderer/src/pages/PageLogin.tsx", login);
 
-// Fix executeAutoConfirm
-content = content.replace(
-  /const dataRes = res as \{[\s\S]*? payload = dataRes\.data;/m,
-  `const dataRes = (res.data as any)?.data;
-        const payload = dataRes;`
+// 2. PageMenu.tsx
+let menu = fs.readFileSync("src/renderer/src/pages/PageMenu.tsx", "utf8");
+menu = menu.replace(
+  /const swipe = localStorage\.getItem\("employeeSwipe"\) \|\| "221278";/g,
+  'const swipe = localStorage.getItem("employeeSwipe") || "";'
 );
+fs.writeFileSync("src/renderer/src/pages/PageMenu.tsx", menu);
 
-content = content.replace(
-  /if \(\s*dataRes\.success &&\s*payload &&\s*payload\.items &&\s*payload\.items\.length > 0\s*\) \{/m,
-  `if (
-          res.success &&
-          payload &&
-          payload.items &&
-          payload.items.length > 0
-        ) {`
+// 3. PageExpiredOrders.tsx
+let expired = fs.readFileSync("src/renderer/src/pages/PageExpiredOrders.tsx", "utf8");
+expired = expired.replace(
+  /const swipe = localStorage\.getItem\("employeeSwipe"\) \|\| "221278";/g,
+  'const swipe = localStorage.getItem("employeeSwipe") || "";'
 );
-
-fs.writeFileSync("src/renderer/src/pages/PageMenu.tsx", content);
+fs.writeFileSync("src/renderer/src/pages/PageExpiredOrders.tsx", expired);

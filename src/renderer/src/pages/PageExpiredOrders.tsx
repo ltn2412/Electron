@@ -83,7 +83,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
         return;
       }
 
-      const swipe = localStorage.getItem("employeeSwipe") || "221278";
+      const swipe = localStorage.getItem("employeeSwipe") || "";
 
       // Insert return bills for each service
       for (const svc of services) {

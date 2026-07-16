@@ -120,7 +120,7 @@ export default function PageMenu(): React.JSX.Element {
             orderNos.push(order.orderNo);
             const services = order.services || [];
             for (const svc of services) {
-              await window.api.createOrder({
+              const createRes = await window.api.createOrder({
                 refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
                 quantity: svc.quantity,
                 costEach: svc.unitPrice,
@@ -128,6 +128,9 @@ export default function PageMenu(): React.JSX.Element {
                 status: 3,
                 onlineOrderId: order.orderNo,
               });
+              if (!createRes.success) {
+                throw new Error(`DB Insert Error: ${createRes.error}`);
+              }
             }
           }
           const confirmRes = await window.api.confirmExpiredOrders({
@@ -144,6 +147,12 @@ export default function PageMenu(): React.JSX.Element {
         }
       } catch (err: unknown) {
         console.error("Auto confirm error:", err);
+        setAlertConfig({
+          isOpen: true,
+          title: "Error",
+          message: `Auto confirm failed: ${(err as Error).message}`,
+          type: "error",
+        });
       } finally {
         setIsAutoConfirming(false);
       }
@@ -156,7 +165,8 @@ export default function PageMenu(): React.JSX.Element {
       const currentDate = now.toDateString();
 
       const isPastTrigger =
-        now.getHours() > 22 || (now.getHours() === 23 && now.getMinutes() >= 5);
+        now.getHours() > 17 ||
+        (now.getHours() === 17 && now.getMinutes() >= 20);
       if (isPastTrigger) {
         if (lastRunDate !== currentDate) {
           localStorage.setItem(lastRunKey, currentDate);

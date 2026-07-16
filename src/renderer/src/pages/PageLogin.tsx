@@ -28,6 +28,7 @@ export default function PageLogin(): React.JSX.Element {
       const result = await window.api.getEmployeeBySwipe(password);
 
       if (result?.success && result?.data) {
+        localStorage.setItem("employeeSwipe", password);
         navigate("/menu");
       } else {
         showAlert(result?.message || result?.error || "Employee not found!");
