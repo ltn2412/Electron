@@ -132,7 +132,7 @@ export default function PageMenu(): React.JSX.Element {
           payload.items.length > 0
         ) {
           const orders = payload.items;
-          const swipe = localStorage.getItem("employeeSwipe") || "221278";
+          const swipe = localStorage.getItem("employeeSwipe") || "";
           const orderNos: string[] = [];
           for (const order of orders) {
             orderNos.push(order.orderNo);
@@ -175,7 +175,7 @@ export default function PageMenu(): React.JSX.Element {
 
       const isPastTrigger =
         now.getHours() > 22 ||
-        (now.getHours() === 22 && now.getMinutes() >= 35);
+        (now.getHours() === 22 && now.getMinutes() >= 40);
       if (isPastTrigger) {
         if (lastRunDate !== currentDate) {
           localStorage.setItem(lastRunKey, currentDate);
