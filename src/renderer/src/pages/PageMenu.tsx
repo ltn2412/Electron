@@ -111,22 +111,10 @@ export default function PageMenu(): React.JSX.Element {
           page: 1,
           pageSize: 1000,
         });
-        const dataRes = res as {
-          success: boolean;
-          data?: {
-            items?: {
-              orderNo: string;
-              services?: {
-                serviceCode: string;
-                quantity: number;
-                unitPrice: number;
-              }[];
-            }[];
-          };
-        };
-        const payload = dataRes.data;
+        const dataRes = (res.data as any)?.data;
+        const payload = dataRes;
         if (
-          dataRes.success &&
+          res.success &&
           payload &&
           payload.items &&
           payload.items.length > 0
@@ -169,13 +157,13 @@ export default function PageMenu(): React.JSX.Element {
 
     const checkTime = async (): Promise<void> => {
       const now = new Date();
-      const lastRunKey = "lastAutoConfirmDate";
+      const lastRunKey = "lastAutoConfirmDate_v2";
       const lastRunDate = localStorage.getItem(lastRunKey);
       const currentDate = now.toDateString();
 
       const isPastTrigger =
         now.getHours() > 22 ||
-        (now.getHours() === 22 && now.getMinutes() >= 40);
+        (now.getHours() === 22 && now.getMinutes() >= 55);
       if (isPastTrigger) {
         if (lastRunDate !== currentDate) {
           localStorage.setItem(lastRunKey, currentDate);
