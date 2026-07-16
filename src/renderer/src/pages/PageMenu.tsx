@@ -27,6 +27,7 @@ export default function PageMenu(): React.JSX.Element {
   const [transactions, setTransactions] = useState<POSHEADER[]>([]);
   const [products, setProducts] = useState<ProductPOSAudio[]>([]);
   const [slots, setSlots] = useState<HoangVanSlot[]>([]);
+  const [expiredCount, setExpiredCount] = useState<number>(0);
 
   const [isLoading, setIsLoading] = useState(true);
   const [transactId, setTransactId] = useState("");
@@ -61,10 +62,11 @@ export default function PageMenu(): React.JSX.Element {
   const fetchData = useCallback(async (): Promise<void> => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const [txRes, prodRes, slotRes] = await Promise.all([
+      const [txRes, prodRes, slotRes, expiredRes] = await Promise.all([
         window.api.getTransactions(),
         window.api.getProductPOSAudio(),
         window.api.getHoangVanSlots(today),
+        window.api.getExpiredOrders({ page: 1, pageSize: 1 }),
       ]);
 
       if (txRes.success && txRes.data) {
@@ -79,6 +81,11 @@ export default function PageMenu(): React.JSX.Element {
       }
       if (slotRes && slotRes.success && slotRes.data) {
         setSlots(slotRes.data);
+      }
+      if (expiredRes && expiredRes.success && expiredRes.data) {
+        setExpiredCount(
+          (expiredRes.data as { totalRecords: number }).totalRecords,
+        );
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -166,7 +173,10 @@ export default function PageMenu(): React.JSX.Element {
       const lastRunDate = localStorage.getItem(lastRunKey);
       const currentDate = now.toDateString();
 
-      if (now.getHours() === 17 && now.getMinutes() === 30) {
+      const isPastTrigger =
+        now.getHours() > 22 ||
+        (now.getHours() === 22 && now.getMinutes() >= 35);
+      if (isPastTrigger) {
         if (lastRunDate !== currentDate) {
           localStorage.setItem(lastRunKey, currentDate);
           await executeAutoConfirm();
@@ -540,6 +550,27 @@ export default function PageMenu(): React.JSX.Element {
               title="Expired Orders"
             >
               <Archive size={20} />
+              {expiredCount > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "-5px",
+                    right: "-5px",
+                    backgroundColor: "#ef4444",
+                    color: "white",
+                    borderRadius: "50%",
+                    width: "20px",
+                    height: "20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: "12px",
+                    fontWeight: "bold",
+                  }}
+                >
+                  {expiredCount > 99 ? "99+" : expiredCount}
+                </div>
+              )}
             </button>
             <button
               style={styles.iconBtn}
