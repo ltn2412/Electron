@@ -1,3 +1,4 @@
+import { HoangVanService } from "@/api/HoangVanService";
 import AlertModal from "@/components/AlertModal";
 import TitleBar from "@/components/TitleBar";
 import {
@@ -62,11 +63,11 @@ export default function PageMenu(): React.JSX.Element {
   const fetchData = useCallback(async (): Promise<void> => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const [txRes, prodRes, slotRes, expiredRes] = await Promise.all([
+      const expiredRes = await HoangVanService.getExpiredOrders(1, 1);
+      const [txRes, prodRes, slotRes] = await Promise.all([
         window.api.getTransactions(),
         window.api.getProductPOSAudio(),
         window.api.getHoangVanSlots(today),
-        window.api.getExpiredOrders({ page: 1, pageSize: 1 }),
       ]);
 
       if (txRes.success && txRes.data) {
@@ -83,9 +84,7 @@ export default function PageMenu(): React.JSX.Element {
         setSlots(slotRes.data);
       }
       if (expiredRes && expiredRes.success && expiredRes.data) {
-        setExpiredCount(
-          (expiredRes.data as { totalRecords: number }).totalRecords,
-        );
+        setExpiredCount(expiredRes.data.totalCount || 0);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -107,19 +106,14 @@ export default function PageMenu(): React.JSX.Element {
     const executeAutoConfirm = async (): Promise<void> => {
       setIsAutoConfirming(true);
       try {
-        const res = await window.api.getExpiredOrders({
-          page: 1,
-          pageSize: 1000,
-        });
-        const dataRes = (res.data as any)?.data;
-        const payload = dataRes;
+        const res = await HoangVanService.getExpiredOrders(1, 1000);
         if (
           res.success &&
-          payload &&
-          payload.items &&
-          payload.items.length > 0
+          res.data &&
+          res.data.items &&
+          res.data.items.length > 0
         ) {
-          const orders = payload.items;
+          const orders = res.data.items;
           const swipe = localStorage.getItem("employeeSwipe") || "";
           const orderNos: string[] = [];
           for (const order of orders) {
@@ -162,8 +156,7 @@ export default function PageMenu(): React.JSX.Element {
       const currentDate = now.toDateString();
 
       const isPastTrigger =
-        now.getHours() > 22 ||
-        (now.getHours() === 22 && now.getMinutes() >= 55);
+        now.getHours() > 22 || (now.getHours() === 23 && now.getMinutes() >= 5);
       if (isPastTrigger) {
         if (lastRunDate !== currentDate) {
           localStorage.setItem(lastRunKey, currentDate);
