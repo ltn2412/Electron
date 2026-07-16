@@ -160,27 +160,23 @@ export default function PageMenu(): React.JSX.Element {
       }
     };
 
-    let timeoutId: NodeJS.Timeout;
-    const scheduleNextRun = (): void => {
+    const checkTime = async (): Promise<void> => {
       const now = new Date();
-      const nextRun = new Date();
-      nextRun.setHours(17, 20, 0, 0);
+      const lastRunKey = "lastAutoConfirmDate";
+      const lastRunDate = localStorage.getItem(lastRunKey);
+      const currentDate = now.toDateString();
 
-      // If it's already past 17:20 today, schedule for 17:20 tomorrow
-      if (now.getTime() >= nextRun.getTime()) {
-        nextRun.setDate(nextRun.getDate() + 1);
+      if (now.getHours() === 17 && now.getMinutes() === 20) {
+        if (lastRunDate !== currentDate) {
+          localStorage.setItem(lastRunKey, currentDate);
+          await executeAutoConfirm();
+        }
       }
-
-      const timeUntilNextRun = nextRun.getTime() - now.getTime();
-      timeoutId = setTimeout(async () => {
-        await executeAutoConfirm();
-        scheduleNextRun(); // Schedule for the next day after execution
-      }, timeUntilNextRun);
     };
 
-    scheduleNextRun();
+    const intervalId = setInterval(checkTime, 20000);
 
-    return () => clearTimeout(timeoutId);
+    return () => clearInterval(intervalId);
   }, []);
 
   const handleTransactionClick = (id: string): void => {
