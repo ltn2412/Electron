@@ -208,18 +208,21 @@ export default function PageMenu(): React.JSX.Element {
   ): Promise<void> => {
     if (!finalOrderNo || hvChecking) return;
 
-    const orderNoToProcess = finalOrderNo.trim();
-    const match = orderNoToProcess.match(/(ORDER[a-zA-Z0-9_]+)/i);
-    if (match) {
-      finalOrderNo = match[1];
+    let orderNoToProcess = finalOrderNo.trim();
+
+    if (orderNoToProcess.startsWith("http")) {
+      const match = orderNoToProcess.match(/\/services\/([^/?]+)/i);
+      if (match) {
+        orderNoToProcess = match[1];
+      }
+    } else {
+      const match = orderNoToProcess.match(/(ORDER[a-zA-Z0-9_-]+)/i);
+      if (match) {
+        orderNoToProcess = match[1];
+      }
     }
 
-    if (!finalOrderNo.toUpperCase().includes("ORDER")) {
-      setHvCheckError(
-        "Invalid scan code (Missing ORDER prefix). Please scan again.",
-      );
-      return;
-    }
+    finalOrderNo = orderNoToProcess;
 
     setHvChecking(true);
     setHvCheckError("");
