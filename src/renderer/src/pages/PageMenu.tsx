@@ -166,7 +166,7 @@ export default function PageMenu(): React.JSX.Element {
       const lastRunDate = localStorage.getItem(lastRunKey);
       const currentDate = now.toDateString();
 
-      if (now.getHours() === 17 && now.getMinutes() === 20) {
+      if (now.getHours() === 17 && now.getMinutes() === 30) {
         if (lastRunDate !== currentDate) {
           localStorage.setItem(lastRunKey, currentDate);
           await executeAutoConfirm();
