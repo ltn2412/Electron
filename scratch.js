@@ -1,26 +1,20 @@
 const fs = require("fs");
 
-// 1. PageLogin.tsx
-let login = fs.readFileSync("src/renderer/src/pages/PageLogin.tsx", "utf8");
-login = login.replace(
-  'if (result?.success && result?.data) {',
-  `if (result?.success && result?.data) {
-        localStorage.setItem("employeeSwipe", password);`
-);
-fs.writeFileSync("src/renderer/src/pages/PageLogin.tsx", login);
+let types = fs.readFileSync("src/shared/types.ts", "utf8");
+if (!types.includes("note?: string")) {
+  types = types.replace(
+    'useOrder(payload: { orderNo: string; staffId: string }): Promise<ApiResponse<Record<string, unknown>>>;',
+    'useOrder(payload: { orderNo: string; staffId: string; note?: string }): Promise<ApiResponse<Record<string, unknown>>>;'
+  );
+  fs.writeFileSync("src/shared/types.ts", types);
+}
 
-// 2. PageMenu.tsx
-let menu = fs.readFileSync("src/renderer/src/pages/PageMenu.tsx", "utf8");
-menu = menu.replace(
-  /const swipe = localStorage\.getItem\("employeeSwipe"\) \|\| "221278";/g,
-  'const swipe = localStorage.getItem("employeeSwipe") || "";'
-);
-fs.writeFileSync("src/renderer/src/pages/PageMenu.tsx", menu);
+let preload = fs.readFileSync("src/preload/index.d.ts", "utf8");
+if (!preload.includes("note?: string")) {
+  preload = preload.replace(
+    'useOrder: (payload: { orderNo: string; staffId: string }) => Promise<ApiResponse<Record<string, unknown>>>;',
+    'useOrder: (payload: { orderNo: string; staffId: string; note?: string }) => Promise<ApiResponse<Record<string, unknown>>>;'
+  );
+  fs.writeFileSync("src/preload/index.d.ts", preload);
+}
 
-// 3. PageExpiredOrders.tsx
-let expired = fs.readFileSync("src/renderer/src/pages/PageExpiredOrders.tsx", "utf8");
-expired = expired.replace(
-  /const swipe = localStorage\.getItem\("employeeSwipe"\) \|\| "221278";/g,
-  'const swipe = localStorage.getItem("employeeSwipe") || "";'
-);
-fs.writeFileSync("src/renderer/src/pages/PageExpiredOrders.tsx", expired);

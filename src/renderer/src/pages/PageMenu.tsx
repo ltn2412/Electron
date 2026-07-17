@@ -297,14 +297,23 @@ export default function PageMenu(): React.JSX.Element {
       // 3. If local DB insert succeeds, call HoangVan Use API
       const useRes = await window.api.useOrder({
         orderNo: hvOrderInfo.orderNo,
-        staffId: "NV001",
+        staffId: swipe || "NV001",
+        note: `Giao ${svc.quantity} ${svc.serviceName || "máy Audio Guide"}`, // Dynamic note based on service
       });
 
       if (!useRes.success) {
+        if ((createRes as any).data?.transact) {
+          await window.api.deleteOrder({
+            transact: (createRes as any).data?.transact,
+          });
+        }
         setAlertConfig({
           isOpen: true,
           title: "Error",
-          message: "Hoang Van system error: " + useRes.error,
+          message:
+            "Hoang Van system error: " +
+            useRes.error +
+            " (Transaction rolled back)",
           type: "error",
         });
         return;

@@ -49,6 +49,70 @@ interface RecPosResult {
 }
 
 export class OrderService {
+  public static async deleteOrder(transact: number): Promise<{ success: boolean; error?: string }> {
+    const connection = await getConnection();
+    try {
+      await connection.beginTransaction();
+
+      // 1. Revert TillBalance
+      const headerSql = `SELECT FINALTOTAL, PUNCHINDEX FROM DBA.POSHEADER WHERE TRANSACT = ?`;
+      const headerResult = await connection.query(headerSql, [transact]);
+      if (headerResult && (headerResult as any).length > 0) {
+        const header = (headerResult as any)[0];
+        if (header.PUNCHINDEX > 0) {
+          await connection.query(
+            `UPDATE DBA.PUNCHCLOCK SET TillBalance = ISNULL(TillBalance, 0) - ? WHERE Punchindex = ?`,
+            [header.FINALTOTAL, header.PUNCHINDEX]
+          );
+        }
+      }
+
+      // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
+      const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
+      const tdResult = await connection.query(tdSql, [transact]);
+      for (const td of (tdResult as any)) {
+        if (td.QuantityOut > 0) {
+          const prodLinkQuery = `SELECT PRODNUMLINK, ISPRIMARY, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
+          const prodLinkResult = await connection.query(prodLinkQuery, [td.PRODNUM]);
+          if (prodLinkResult && (prodLinkResult as any).length > 0) {
+            const row = (prodLinkResult as any)[0];
+            const linkNum = row.PRODNUMLINK || td.PRODNUM;
+            const isPrimary = row.ISPRIMARY;
+            const linkQty = row.QUANTITY || 1;
+            const outQty = td.QuantityOut * linkQty;
+
+            if (isPrimary === 1) {
+              await connection.query(
+                `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + ? WHERE PRODNUM = ?`,
+                [outQty, linkNum]
+              );
+            }
+            await connection.query(
+              `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + ?, OUT = OUT - ? WHERE PRODNUM = ?`,
+              [outQty, outQty, linkNum]
+            );
+          }
+        }
+      }
+
+      // 3. Delete records
+      await connection.query(`DELETE FROM DBA.Howpaid WHERE TRANSACT = ?`, [transact]);
+      await connection.query(`DELETE FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`, [transact]);
+      await connection.query(`DELETE FROM DBA.TransactionPOSAudio WHERE Transact = ?`, [transact]);
+      await connection.query(`DELETE FROM DBA.POSDETAIL WHERE TRANSACT = ?`, [transact]);
+      await connection.query(`DELETE FROM DBA.POSHEADER WHERE TRANSACT = ?`, [transact]);
+
+      await connection.commit();
+      return { success: true };
+    } catch (error: any) {
+      await connection.rollback();
+      const errMsg = error.message + (error.odbcErrors ? ' | ODBC Details: ' + JSON.stringify(error.odbcErrors) : '');
+      return { success: false, error: errMsg || JSON.stringify(error) };
+    } finally {
+      await connection.close();
+    }
+  }
+
   public static async createOrder(
     refCode: string,
     quantity: number,

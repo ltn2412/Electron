@@ -23,7 +23,8 @@ const api = {
   createUpdatePOSAudio: (
     data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
-  createOrder: (payload: {
+  deleteOrder: (payload) => ipcRenderer.invoke("hoangvan:deleteOrder", payload),
+    createOrder: (payload: {
     refCode: string;
     quantity: number;
     costEach: number;
