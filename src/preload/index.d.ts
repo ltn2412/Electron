@@ -40,7 +40,6 @@ declare global {
       useOrder: (payload: {
         orderNo: string;
         staffId: string;
-        note?: string;
       }) => Promise<ApiResponse<unknown>>;
       deleteOrder: (payload: { transact: number }) => Promise<{ success: boolean; error?: string }>;
       createOrder: (payload: {

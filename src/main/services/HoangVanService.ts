@@ -119,7 +119,6 @@ class HoangVanService {
   async useOrder(
     orderNo: string,
     staffId: string,
-    note: string = "POS Audio Confirm",
     isRetry = false,
   ): Promise<Record<string, unknown>> {
     const config = ConfigManager.getConfig();
@@ -128,10 +127,7 @@ class HoangVanService {
     try {
       const url = `${config.hoangVanURL}/orders/${orderNo}/use`;
       const payload = {
-        orderNo,
-        staffId,
-        note,
-        usedTime: new Date().toISOString(),
+        staffId
       };
       logger.info(`HoangVanAPI UseOrder Request to ${url}`, { payload });
       const res = await axios.post(url, payload, {
@@ -147,7 +143,7 @@ class HoangVanService {
         if ((status === 401 || status === 403) && !isRetry) {
           this.token = null;
           await this.login();
-          return this.useOrder(orderNo, staffId, note, true);
+          return this.useOrder(orderNo, staffId, true);
         }
       }
 

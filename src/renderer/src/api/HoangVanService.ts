@@ -16,7 +16,7 @@ const TOKEN_KEY = "HOANGVAN_JWT_TOKEN";
 
 // You can change these to load from environment variables if needed
 const HOANGVAN_CREDENTIALS = {
-  username: "hoangvan",
+  username: "speedpos",
   password: "password123", // Replace with real password or fetch from config
 };
 

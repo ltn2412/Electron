@@ -298,7 +298,6 @@ export default function PageMenu(): React.JSX.Element {
       const useRes = await window.api.useOrder({
         orderNo: hvOrderInfo.orderNo,
         staffId: swipe || "NV001",
-        note: `Giao ${svc.quantity} ${svc.serviceName || "máy Audio Guide"}`, // Dynamic note based on service
       });
 
       if (!useRes.success) {

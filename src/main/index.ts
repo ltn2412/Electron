@@ -159,9 +159,9 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
     "hoangvan:useOrder",
-    async (_, { orderNo, staffId, note }: { orderNo: string; staffId: string; note?: string }) => {
+    async (_, { orderNo, staffId }: { orderNo: string; staffId: string; }) => {
       try {
-        const data = await HoangVanService.useOrder(orderNo, staffId, note || "POS Audio Confirm");
+        const data = await HoangVanService.useOrder(orderNo, staffId);
         return { success: true, data };
       } catch (error: any) {
         const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
