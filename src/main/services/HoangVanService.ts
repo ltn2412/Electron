@@ -10,6 +10,12 @@ class HoangVanService {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const data = error.response?.data;
+      
+      logger.error(`HoangVanAPI Error in ${context}: [${status}]`, { 
+        data, 
+        payload: error.config?.data 
+      });
+
       if (status === 400)
         throw new Error(data?.message || "Invalid data (400).");
       if (status === 401 || status === 403)
@@ -18,7 +24,9 @@ class HoangVanService {
         throw new Error("Order not found on Hoang Van system (404).");
       if (status === 500)
         throw new Error(
-          "Hoang Van server is experiencing issues (500). Please try again later.",
+          `Hoang Van server is experiencing issues (500). Details: ${
+            typeof data === "object" ? JSON.stringify(data) : data || "None"
+          }`
         );
       if (error.code === "ECONNABORTED" || error.message.includes("timeout"))
         throw new Error(
