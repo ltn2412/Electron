@@ -181,7 +181,7 @@ export class HoangVanService {
     payload: OrderUsePayload,
   ): Promise<OrderUseResponse> {
     const response = await api.post<OrderUseResponse>(
-      `/orders/${orderNo}/useloi`,
+      `/orders/${orderNo}/use`,
       payload,
     );
     return response.data;

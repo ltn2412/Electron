@@ -136,7 +136,7 @@ class HoangVanService {
     if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) await this.login();
     try {
-      const url = `${config.hoangVanURL}/orders/${orderNo}/useloi`;
+      const url = `${config.hoangVanURL}/orders/${orderNo}/use`;
       const payload = {
         staffId,
       };
@@ -234,7 +234,7 @@ class HoangVanService {
     if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) await this.login();
     try {
-      const url = `${config.hoangVanURL}/orders/expired/confirmloi`;
+      const url = `${config.hoangVanURL}/orders/expired/confirm`;
       const payload = { orderNos };
       hvLogger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, {
         payload,
