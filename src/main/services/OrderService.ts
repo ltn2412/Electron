@@ -56,7 +56,6 @@ export class OrderService {
     try {
       await connection.beginTransaction();
 
-
       // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
       const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
       const tdResult = await connection.query(tdSql, [transact]);
@@ -530,7 +529,6 @@ export class OrderService {
         params: hpParams,
       });
       await connection.query(hpSql, hpParams);
-
 
       const updateNeedsCashoutSql = `UPDATE DBA.EMPLOYEE SET NEEDSCASHOUT = 1 WHERE EMPNUM = ?`;
       logger.info("Executed Database Query", {

@@ -16,9 +16,10 @@ const handler = `
   );
 `;
 
-// Insert it right after the hoangvan:confirmExpiredOrders handler
-const insertPoint = content.indexOf('ipcMain.handle("order:create"');
+const insertPoint = content.indexOf('ipcMain.handle(\n    "order:create"');
 if (insertPoint !== -1) {
   content = content.substring(0, insertPoint) + handler + "\n  " + content.substring(insertPoint);
   fs.writeFileSync("src/main/index.ts", content);
+} else {
+  console.log("Could not find insert point");
 }

@@ -213,6 +213,20 @@ app.whenReady().then(() => {
     },
   );
 
+  
+  ipcMain.handle(
+    "hoangvan:deleteOrder",
+    async (_, { transact }: { transact: number }) => {
+      try {
+        return await OrderService.deleteOrder(transact);
+      } catch (error: any) {
+        const errStr = error instanceof Error ? error.message : "";
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        return { success: false, error: errStr || JSON.stringify(error) };
+      }
+    },
+  );
+
   ipcMain.handle(
     "order:create",
     async (
