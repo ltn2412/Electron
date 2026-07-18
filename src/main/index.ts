@@ -159,13 +159,19 @@ app.whenReady().then(() => {
 
   ipcMain.handle(
     "hoangvan:useOrder",
-    async (_, { orderNo, staffId }: { orderNo: string; staffId: string; }) => {
+    async (_, { orderNo, staffId }: { orderNo: string; staffId: string }) => {
       try {
         const data = await HoangVanService.useOrder(orderNo, staffId);
         return { success: true, data };
       } catch (error: any) {
-        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        const errStr =
+          error.message +
+          (error.odbcErrors
+            ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+            : "");
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+          error,
+        });
         return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
@@ -178,8 +184,14 @@ app.whenReady().then(() => {
         const data = await HoangVanService.getExpiredOrders(page, pageSize);
         return { success: true, data };
       } catch (error: any) {
-        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        const errStr =
+          error.message +
+          (error.odbcErrors
+            ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+            : "");
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+          error,
+        });
         return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
@@ -192,8 +204,14 @@ app.whenReady().then(() => {
         const data = await HoangVanService.confirmExpiredOrders(orderNos);
         return { success: true, data };
       } catch (error: any) {
-        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        const errStr =
+          error.message +
+          (error.odbcErrors
+            ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+            : "");
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+          error,
+        });
         return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
@@ -206,14 +224,19 @@ app.whenReady().then(() => {
         await TransactionPOSAudioService.createUpdateTransaction(data);
         return { success: true };
       } catch (error: any) {
-        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        const errStr =
+          error.message +
+          (error.odbcErrors
+            ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+            : "");
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+          error,
+        });
         return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
   );
 
-  
   ipcMain.handle(
     "hoangvan:deleteOrder",
     async (_, { transact }: { transact: number }) => {
@@ -221,7 +244,9 @@ app.whenReady().then(() => {
         return await OrderService.deleteOrder(transact);
       } catch (error: any) {
         const errStr = error instanceof Error ? error.message : "";
-        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+          error,
+        });
         return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
@@ -262,8 +287,14 @@ app.whenReady().then(() => {
           message: result.message,
         };
       } catch (error: any) {
-        const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+        const errStr =
+          error.message +
+          (error.odbcErrors
+            ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+            : "");
+        logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+          error,
+        });
         return { success: false, error: errStr || JSON.stringify(error) };
       }
     },
@@ -272,10 +303,20 @@ app.whenReady().then(() => {
   ipcMain.handle("order:getOnlineStatus", async (_, orderId: string) => {
     try {
       const result = await OrderService.getOnlineOrderStatus(orderId);
-      return { success: result.success, data: { status: result.status }, error: result.error };
+      return {
+        success: result.success,
+        data: { status: result.status },
+        error: result.error,
+      };
     } catch (error: any) {
-      const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-      logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+      const errStr =
+        error.message +
+        (error.odbcErrors
+          ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+          : "");
+      logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+        error,
+      });
       return { success: false, error: errStr || JSON.stringify(error) };
     }
   });
@@ -285,13 +326,17 @@ app.whenReady().then(() => {
       const result = await OrderService.returnOnlineOrder(orderId);
       return { success: result.success, data: {}, error: result.error };
     } catch (error: any) {
-      const errStr = error.message + (error.odbcErrors ? ' | ODBC Errors: ' + JSON.stringify(error.odbcErrors) : '');
-      logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, { error });
+      const errStr =
+        error.message +
+        (error.odbcErrors
+          ? " | ODBC Errors: " + JSON.stringify(error.odbcErrors)
+          : "");
+      logger.error(`IPC Handler Error: ${errStr || JSON.stringify(error)}`, {
+        error,
+      });
       return { success: false, error: errStr || JSON.stringify(error) };
     }
   });
-
-  
 
   ipcMain.handle("getReceiptTemplate", async () => {
     try {

@@ -69,8 +69,9 @@ export default function PageExpiredOrders(): React.JSX.Element {
   const handleConfirmReturn = async (): Promise<void> => {
     if (!selectedOrder) return;
     setConfirming(true);
+    let createdTransactIds: number[] = [];
     try {
-      // 1. Create POS Return Transactions (status = 2)
+      // 1. Create POS Return Transactions (status = 3 for expired)
       const services = selectedOrder.services || [];
       if (services.length === 0) {
         setAlertConfig({
@@ -85,7 +86,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
 
       const swipe = localStorage.getItem("employeeSwipe") || "";
 
-      // Insert return bills for each service
+      // Insert bills for each service
       for (const svc of services) {
         const createRes = await window.api.createOrder({
           refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
@@ -97,6 +98,9 @@ export default function PageExpiredOrders(): React.JSX.Element {
         if (!createRes.success) {
           throw new Error(`Internal billing error: ${createRes.error}`);
         }
+        if ((createRes as any).data?.transact) {
+          createdTransactIds.push((createRes as any).data.transact);
+        }
       }
 
       // 2. Call HoangVan API to confirm expired order
@@ -106,7 +110,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
 
       if (!confirmRes.success) {
         throw new Error(
-          confirmRes.message || "Hoang Van order confirmation error",
+          confirmRes.message || "Hoang Van order confirmation error (500)",
         );
       }
 
@@ -119,6 +123,12 @@ export default function PageExpiredOrders(): React.JSX.Element {
       setSelectedOrder(null);
       fetchExpiredOrders(1, false); // refresh list
     } catch (err: unknown) {
+      // Rollback DB inserts if API call fails
+      if (createdTransactIds.length > 0) {
+        for (const tid of createdTransactIds) {
+          await window.api.deleteOrder({ transact: tid });
+        }
+      }
       setAlertConfig({
         isOpen: true,
         title: "Error",

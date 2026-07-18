@@ -1,5 +1,5 @@
 import { getConnection } from "@/main/config/database";
-import logger from "@/main/utils/logger";
+import { hvLogger } from "@/main/utils/logger";
 import type { Connection } from "odbc";
 
 interface EmpResult {
@@ -56,57 +56,66 @@ export class OrderService {
     try {
       await connection.beginTransaction();
 
-      // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
-      const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
-      const tdResult = await connection.query(tdSql, [transact]);
-      for (const td of tdResult as any) {
-        if (td.QuantityOut > 0) {
-          const prodLinkQuery = `SELECT PRODNUMLINK, ISPRIMARY, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
-          const prodLinkResult = await connection.query(prodLinkQuery, [
-            td.PRODNUM,
-          ]);
-          if (prodLinkResult && (prodLinkResult as any).length > 0) {
-            const row = (prodLinkResult as any)[0];
-            const linkNum = row.PRODNUMLINK || td.PRODNUM;
-            const isPrimary = row.ISPRIMARY;
-            const linkQty = row.QUANTITY || 1;
-            const outQty = td.QuantityOut * linkQty;
+      // Get transaction status to check if it's an Expired order (Status = 3)
+      const statusSql = `SELECT Status FROM DBA.TransactionPOSAudio WHERE Transact = ?`;
+      const statusResult = await connection.query(statusSql, [transact]);
+      let isExpired = false;
+      if (statusResult && (statusResult as any).length > 0) {
+        if ((statusResult as any)[0].Status === 3) {
+          isExpired = true;
+        }
+      }
 
-            if (isPrimary === 1) {
-              await connection.query(
-                `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + ? WHERE PRODNUM = ?`,
-                [outQty, linkNum],
-              );
+      // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
+      if (!isExpired) {
+        const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
+        const tdResult = await connection.query(tdSql, [transact]);
+        for (const td of tdResult as any) {
+          if (td.QuantityOut > 0) {
+            const prodLinkQuery = `SELECT PRODNUMLINK, ISPRIMARY, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
+            const prodLinkResult = await connection.query(prodLinkQuery, [
+              td.PRODNUM,
+            ]);
+            if (prodLinkResult && (prodLinkResult as any).length > 0) {
+              const row = (prodLinkResult as any)[0];
+              const linkNum = row.PRODNUMLINK || td.PRODNUM;
+              const isPrimary = row.ISPRIMARY;
+              const linkQty = row.QUANTITY || 1;
+              const outQty = td.QuantityOut * linkQty;
+
+              if (isPrimary === 1) {
+                const queryProduct = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + ? WHERE PRODNUM = ?`;
+                hvLogger.info("Executed Database Query", { query: queryProduct, params: [outQty, linkNum] });
+                await connection.query(queryProduct, [outQty, linkNum]);
+              }
+              const queryStorage = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + ?, OUT = OUT - ? WHERE PRODNUM = ?`;
+              hvLogger.info("Executed Database Query", { query: queryStorage, params: [outQty, outQty, linkNum] });
+              await connection.query(queryStorage, [outQty, outQty, linkNum]);
             }
-            await connection.query(
-              `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + ?, OUT = OUT - ? WHERE PRODNUM = ?`,
-              [outQty, outQty, linkNum],
-            );
           }
         }
       }
 
       // 3. Mark as Void instead of deleting
-      await connection.query(
-        `UPDATE DBA.POSHEADER SET NETTOTAL=0, FINALTOTAL=0 WHERE TRANSACT=?`,
-        [transact],
-      );
-      await connection.query(
-        `UPDATE DBA.POSDETAIL SET PRODTYPE=101 WHERE TRANSACT=?`,
-        [transact],
-      );
-      await connection.query(
-        `UPDATE DBA.Howpaid SET TENDER=0 WHERE TRANSACT=?`,
-        [transact],
-      );
-      await connection.query(
-        `UPDATE DBA.XMLTransHeaders SET SyncCloud=1, NetTotal=0, FinalTotal=0 WHERE TransNumber=?`,
-        [transact],
-      );
-      await connection.query(
-        `UPDATE DBA.XMLTransItems SET SyncCloud=1, TypeOfProd=101 WHERE TransNumber=?`,
-        [transact],
-      );
+      const q1 = `UPDATE DBA.POSHEADER SET NETTOTAL=0, FINALTOTAL=0 WHERE TRANSACT=?`;
+      hvLogger.info("Executed Database Query", { query: q1, params: [transact] });
+      await connection.query(q1, [transact]);
+
+      const q2 = `UPDATE DBA.POSDETAIL SET PRODTYPE=101 WHERE TRANSACT=?`;
+      hvLogger.info("Executed Database Query", { query: q2, params: [transact] });
+      await connection.query(q2, [transact]);
+
+      const q3 = `UPDATE DBA.Howpaid SET TENDER=0 WHERE TRANSACT=?`;
+      hvLogger.info("Executed Database Query", { query: q3, params: [transact] });
+      await connection.query(q3, [transact]);
+
+      const q4 = `UPDATE DBA.XMLTransHeaders SET SyncCloud=1, NetTotal=0, FinalTotal=0 WHERE TransNumber=?`;
+      hvLogger.info("Executed Database Query", { query: q4, params: [transact] });
+      await connection.query(q4, [transact]);
+
+      const q5 = `UPDATE DBA.XMLTransItems SET SyncCloud=1, TypeOfProd=101 WHERE TransNumber=?`;
+      hvLogger.info("Executed Database Query", { query: q5, params: [transact] });
+      await connection.query(q5, [transact]);
 
       await connection.commit();
       return { success: true };
@@ -117,6 +126,7 @@ export class OrderService {
         (error.odbcErrors
           ? " | ODBC Details: " + JSON.stringify(error.odbcErrors)
           : "");
+      hvLogger.error(`Rollback failed for ${transact}: ${errMsg}`);
       return { success: false, error: errMsg || JSON.stringify(error) };
     } finally {
       await connection.close();
@@ -322,7 +332,7 @@ export class OrderService {
         STATNUM,
         refCode,
       ] as (string | number)[];
-      logger.info("Executed Database Query", {
+      hvLogger.info("Executed Database Query", {
         query: posHeaderSql,
         params: posHeaderParams,
       });
@@ -382,7 +392,7 @@ export class OrderService {
         costEach,
         useVat ? netTotalAmount / quantity : costEach,
       ] as (string | number)[];
-      logger.info("Executed Database Query", {
+      hvLogger.info("Executed Database Query", {
         query: posDetailSql,
         params: posDetailParams,
       });
@@ -393,7 +403,7 @@ export class OrderService {
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
           VALUES (?, '', ?, GETDATE(), NULL, ?)
         `;
-        logger.info("Executed Database Query", {
+        hvLogger.info("Executed Database Query", {
           query: sql,
           params: [TRANSACT, status, onlineOrderId || null] as (
             | string
@@ -411,7 +421,7 @@ export class OrderService {
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
           VALUES (?, '', ?, NULL, GETDATE(), ?)
         `;
-        logger.info("Executed Database Query", {
+        hvLogger.info("Executed Database Query", {
           query: sql,
           params: [TRANSACT, status, onlineOrderId || null] as (
             | string
@@ -436,7 +446,7 @@ export class OrderService {
         quantity,
         status === 2 || status === 3 ? quantity : 0,
       ];
-      logger.info("Executed Database Query", {
+      hvLogger.info("Executed Database Query", {
         query: tdSql,
         params: tdParams,
       });
@@ -465,7 +475,7 @@ export class OrderService {
 
         if (isPrimary === 1) {
           const updateProductSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN - ? WHERE PRODNUM = ?`;
-          logger.info("Executed Database Query", {
+          hvLogger.info("Executed Database Query", {
             query: updateProductSql,
             params: [outQty, linkNum],
           });
@@ -473,7 +483,7 @@ export class OrderService {
         }
 
         const updateStorageSql = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE - ?, OUT = OUT + ? WHERE PRODNUM = ?`;
-        logger.info("Executed Database Query", {
+        hvLogger.info("Executed Database Query", {
           query: updateStorageSql,
           params: [outQty, outQty, linkNum],
         });
@@ -524,14 +534,14 @@ export class OrderService {
         STATNUM,
         methodNum,
       ] as (string | number)[];
-      logger.info("Executed Database Query", {
+      hvLogger.info("Executed Database Query", {
         query: hpSql,
         params: hpParams,
       });
       await connection.query(hpSql, hpParams);
 
       const updateNeedsCashoutSql = `UPDATE DBA.EMPLOYEE SET NEEDSCASHOUT = 1 WHERE EMPNUM = ?`;
-      logger.info("Executed Database Query", {
+      hvLogger.info("Executed Database Query", {
         query: updateNeedsCashoutSql,
         params: [WHOSTART],
       });

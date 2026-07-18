@@ -1,6 +1,6 @@
 import axios from "axios";
 import { HoangVanSlot, HoangVanOrder } from "@/shared/types";
-import logger from "@/main/utils/logger";
+import { hvLogger } from "@/main/utils/logger";
 import { ConfigManager } from "@/main/config/AppConfig";
 
 class HoangVanService {
@@ -11,7 +11,7 @@ class HoangVanService {
       const status = error.response?.status;
       const data = error.response?.data;
 
-      logger.error(`HoangVanAPI Error in ${context}: [${status}]`, {
+      hvLogger.error(`HoangVanAPI Error in ${context}: [${status}]`, {
         data,
         payload: error.config?.data,
       });
@@ -49,11 +49,14 @@ class HoangVanService {
         username: config.hoangVanUser,
         password: config.hoangVanPass,
       };
-      logger.info(`HoangVanAPI Login Request to ${config.hoangVanURL}/login`, {
-        payload,
-      });
+      hvLogger.info(
+        `HoangVanAPI Login Request to ${config.hoangVanURL}/login`,
+        {
+          payload,
+        },
+      );
       const res = await axios.post(`${config.hoangVanURL}/login`, payload);
-      logger.info("HoangVanAPI Login Response", { data: res.data });
+      hvLogger.info("HoangVanAPI Login Response", { data: res.data });
 
       if (res.data.success && res.data.data?.token) {
         this.token = res.data.data.token;
@@ -72,13 +75,13 @@ class HoangVanService {
 
     try {
       const url = `${config.hoangVanURL}/slots?date=${date}`;
-      logger.info(`HoangVanAPI GetSlots Request to ${url}`);
+      hvLogger.info(`HoangVanAPI GetSlots Request to ${url}`);
       const res = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      logger.info("HoangVanAPI GetSlots Response", { data: res.data });
+      hvLogger.info("HoangVanAPI GetSlots Response", { data: res.data });
 
       if (res.data.success && res.data.data?.slots) return res.data.data.slots;
       throw new Error(res.data.message || "Failed to fetch slots");
@@ -102,11 +105,11 @@ class HoangVanService {
     if (!this.token) await this.login();
     try {
       const url = `${config.hoangVanURL}/orders/${orderNo}/status`;
-      logger.info(`HoangVanAPI CheckOrder Request to ${url}`);
+      hvLogger.info(`HoangVanAPI CheckOrder Request to ${url}`);
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      logger.info("HoangVanAPI CheckOrder Response", { data: res.data });
+      hvLogger.info("HoangVanAPI CheckOrder Response", { data: res.data });
       if (res.data.success && res.data.data)
         return res.data.data as HoangVanOrder;
       throw new Error(res.data.message || "Failed to check order");
@@ -137,11 +140,11 @@ class HoangVanService {
       const payload = {
         staffId,
       };
-      logger.info(`HoangVanAPI UseOrder Request to ${url}`, { payload });
+      hvLogger.info(`HoangVanAPI UseOrder Request to ${url}`, { payload });
       const res = await axios.post(url, payload, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      logger.info("HoangVanAPI UseOrder Response", { data: res.data });
+      hvLogger.info("HoangVanAPI UseOrder Response", { data: res.data });
       if (res.data.success && res.data.data)
         return res.data.data as Record<string, unknown>;
       throw new Error(res.data.message || "Failed to use order");
@@ -168,11 +171,11 @@ class HoangVanService {
     if (!this.token) await this.login();
     try {
       const url = `${config.hoangVanURL}/orders/${orderNo}/transactions`;
-      logger.info(`HoangVanAPI GetTransactions Request to ${url}`);
+      hvLogger.info(`HoangVanAPI GetTransactions Request to ${url}`);
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      logger.info("HoangVanAPI GetTransactions Response", { data: res.data });
+      hvLogger.info("HoangVanAPI GetTransactions Response", { data: res.data });
       if (res.data.success) return res.data as Record<string, unknown>;
       throw new Error(res.data.message || "Failed to fetch transactions");
     } catch (error: unknown) {
@@ -199,11 +202,13 @@ class HoangVanService {
     if (!this.token) await this.login();
     try {
       const url = `${config.hoangVanURL}/orders/expired?page=${page}&pageSize=${pageSize}`;
-      logger.info(`HoangVanAPI GetExpiredOrders Request to ${url}`);
+      hvLogger.info(`HoangVanAPI GetExpiredOrders Request to ${url}`);
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      logger.info("HoangVanAPI GetExpiredOrders Response", { data: res.data });
+      hvLogger.info("HoangVanAPI GetExpiredOrders Response", {
+        data: res.data,
+      });
       if (res.data.success && res.data.data)
         return res.data as Record<string, unknown>;
       throw new Error(res.data.message || "Failed to fetch expired orders");
@@ -231,13 +236,13 @@ class HoangVanService {
     try {
       const url = `${config.hoangVanURL}/orders/expired/confirm`;
       const payload = { orderNos };
-      logger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, {
+      hvLogger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, {
         payload,
       });
       const res = await axios.post(url, payload, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      logger.info("HoangVanAPI ConfirmExpiredOrders Response", {
+      hvLogger.info("HoangVanAPI ConfirmExpiredOrders Response", {
         data: res.data,
       });
       if (res.data.success) return res.data as Record<string, unknown>;
