@@ -1,6 +1,6 @@
 import axios from "axios";
 import { HoangVanSlot, HoangVanOrder } from "@/shared/types";
-import { hvLogger } from "@/main/utils/logger";
+import { hvLogger, hvPollLogger } from "@/main/utils/logger";
 import { ConfigManager } from "@/main/config/AppConfig";
 
 class HoangVanService {
@@ -75,13 +75,13 @@ class HoangVanService {
 
     try {
       const url = `${config.hoangVanURL}/slots?date=${date}`;
-      hvLogger.info(`HoangVanAPI GetSlots Request to ${url}`);
+      hvPollLogger.info(`HoangVanAPI GetSlots Request to ${url}`);
       const res = await axios.get(url, {
         headers: {
           Authorization: `Bearer ${this.token}`,
         },
       });
-      hvLogger.info("HoangVanAPI GetSlots Response", { data: res.data });
+      hvPollLogger.info("HoangVanAPI GetSlots Response", { data: res.data });
 
       if (res.data.success && res.data.data?.slots) return res.data.data.slots;
       throw new Error(res.data.message || "Failed to fetch slots");
@@ -202,11 +202,11 @@ class HoangVanService {
     if (!this.token) await this.login();
     try {
       const url = `${config.hoangVanURL}/orders/expired?page=${page}&pageSize=${pageSize}`;
-      hvLogger.info(`HoangVanAPI GetExpiredOrders Request to ${url}`);
+      hvPollLogger.info(`HoangVanAPI GetExpiredOrders Request to ${url}`);
       const res = await axios.get(url, {
         headers: { Authorization: `Bearer ${this.token}` },
       });
-      hvLogger.info("HoangVanAPI GetExpiredOrders Response", {
+      hvPollLogger.info("HoangVanAPI GetExpiredOrders Response", {
         data: res.data,
       });
       if (res.data.success && res.data.data)
@@ -234,7 +234,7 @@ class HoangVanService {
     if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) await this.login();
     try {
-      const url = `${config.hoangVanURL}/orders/expired/confirm`;
+      const url = `${config.hoangVanURL}/orders/expired/confirmloi`;
       const payload = { orderNos };
       hvLogger.info(`HoangVanAPI ConfirmExpiredOrders Request to ${url}`, {
         payload,
