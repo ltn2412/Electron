@@ -56,18 +56,6 @@ export class OrderService {
     try {
       await connection.beginTransaction();
 
-      // 1. Revert TillBalance
-      const headerSql = `SELECT FINALTOTAL, PUNCHINDEX FROM DBA.POSHEADER WHERE TRANSACT = ?`;
-      const headerResult = await connection.query(headerSql, [transact]);
-      if (headerResult && (headerResult as any).length > 0) {
-        const header = (headerResult as any)[0];
-        if (header.PUNCHINDEX > 0) {
-          await connection.query(
-            `UPDATE DBA.PUNCHCLOCK SET TillBalance = ISNULL(TillBalance, 0) - ? WHERE Punchindex = ?`,
-            [header.FINALTOTAL, header.PUNCHINDEX],
-          );
-        }
-      }
 
       // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
       const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
@@ -543,18 +531,6 @@ export class OrderService {
       });
       await connection.query(hpSql, hpParams);
 
-      if (PUNCHINDEX > 0) {
-        const updateTillSql = `
-          UPDATE DBA.PUNCHCLOCK 
-          SET TillBalance = ISNULL(TillBalance, 0) + ? 
-          WHERE Punchindex = ?
-        `;
-        logger.info("Executed Database Query", {
-          query: updateTillSql,
-          params: [FINALTOTAL, PUNCHINDEX],
-        });
-        await connection.query(updateTillSql, [FINALTOTAL, PUNCHINDEX]);
-      }
 
       const updateNeedsCashoutSql = `UPDATE DBA.EMPLOYEE SET NEEDSCASHOUT = 1 WHERE EMPNUM = ?`;
       logger.info("Executed Database Query", {
