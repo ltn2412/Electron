@@ -10,10 +10,10 @@ class HoangVanService {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status;
       const data = error.response?.data;
-      
-      logger.error(`HoangVanAPI Error in ${context}: [${status}]`, { 
-        data, 
-        payload: error.config?.data 
+
+      logger.error(`HoangVanAPI Error in ${context}: [${status}]`, {
+        data,
+        payload: error.config?.data,
       });
 
       if (status === 400)
@@ -26,7 +26,7 @@ class HoangVanService {
         throw new Error(
           `Hoang Van server is experiencing issues (500). Details: ${
             typeof data === "object" ? JSON.stringify(data) : data || "None"
-          }`
+          }`,
         );
       if (error.code === "ECONNABORTED" || error.message.includes("timeout"))
         throw new Error(
@@ -133,9 +133,9 @@ class HoangVanService {
     if (!config) throw new Error("Missing config.json file or invalid fields");
     if (!this.token) await this.login();
     try {
-      const url = `${config.hoangVanURL}/orders/${orderNo}/use`;
+      const url = `${config.hoangVanURL}/orders/${orderNo}/useloi`;
       const payload = {
-        staffId
+        staffId,
       };
       logger.info(`HoangVanAPI UseOrder Request to ${url}`, { payload });
       const res = await axios.post(url, payload, {

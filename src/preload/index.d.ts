@@ -35,13 +35,19 @@ declare global {
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
       resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
-      getHoangVanSlots: (date: string) => Promise<ApiResponse<import("@/shared/types").HoangVanSlot[]>>;
-      checkOrder: (orderNo: string) => Promise<ApiResponse<import("@/shared/types").HoangVanOrder>>;
+      getHoangVanSlots: (
+        date: string,
+      ) => Promise<ApiResponse<import("@/shared/types").HoangVanSlot[]>>;
+      checkOrder: (
+        orderNo: string,
+      ) => Promise<ApiResponse<import("@/shared/types").HoangVanOrder>>;
       useOrder: (payload: {
         orderNo: string;
         staffId: string;
       }) => Promise<ApiResponse<unknown>>;
-      deleteOrder: (payload: { transact: number }) => Promise<{ success: boolean; error?: string }>;
+      deleteOrder: (payload: {
+        transact: number;
+      }) => Promise<{ success: boolean; error?: string }>;
       createOrder: (payload: {
         refCode: string;
         quantity: number;
@@ -76,7 +82,6 @@ declare global {
         htmlContent: string,
       ) => Promise<{ success: boolean; error?: string }>;
       getReceiptTemplate: () => Promise<string>;
-      
     };
   }
 }

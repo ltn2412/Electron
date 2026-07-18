@@ -24,7 +24,7 @@ const api = {
     data: import("@/shared/types").TransactionPOSAudioPayload,
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
   deleteOrder: (payload) => ipcRenderer.invoke("hoangvan:deleteOrder", payload),
-    createOrder: (payload: {
+  createOrder: (payload: {
     refCode: string;
     quantity: number;
     costEach: number;
@@ -42,9 +42,7 @@ const api = {
     ipcRenderer.invoke("hoangvan:confirmExpiredOrders", payload),
   printHtml: (htmlContent: string) =>
     ipcRenderer.invoke("print:html", htmlContent),
-  getReceiptTemplate: () =>
-    ipcRenderer.invoke("getReceiptTemplate"),
-  
+  getReceiptTemplate: () => ipcRenderer.invoke("getReceiptTemplate"),
 };
 
 if (process.contextIsolated) {

@@ -309,10 +309,7 @@ export default function PageMenu(): React.JSX.Element {
         setAlertConfig({
           isOpen: true,
           title: "Error",
-          message:
-            "Hoang Van system error: " +
-            useRes.error +
-            " (Transaction rolled back)",
+          message: "Hoang Van system error: " + useRes.error,
           type: "error",
         });
         return;

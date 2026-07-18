@@ -49,7 +49,9 @@ interface RecPosResult {
 }
 
 export class OrderService {
-  public static async deleteOrder(transact: number): Promise<{ success: boolean; error?: string }> {
+  public static async deleteOrder(
+    transact: number,
+  ): Promise<{ success: boolean; error?: string }> {
     const connection = await getConnection();
     try {
       await connection.beginTransaction();
@@ -62,7 +64,7 @@ export class OrderService {
         if (header.PUNCHINDEX > 0) {
           await connection.query(
             `UPDATE DBA.PUNCHCLOCK SET TillBalance = ISNULL(TillBalance, 0) - ? WHERE Punchindex = ?`,
-            [header.FINALTOTAL, header.PUNCHINDEX]
+            [header.FINALTOTAL, header.PUNCHINDEX],
           );
         }
       }
@@ -70,10 +72,12 @@ export class OrderService {
       // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
       const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
       const tdResult = await connection.query(tdSql, [transact]);
-      for (const td of (tdResult as any)) {
+      for (const td of tdResult as any) {
         if (td.QuantityOut > 0) {
           const prodLinkQuery = `SELECT PRODNUMLINK, ISPRIMARY, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
-          const prodLinkResult = await connection.query(prodLinkQuery, [td.PRODNUM]);
+          const prodLinkResult = await connection.query(prodLinkQuery, [
+            td.PRODNUM,
+          ]);
           if (prodLinkResult && (prodLinkResult as any).length > 0) {
             const row = (prodLinkResult as any)[0];
             const linkNum = row.PRODNUMLINK || td.PRODNUM;
@@ -84,29 +88,48 @@ export class OrderService {
             if (isPrimary === 1) {
               await connection.query(
                 `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + ? WHERE PRODNUM = ?`,
-                [outQty, linkNum]
+                [outQty, linkNum],
               );
             }
             await connection.query(
               `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + ?, OUT = OUT - ? WHERE PRODNUM = ?`,
-              [outQty, outQty, linkNum]
+              [outQty, outQty, linkNum],
             );
           }
         }
       }
 
-      // 3. Delete records
-      await connection.query(`DELETE FROM DBA.Howpaid WHERE TRANSACT = ?`, [transact]);
-      await connection.query(`DELETE FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`, [transact]);
-      await connection.query(`DELETE FROM DBA.TransactionPOSAudio WHERE Transact = ?`, [transact]);
-      await connection.query(`DELETE FROM DBA.POSDETAIL WHERE TRANSACT = ?`, [transact]);
-      await connection.query(`DELETE FROM DBA.POSHEADER WHERE TRANSACT = ?`, [transact]);
+      // 3. Mark as Void instead of deleting
+      await connection.query(
+        `UPDATE DBA.POSHEADER SET NETTOTAL=0, FINALTOTAL=0 WHERE TRANSACT=?`,
+        [transact],
+      );
+      await connection.query(
+        `UPDATE DBA.POSDETAIL SET PRODTYPE=101 WHERE TRANSACT=?`,
+        [transact],
+      );
+      await connection.query(
+        `UPDATE DBA.Howpaid SET TENDER=0 WHERE TRANSACT=?`,
+        [transact],
+      );
+      await connection.query(
+        `UPDATE DBA.XMLTransHeaders SET SyncCloud=1, NetTotal=0, FinalTotal=0 WHERE TransNumber=?`,
+        [transact],
+      );
+      await connection.query(
+        `UPDATE DBA.XMLTransItems SET SyncCloud=1, TypeOfProd=101 WHERE TransNumber=?`,
+        [transact],
+      );
 
       await connection.commit();
       return { success: true };
     } catch (error: any) {
       await connection.rollback();
-      const errMsg = error.message + (error.odbcErrors ? ' | ODBC Details: ' + JSON.stringify(error.odbcErrors) : '');
+      const errMsg =
+        error.message +
+        (error.odbcErrors
+          ? " | ODBC Details: " + JSON.stringify(error.odbcErrors)
+          : "");
       return { success: false, error: errMsg || JSON.stringify(error) };
     } finally {
       await connection.close();
@@ -549,7 +572,11 @@ export class OrderService {
       };
     } catch (error: any) {
       if (connection) await connection.rollback();
-      const errMsg = error.message + (error.odbcErrors ? ' | ODBC Details: ' + JSON.stringify(error.odbcErrors) : '');
+      const errMsg =
+        error.message +
+        (error.odbcErrors
+          ? " | ODBC Details: " + JSON.stringify(error.odbcErrors)
+          : "");
       throw new Error("DB Error: " + (errMsg || JSON.stringify(error)));
     } finally {
       if (connection) await connection.close();
@@ -619,7 +646,11 @@ export class OrderService {
       throw new Error("Transaction not found or already returned.");
     } catch (error: any) {
       if (connection) await connection.close();
-      const errMsg = error.message + (error.odbcErrors ? ' | ODBC Details: ' + JSON.stringify(error.odbcErrors) : '');
+      const errMsg =
+        error.message +
+        (error.odbcErrors
+          ? " | ODBC Details: " + JSON.stringify(error.odbcErrors)
+          : "");
       throw new Error("DB Error: " + (errMsg || JSON.stringify(error)));
     }
   }
