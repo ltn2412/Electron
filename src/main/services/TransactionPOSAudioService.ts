@@ -1,6 +1,9 @@
 import { getConnection } from "@/main/config/database";
 import type { Connection } from "odbc";
-import { TransactionPOSAudioPayload } from "@/shared/types";
+import {
+  TransactionDetailPOSAudio,
+  TransactionPOSAudioPayload,
+} from "@/shared/types";
 import logger from "@/main/utils/logger";
 
 export class TransactionPOSAudioService {
@@ -16,8 +19,20 @@ export class TransactionPOSAudioService {
 
       await connection.beginTransaction();
 
+      // Already in the requested state (double click, or two stations picking up
+      // the same new bill at once): replaying the stock moves would deduct or
+      // restore the inventory twice, so stop here.
+      const sameStatus = await connection.query(
+        `SELECT TRANSACT FROM DBA.TRANSACTIONPOSAUDIO WHERE TRANSACT = ? AND STATUS = ?`,
+        [data.Transact, data.Status],
+      );
+      if ((sameStatus as { TRANSACT: number }[]).length > 0) {
+        await connection.commit();
+        return;
+      }
+
       const existing = await connection.query(
-        `SELECT * FROM DBA.TRANSACTIONPOSAUDIO WHERE TRANSACT = ?`,
+        `SELECT TRANSACT FROM DBA.TRANSACTIONPOSAUDIO WHERE TRANSACT = ?`,
         [data.Transact],
       );
 
@@ -28,7 +43,9 @@ export class TransactionPOSAudioService {
         );
       } else {
         await connection.query(
-          `INSERT INTO DBA.TRANSACTIONPOSAUDIO(TRANSACT,STATUS,PHONENUMBER,DATEOUT,DATERETURN) VALUES (?, ?, ?, GETDATE(), GETDATE())`,
+          `INSERT INTO DBA.TRANSACTIONPOSAUDIO(TRANSACT,STATUS,PHONENUMBER,DATEOUT,DATERETURN) VALUES (?, ?, ?, GETDATE(), ${
+            data.Status === 1 ? "NULL" : "GETDATE()"
+          })`,
           [data.Transact, data.Status, data.PhoneNumber] as (
             | string
             | number
@@ -211,5 +228,118 @@ export class TransactionPOSAudioService {
     } finally {
       if (connection) await connection.close();
     }
+  }
+
+  /**
+   * Bills rung up on another POS station have no TransactionPOSAudio row yet, so
+   * they show up here as "New". Handing the devices over is the only thing that
+   * happens next, so switch them to Out and deduct the stock as soon as we see
+   * them - the workflow only keeps Out / Return / Expired.
+   *
+   * @param transact process just this bill; omit to sweep the whole open day
+   * @returns the transactions that were switched to Out
+   */
+  static async autoOutNewTransactions(transact?: number): Promise<number[]> {
+    let connection: Connection | undefined;
+    const pending: {
+      transact: number;
+      details: TransactionDetailPOSAudio[];
+    }[] = [];
+
+    try {
+      connection = await getConnection();
+
+      // A missing TransactionPOSAudio row is what makes a bill "New".
+      // Sweeping the day is scoped to the open day like the dashboard list;
+      // a single bill is looked up on its own so an older ticket can still be
+      // handed over from the search screen.
+      // The sweep also leaves bills younger than a few seconds alone: an order
+      // being written right now (createOrder) writes its header before its
+      // TransactionPOSAudio row, and grabbing it in between would deduct the
+      // stock twice.
+      const scopeSql = transact
+        ? `AND PH.TRANSACT = ?`
+        : `AND DATEDIFF(second, PH.TIMEEND, GETDATE()) > 5
+           AND PH.TRANSACT IN (
+             SELECT PD.TRANSACT
+             FROM DBA.POSDETAIL PD
+             INNER JOIN DBA.PRODUCT P ON PD.PRODNUM = P.PRODNUM
+               AND PD.OPENDATE = (SELECT OPENDATE FROM DBA.CurrentOpenDay)
+             WHERE PD.PRODTYPE NOT IN (100,101)
+               AND P.REFCODE like '%_F:POS_AUDIO%'
+             GROUP BY PD.TRANSACT
+           )`;
+
+      const newTransactSql = `
+        SELECT PH.TRANSACT
+        FROM DBA.POSHEADER PH
+        LEFT JOIN DBA.TransactionPOSAudio TPA ON PH.TRANSACT = TPA.TRANSACT
+        WHERE TPA.TRANSACT IS NULL
+          AND PH.STATUS = 3
+          AND PH.FINALTOTAL > 0
+          ${scopeSql}
+      `;
+      const newTransacts = (
+        transact
+          ? await connection.query(newTransactSql, [transact])
+          : await connection.query(newTransactSql)
+      ) as { TRANSACT: number }[];
+
+      for (const row of newTransacts) {
+        const detailSql = `
+          SELECT PD.PRODNUM, SUM(PD.QUAN) AS QUAN
+          FROM DBA.POSDETAIL PD
+          INNER JOIN DBA.PRODUCT P ON PD.PRODNUM = P.PRODNUM
+          WHERE PD.TRANSACT = ?
+            AND PD.PRODTYPE NOT IN (100,101)
+            AND P.REFCODE like '%_F:POS_AUDIO%'
+          GROUP BY PD.PRODNUM
+        `;
+        const detailRows = (await connection.query(detailSql, [
+          row.TRANSACT,
+        ])) as { PRODNUM: number; QUAN: number }[];
+
+        const details = detailRows
+          .filter((d) => d.QUAN > 0)
+          .map((d) => ({
+            PRODNUM: d.PRODNUM,
+            QuantityOut: d.QUAN,
+            QuantityReturn: 0,
+          }));
+
+        if (details.length > 0) {
+          pending.push({ transact: row.TRANSACT, details });
+        }
+      }
+    } catch (error: unknown) {
+      logger.error("Error while looking up new POS Audio transactions:", {
+        error,
+      });
+      return [];
+    } finally {
+      if (connection) await connection.close();
+    }
+
+    // One bill failing must not hold back the rest of the list.
+    const outed: number[] = [];
+    for (const item of pending) {
+      try {
+        await this.createUpdateTransaction({
+          Transact: item.transact,
+          Status: 1,
+          PhoneNumber: "",
+          TransactionDetailPOSAudios: item.details,
+        });
+        outed.push(item.transact);
+        logger.info(`Auto Out transaction ${item.transact}`, {
+          data: item.details,
+        });
+      } catch (error: unknown) {
+        logger.error(`Auto Out failed for transaction ${item.transact}:`, {
+          error,
+        });
+      }
+    }
+    return outed;
   }
 }

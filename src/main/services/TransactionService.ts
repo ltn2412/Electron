@@ -1,4 +1,5 @@
 import { getConnection } from "@/main/config/database";
+import { TransactionPOSAudioService } from "@/main/services/TransactionPOSAudioService";
 import type { Connection } from "odbc";
 
 export interface TransactionDetail {
@@ -29,10 +30,19 @@ export class TransactionService {
   ): Promise<TransactionHeader | null> {
     let connection: Connection | undefined;
     try {
-      connection = await getConnection();
       let searchTransact = transact;
       if (searchTransact.startsWith("696"))
         searchTransact = searchTransact.substring(3);
+
+      // A bill rung up on another station has no TransactionPOSAudio row yet, so
+      // it can only be found by its transact number. Hand it over before reading
+      // it back and it never shows up as "New".
+      const transactNum = Number(searchTransact);
+      if (Number.isInteger(transactNum) && transactNum > 0) {
+        await TransactionPOSAudioService.autoOutNewTransactions(transactNum);
+      }
+
+      connection = await getConnection();
 
       const queryHeader = `
         SELECT TOP 1 
@@ -94,6 +104,10 @@ export class TransactionService {
   static async getTransaction(): Promise<TransactionHeader[]> {
     let connection: Connection | undefined;
     try {
+      // Hand over every bill that came in from another station before listing,
+      // so the dashboard only ever shows Out / Return / Expired.
+      await TransactionPOSAudioService.autoOutNewTransactions();
+
       connection = await getConnection();
       const query = `
         SELECT 

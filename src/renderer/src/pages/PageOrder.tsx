@@ -192,6 +192,8 @@ export default function PageOrder(): React.JSX.Element {
                 padding: "40px",
               }}
             >
+              {/* Bills are handed over automatically as soon as they are read,
+                  so this only shows up when that failed. */}
               {isNew && (
                 <div style={styles.actionBlock}>
                   <Package
@@ -199,9 +201,10 @@ export default function PageOrder(): React.JSX.Element {
                     color="#3b82f6"
                     style={{ marginBottom: "24px" }}
                   />
-                  <h3 style={styles.actionTitle}>Ready for Handover</h3>
+                  <h3 style={styles.actionTitle}>Handover Not Recorded</h3>
                   <p style={styles.actionDesc}>
-                    Hand the devices to the customer and confirm below.
+                    This bill could not be handed over automatically. Confirm
+                    below to mark it as OUT and deduct the stock.
                   </p>
                   <button
                     style={{ ...styles.actionBtn, backgroundColor: "#3b82f6" }}
