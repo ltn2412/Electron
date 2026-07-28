@@ -20,6 +20,7 @@ async function getConnection() {
     );
   }
 }
+const ALLOWED_EMPNAME = "AUDIO GUIDE";
 class EmployeeService {
   static async getEmployeeBySwipe(swipe, statNum = 1) {
     let connection;
@@ -41,6 +42,9 @@ class EmployeeService {
       if (empResult.length === 0)
         throw new Error("Employee not found or inactive.");
       const employee = empResult[0];
+      if (String(employee.EMPNAME).trim().toUpperCase() !== ALLOWED_EMPNAME) {
+        throw new Error(`Only ${ALLOWED_EMPNAME} is allowed to log in.`);
+      }
       const openDayResult = await connection.query(
         `
         SELECT OpenDate 
@@ -827,9 +831,9 @@ class TransactionService {
 }
 const icon = path.join(__dirname, "../../resources/icon.png");
 const DEFAULT_CONFIG = {
-  hoangVanURL: "https://demobtctct.soatvetudong.vn/api/speedpos",
+  hoangVanURL: "https://ticket.baotangchungtichchientranh.vn/api/speedpos",
   hoangVanUser: "speedpos",
-  hoangVanPass: "SpeedHoangVan"
+  hoangVanPass: "SpeedHoangVan@)26"
 };
 class ConfigManager {
   static getConfig() {

@@ -349,6 +349,7 @@ export default function PageMenu(): React.JSX.Element {
 
       const finalHtml = templateToUse
         .replace(/{{ORDER_NO}}/g, hvOrderInfo.orderNo || "")
+        .replace(/{{TRANSACT}}/g, String(createRes.data?.transact ?? ""))
         .replace(/{{CUSTOMER_NAME}}/g, hvOrderInfo.buyerName || "")
         .replace(/{{EMAIL}}/g, hvOrderInfo.buyerEmail || "")
         .replace(/{{VISIT_DATE}}/g, hvOrderInfo.visitDate || "")

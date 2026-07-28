@@ -9,9 +9,9 @@ export interface AppConfig {
 }
 
 const DEFAULT_CONFIG: AppConfig = {
-  hoangVanURL: "https://demobtctct.soatvetudong.vn/api/speedpos",
+  hoangVanURL: "https://ticket.baotangchungtichchientranh.vn/api/speedpos",
   hoangVanUser: "speedpos",
-  hoangVanPass: "SpeedHoangVan",
+  hoangVanPass: "SpeedHoangVan@)26",
 };
 
 export class ConfigManager {
