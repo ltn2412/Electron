@@ -249,17 +249,30 @@ export class TransactionPOSAudioService {
     try {
       connection = await getConnection();
 
+      // An order still being written (createOrder) inserts its header before its
+      // TransactionPOSAudio row, and picking it up in between would deduct the
+      // stock twice. Reading only committed rows closes that gap: until the
+      // order commits, neither of its rows is visible here.
+      let committedReadsOnly = false;
+      try {
+        await connection.query(
+          `SET TEMPORARY OPTION blocking_timeout = '3000'`,
+        );
+        await connection.query(`SET TEMPORARY OPTION isolation_level = 1`);
+        committedReadsOnly = true;
+      } catch (error: unknown) {
+        logger.error("Could not read committed rows only for the Auto Out:", {
+          error,
+        });
+      }
+
       // A missing TransactionPOSAudio row is what makes a bill "New".
       // Sweeping the day is scoped to the open day like the dashboard list;
       // a single bill is looked up on its own so an older ticket can still be
       // handed over from the search screen.
-      // The sweep also leaves bills younger than a few seconds alone: an order
-      // being written right now (createOrder) writes its header before its
-      // TransactionPOSAudio row, and grabbing it in between would deduct the
-      // stock twice.
       const scopeSql = transact
         ? `AND PH.TRANSACT = ?`
-        : `AND DATEDIFF(second, PH.TIMEEND, GETDATE()) > 5
+        : `${committedReadsOnly ? "" : "AND DATEDIFF(second, PH.TIMEEND, GETDATE()) > 5"}
            AND PH.TRANSACT IN (
              SELECT PD.TRANSACT
              FROM DBA.POSDETAIL PD

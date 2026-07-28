@@ -627,7 +627,19 @@ class TransactionPOSAudioService {
     const pending = [];
     try {
       connection = await getConnection();
-      const scopeSql = transact ? `AND PH.TRANSACT = ?` : `AND DATEDIFF(second, PH.TIMEEND, GETDATE()) > 5
+      let committedReadsOnly = false;
+      try {
+        await connection.query(
+          `SET TEMPORARY OPTION blocking_timeout = '3000'`
+        );
+        await connection.query(`SET TEMPORARY OPTION isolation_level = 1`);
+        committedReadsOnly = true;
+      } catch (error) {
+        logger.error("Could not read committed rows only for the Auto Out:", {
+          error
+        });
+      }
+      const scopeSql = transact ? `AND PH.TRANSACT = ?` : `${committedReadsOnly ? "" : "AND DATEDIFF(second, PH.TIMEEND, GETDATE()) > 5"}
            AND PH.TRANSACT IN (
              SELECT PD.TRANSACT
              FROM DBA.POSDETAIL PD

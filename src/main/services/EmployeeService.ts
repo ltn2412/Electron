@@ -1,6 +1,8 @@
 import { getConnection } from "@/main/config/database";
 import type { Connection } from "odbc";
 
+const ALLOWED_EMPNAME = "AUDIO GUIDE";
+
 export interface EmployeeInfo {
   EMPNUM: number;
   EMPNAME: string;
@@ -42,6 +44,9 @@ export class EmployeeService {
         throw new Error("Employee not found or inactive.");
 
       const employee = empResult[0];
+      if (String(employee.EMPNAME).trim().toUpperCase() !== ALLOWED_EMPNAME) {
+        throw new Error(`Only ${ALLOWED_EMPNAME} is allowed to log in.`);
+      }
 
       const openDayResult = (await connection.query(
         `
