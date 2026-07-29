@@ -69,7 +69,7 @@ export default function PageExpiredOrders(): React.JSX.Element {
   const handleConfirmReturn = async (): Promise<void> => {
     if (!selectedOrder) return;
     setConfirming(true);
-    let createdTransactIds: number[] = [];
+    const createdTransactIds: number[] = [];
     try {
       // 1. Create POS Return Transactions (status = 3 for expired)
       const services = selectedOrder.services || [];
