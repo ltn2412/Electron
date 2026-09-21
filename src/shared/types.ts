@@ -31,6 +31,13 @@ export interface ProductPOSAudio {
   [key: string]: unknown;
 }
 
+export interface SchemaStatus {
+  ready: boolean;
+  error?: string;
+  /** What to run by hand if the app is not allowed to alter the table. */
+  sql: string;
+}
+
 export interface ProductMapping {
   PRODNUM: number;
   DESCRIPT: string;

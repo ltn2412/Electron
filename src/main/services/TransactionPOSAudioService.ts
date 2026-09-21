@@ -11,6 +11,7 @@ interface ProdLinkRow {
   PRODNUMLINK: number | null;
   QUANTITY: number | null;
   SKIPSELFCOUNTDOWN: number;
+  COUNTDOWN: number;
 }
 
 export class TransactionPOSAudioService {
@@ -86,7 +87,12 @@ export class TransactionPOSAudioService {
           );
 
           const prodLinkResult = await connection.query(
-            `SELECT PRODNUMLINK, QUANTITY, ${skipSelfCountdownSql()} AS SKIPSELFCOUNTDOWN FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`,
+            `SELECT POAP.PRODNUMLINK, POAP.QUANTITY,
+                    ${skipSelfCountdownSql("POAP")} AS SKIPSELFCOUNTDOWN,
+                    ISNULL(P.COUNTDOWN, 0) AS COUNTDOWN
+             FROM DBA.ProductPOSAudio POAP
+             INNER JOIN DBA.PRODUCT P ON P.PRODNUM = POAP.PRODNUM
+             WHERE POAP.PRODNUM = ?`,
             [detail.PRODNUM],
           );
 
@@ -100,7 +106,12 @@ export class TransactionPOSAudioService {
             const row = (prodLinkResult as ProdLinkRow[])[0];
             linkNum = row.PRODNUMLINK || detail.PRODNUM;
             linkQty = row.QUANTITY || 1;
-            skipSelfCountdown = row.SKIPSELFCOUNTDOWN === 1;
+            // A mapped product sitting at countdown 0 is unlimited in the POS
+            // whether or not the flag could be stored, and giving it back would
+            // turn that 0 into a real limit.
+            skipSelfCountdown =
+              row.SKIPSELFCOUNTDOWN === 1 ||
+              (linkNum !== detail.PRODNUM && row.COUNTDOWN === 0);
           }
 
           const totalOutQty = (detail.QuantityOut || 0) * linkQty;

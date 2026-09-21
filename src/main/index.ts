@@ -9,7 +9,7 @@ import fs from "fs";
 
 import { join } from "path";
 
-import { ensureSchema } from "@/main/config/schema";
+import { ensureSchema, getSchemaStatus } from "@/main/config/schema";
 import HoangVanService from "@/main/services/HoangVanService";
 import { OrderService } from "@/main/services/OrderService";
 import logger from "@/main/utils/logger";
@@ -312,11 +312,14 @@ app.whenReady().then(() => {
 
   ipcMain.handle("product:getMappings", async () => {
     try {
+      // The table may have been locked when the app started, so try again
+      // before showing the screen that needs the column.
+      const schema = await ensureSchema();
       const data = await ProductService.getProductMappings();
-      return { success: true, data };
+      return { success: true, data, schema };
     } catch (error) {
       const err = error as Error;
-      return { success: false, error: err.message };
+      return { success: false, error: err.message, schema: getSchemaStatus() };
     }
   });
 
@@ -324,6 +327,7 @@ app.whenReady().then(() => {
     "product:saveMapping",
     async (_, mapping: import("@/shared/types").ProductMappingPayload) => {
       try {
+        await ensureSchema();
         await ProductService.saveProductMapping(mapping);
         return { success: true };
       } catch (error) {

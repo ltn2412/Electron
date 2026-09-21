@@ -4,6 +4,7 @@ import {
   POSHEADER,
   ProductMapping,
   ProductMappingPayload,
+  SchemaStatus,
   ProductPOSAudio,
   TransactionPOSAudioPayload,
 } from "@/shared/types";
@@ -38,7 +39,9 @@ declare global {
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
       resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
-      getProductMappings: () => Promise<ApiResponse<ProductMapping[]>>;
+      getProductMappings: () => Promise<
+        ApiResponse<ProductMapping[]> & { schema?: SchemaStatus }
+      >;
       saveProductMapping: (
         mapping: ProductMappingPayload,
       ) => Promise<ApiResponse<void>>;

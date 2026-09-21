@@ -200,6 +200,13 @@ export class ProductService {
           "This product holds its own stock and cannot be mapped to another one.",
         );
 
+      // Saving the flag into a column that does not exist would silently drop
+      // it, and the product would keep being restored on every return.
+      if (skipSelf && !hasColumn("DBA.ProductPOSAudio", "SKIPSELFCOUNTDOWN"))
+        throw new Error(
+          "Column DBA.ProductPOSAudio.SKIPSELFCOUNTDOWN is missing, the unlimited flag cannot be saved yet.",
+        );
+
       const skipSelfSet = hasColumn("DBA.ProductPOSAudio", "SKIPSELFCOUNTDOWN")
         ? `, SKIPSELFCOUNTDOWN = ${skipSelf}`
         : "";

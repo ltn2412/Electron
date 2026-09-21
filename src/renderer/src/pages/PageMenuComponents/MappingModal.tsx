@@ -1,4 +1,4 @@
-import { ProductMapping } from "@shared/types";
+import { ProductMapping, SchemaStatus } from "@shared/types";
 import {
   Link2,
   Loader2,
@@ -72,6 +72,7 @@ export default function MappingModal({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [draft, setDraft] = useState<DraftMapping | null>(null);
+  const [schema, setSchema] = useState<SchemaStatus | null>(null);
 
   const loadMappings = useCallback(async (): Promise<void> => {
     setLoading(true);
@@ -79,6 +80,7 @@ export default function MappingModal({
     setDraft(null);
     try {
       const res = await window.api.getProductMappings();
+      setSchema(res.schema ?? null);
       if (res.success && res.data) setMappings(res.data);
       else setError(res.error || "Could not load the product list.");
     } catch (err: unknown) {
@@ -187,18 +189,35 @@ export default function MappingModal({
         </div>
 
         <div style={{ padding: "16px 24px", overflowY: "auto", flex: 1 }}>
-          <p
-            style={{
-              margin: "0 0 16px 0",
-              fontSize: "14px",
-              color: "#64748b",
-              lineHeight: 1.5,
-            }}
-          >
-            A mapped product spends the stock of another one. Use it for tickets
-            sold with an unlimited countdown in the POS: selling them deducts
-            the linked product instead, and returning them gives it back.
-          </p>
+          {schema && !schema.ready && (
+            <div
+              style={{
+                marginBottom: "16px",
+                padding: "12px 16px",
+                borderRadius: "12px",
+                backgroundColor: "#fffbeb",
+                border: "1px solid #fcd34d",
+                color: "#92400e",
+                fontSize: "13px",
+                lineHeight: 1.5,
+              }}
+            >
+              <b>Column SKIPSELFCOUNTDOWN is missing.</b>
+              {schema.error ? ` ${schema.error}` : ""} Run this, then reopen:
+              <pre
+                style={{
+                  margin: "8px 0 0 0",
+                  padding: "8px",
+                  backgroundColor: "#fef3c7",
+                  borderRadius: "8px",
+                  whiteSpace: "pre-wrap",
+                  fontSize: "12px",
+                }}
+              >
+                {schema.sql}
+              </pre>
+            </div>
+          )}
 
           {error && (
             <div
@@ -244,13 +263,11 @@ export default function MappingModal({
                   <div
                     key={m.PRODNUM}
                     style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: "12px",
                       ...rowStyle,
-                      ...(isEditing
-                        ? { borderColor: "#1e3a8a", alignItems: "stretch" }
-                        : {}),
+                      flexDirection: "column",
+                      alignItems: "stretch",
+                      gap: "12px",
+                      ...(isEditing ? { borderColor: "#1e3a8a" } : {}),
                     }}
                   >
                     <div
@@ -272,7 +289,7 @@ export default function MappingModal({
                           {m.DESCRIPT}
                         </div>
                         <div style={{ fontSize: "13px", color: "#94a3b8" }}>
-                          {m.REFCODE} · #{m.PRODNUM} · countdown {m.COUNTDOWN}
+                          {m.REFCODE} · {m.COUNTDOWN}
                         </div>
                       </div>
 
@@ -444,6 +461,7 @@ export default function MappingModal({
                           <input
                             type="checkbox"
                             checked={draft.skipSelfCountdown}
+                            disabled={!schema?.ready}
                             onChange={(e) =>
                               setDraft({
                                 ...draft,
@@ -456,11 +474,7 @@ export default function MappingModal({
                               marginTop: "2px",
                             }}
                           />
-                          <span>
-                            Sold as unlimited in the POS (countdown 0) — never
-                            touch this product&apos;s own countdown, only the
-                            one it is mapped to.
-                          </span>
+                          <span>Unlimited in POS (countdown 0)</span>
                         </label>
 
                         <div style={{ display: "flex", gap: "12px" }}>
