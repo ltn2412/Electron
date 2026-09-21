@@ -11,6 +11,7 @@ import {
   Archive,
   FileText,
   Globe,
+  Link2,
   LogOut,
   RefreshCw,
   Search,
@@ -19,6 +20,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HoangVanSearchModal from "./PageMenuComponents/HoangVanSearchModal";
+import MappingModal from "./PageMenuComponents/MappingModal";
 import LogoutConfirmModal from "./PageMenuComponents/LogoutConfirmModal";
 import SetupModal from "./PageMenuComponents/SetupModal";
 import TransactionSearchModal from "./PageMenuComponents/TransactionSearchModal";
@@ -47,6 +49,7 @@ export default function PageMenu(): React.JSX.Element {
   const [hvReturning, setHvReturning] = useState(false);
 
   const [isSetupOpen, setIsSetupOpen] = useState(false);
+  const [isMappingOpen, setIsMappingOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [setupProducts, setSetupProducts] = useState<ProductPOSAudio[]>([]);
@@ -96,8 +99,9 @@ export default function PageMenu(): React.JSX.Element {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
-    // Polling every 10 seconds
-    const intervalId = setInterval(fetchData, 10000);
+    // Polling every 3 seconds, so a bill rung up on the POS is picked up and
+    // deducted from the stock almost as soon as it is closed.
+    const intervalId = setInterval(fetchData, 3000);
     return () => clearInterval(intervalId);
   }, [fetchData]);
 
@@ -119,18 +123,20 @@ export default function PageMenu(): React.JSX.Element {
           for (const order of orders) {
             orderNos.push(order.orderNo);
             const services = order.services || [];
-            for (const svc of services) {
-              const createRes = await window.api.createOrder({
+            if (services.length === 0) continue;
+
+            const createRes = await window.api.createOrder({
+              items: services.map((svc) => ({
                 refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
                 quantity: svc.quantity,
                 costEach: svc.unitPrice,
-                swipe: swipe,
-                status: 3,
-                onlineOrderId: order.orderNo,
-              });
-              if (!createRes.success) {
-                throw new Error(`DB Insert Error: ${createRes.error}`);
-              }
+              })),
+              swipe: swipe,
+              status: 3,
+              onlineOrderId: order.orderNo,
+            });
+            if (!createRes.success) {
+              throw new Error(`DB Insert Error: ${createRes.error}`);
             }
           }
           const confirmRes = await window.api.confirmExpiredOrders({
@@ -271,15 +277,17 @@ export default function PageMenu(): React.JSX.Element {
         });
         return;
       }
-      const svc = services[0];
-
-      // 2. Post to our local DB first
+      // 2. Post to our local DB first. The whole order is marked used in one
+      // go on Hoang Van's side, so every service it carries has to be billed
+      // here - all of them on the same bill, one line each.
       const swipe = localStorage.getItem("employeeSwipe");
 
       const createRes = await window.api.createOrder({
-        refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
-        quantity: svc.quantity,
-        costEach: svc.unitPrice,
+        items: services.map((svc) => ({
+          refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
+          quantity: svc.quantity,
+          costEach: svc.unitPrice,
+        })),
         swipe: swipe || "",
         onlineOrderId: hvOrderInfo.orderNo,
       });
@@ -760,20 +768,37 @@ export default function PageMenu(): React.JSX.Element {
             >
               <div style={styles.cardHeader}>
                 <h2 style={styles.cardTitle}>Products</h2>
-                <button
-                  style={{
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    padding: 0,
-                  }}
-                  onClick={() => {
-                    setSetupProducts(products.map((p) => ({ ...p })));
-                    setIsSetupOpen(true);
-                  }}
-                >
-                  <Settings size={20} color="#64748b" />
-                </button>
+                <div style={{ display: "flex", gap: "14px" }}>
+                  <button
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      display: "flex",
+                    }}
+                    title="Product mapping"
+                    onClick={() => setIsMappingOpen(true)}
+                  >
+                    <Link2 size={20} color="#64748b" />
+                  </button>
+                  <button
+                    style={{
+                      background: "none",
+                      border: "none",
+                      cursor: "pointer",
+                      padding: 0,
+                      display: "flex",
+                    }}
+                    title="Stock setup"
+                    onClick={() => {
+                      setSetupProducts(products.map((p) => ({ ...p })));
+                      setIsSetupOpen(true);
+                    }}
+                  >
+                    <Settings size={20} color="#64748b" />
+                  </button>
+                </div>
               </div>
               <div style={{ padding: "24px 24px", overflowY: "auto", flex: 1 }}>
                 {products.length === 0 ? (
@@ -838,6 +863,13 @@ export default function PageMenu(): React.JSX.Element {
           isTransactChecking={isTransactChecking}
           transactCheckError={transactCheckError}
           onSearch={handleSearchTransact}
+          styles={styles}
+        />
+
+        <MappingModal
+          isOpen={isMappingOpen}
+          onClose={() => setIsMappingOpen(false)}
+          onSaved={fetchData}
           styles={styles}
         />
 

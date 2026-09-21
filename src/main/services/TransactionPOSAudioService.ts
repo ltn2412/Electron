@@ -1,10 +1,17 @@
 import { getConnection } from "@/main/config/database";
+import { skipSelfCountdownSql } from "@/main/config/schema";
 import type { Connection } from "odbc";
 import {
   TransactionDetailPOSAudio,
   TransactionPOSAudioPayload,
 } from "@/shared/types";
 import logger from "@/main/utils/logger";
+
+interface ProdLinkRow {
+  PRODNUMLINK: number | null;
+  QUANTITY: number | null;
+  SKIPSELFCOUNTDOWN: number;
+}
 
 export class TransactionPOSAudioService {
   static async createUpdateTransaction(
@@ -79,23 +86,21 @@ export class TransactionPOSAudioService {
           );
 
           const prodLinkResult = await connection.query(
-            `SELECT PRODNUMLINK, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`,
+            `SELECT PRODNUMLINK, QUANTITY, ${skipSelfCountdownSql()} AS SKIPSELFCOUNTDOWN FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`,
             [detail.PRODNUM],
           );
 
           let linkNum = detail.PRODNUM;
           let linkQty = 1;
+          // Sold with COUNTDOWN = 0 in the POS (unlimited): the POS never
+          // deducted it, so nothing may give it back either.
+          let skipSelfCountdown = false;
 
-          if (
-            prodLinkResult &&
-            (prodLinkResult as { PRODNUMLINK: number; QUANTITY: number }[])
-              .length > 0
-          ) {
-            const row = (
-              prodLinkResult as { PRODNUMLINK: number; QUANTITY: number }[]
-            )[0];
+          if (prodLinkResult && (prodLinkResult as ProdLinkRow[]).length > 0) {
+            const row = (prodLinkResult as ProdLinkRow[])[0];
             linkNum = row.PRODNUMLINK || detail.PRODNUM;
             linkQty = row.QUANTITY || 1;
+            skipSelfCountdown = row.SKIPSELFCOUNTDOWN === 1;
           }
 
           const totalOutQty = (detail.QuantityOut || 0) * linkQty;
@@ -145,11 +150,13 @@ export class TransactionPOSAudioService {
             }
 
             // 1. Restore ticket
-            productCountdownChanges.set(
-              detail.PRODNUM,
-              (productCountdownChanges.get(detail.PRODNUM) || 0) +
-                detail.QuantityReturn,
-            );
+            if (!skipSelfCountdown) {
+              productCountdownChanges.set(
+                detail.PRODNUM,
+                (productCountdownChanges.get(detail.PRODNUM) || 0) +
+                  detail.QuantityReturn,
+              );
+            }
             // 2. Restore sub-machine if it's a combo
             if (linkNum !== detail.PRODNUM) {
               productCountdownChanges.set(

@@ -9,6 +9,7 @@ import fs from "fs";
 
 import { join } from "path";
 
+import { ensureSchema } from "@/main/config/schema";
 import HoangVanService from "@/main/services/HoangVanService";
 import { OrderService } from "@/main/services/OrderService";
 import logger from "@/main/utils/logger";
@@ -54,6 +55,10 @@ function createWindow(): void {
 app.whenReady().then(() => {
   // Set app user model id for windows
   electronApp.setAppUserModelId("com.electron");
+
+  // Columns this app adds on top of the POS schema are created here, so a new
+  // build can be installed on the till without running any SQL by hand.
+  ensureSchema();
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
@@ -256,30 +261,35 @@ app.whenReady().then(() => {
     "order:create",
     async (
       _,
-      {
-        refCode,
-        quantity,
-        costEach,
-        swipe,
-        status,
-        onlineOrderId,
-      }: {
-        refCode: string;
-        quantity: number;
-        costEach: number;
+      payload: {
+        items?: import("@/shared/types").OrderItemPayload[];
+        refCode?: string;
+        quantity?: number;
+        costEach?: number;
         swipe: string;
         status?: number;
         onlineOrderId?: string;
       },
     ) => {
       try {
+        // An order can carry several services; a single refCode is still
+        // accepted so older callers keep working.
+        const items =
+          payload.items && payload.items.length > 0
+            ? payload.items
+            : [
+                {
+                  refCode: payload.refCode as string,
+                  quantity: payload.quantity as number,
+                  costEach: payload.costEach as number,
+                },
+              ];
+
         const result = await OrderService.createOrder(
-          refCode,
-          quantity,
-          costEach,
-          swipe,
-          status,
-          onlineOrderId,
+          items,
+          payload.swipe,
+          payload.status,
+          payload.onlineOrderId,
         );
         return {
           success: result.success,
@@ -299,6 +309,39 @@ app.whenReady().then(() => {
       }
     },
   );
+
+  ipcMain.handle("product:getMappings", async () => {
+    try {
+      const data = await ProductService.getProductMappings();
+      return { success: true, data };
+    } catch (error) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
+
+  ipcMain.handle(
+    "product:saveMapping",
+    async (_, mapping: import("@/shared/types").ProductMappingPayload) => {
+      try {
+        await ProductService.saveProductMapping(mapping);
+        return { success: true };
+      } catch (error) {
+        const err = error as Error;
+        return { success: false, error: err.message };
+      }
+    },
+  );
+
+  ipcMain.handle("product:deleteMapping", async (_, prodnum: number) => {
+    try {
+      await ProductService.deleteProductMapping(prodnum);
+      return { success: true };
+    } catch (error) {
+      const err = error as Error;
+      return { success: false, error: err.message };
+    }
+  });
 
   ipcMain.handle("order:getOnlineStatus", async (_, orderId: string) => {
     try {

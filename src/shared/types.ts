@@ -31,6 +31,32 @@ export interface ProductPOSAudio {
   [key: string]: unknown;
 }
 
+export interface ProductMapping {
+  PRODNUM: number;
+  DESCRIPT: string;
+  REFCODE: string;
+  COUNTDOWN: number;
+  ISPRIMARY: number | null;
+  PRODNUMLINK: number | null;
+  QUANTITY: number | null;
+  STORAGE: number | null;
+  SKIPSELFCOUNTDOWN: number;
+  LINKDESCRIPT: string | null;
+}
+
+export interface ProductMappingPayload {
+  PRODNUM: number;
+  PRODNUMLINK: number;
+  QUANTITY: number;
+  SKIPSELFCOUNTDOWN: number;
+}
+
+export interface OrderItemPayload {
+  refCode: string;
+  quantity: number;
+  costEach: number;
+}
+
 export interface TransactionDetailPOSAudio {
   PRODNUM: number;
   QuantityOut: number;

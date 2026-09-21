@@ -25,13 +25,20 @@ const api = {
   ) => ipcRenderer.invoke("posAudio:createUpdate", data),
   deleteOrder: (payload) => ipcRenderer.invoke("hoangvan:deleteOrder", payload),
   createOrder: (payload: {
-    refCode: string;
-    quantity: number;
-    costEach: number;
+    items?: import("@/shared/types").OrderItemPayload[];
+    refCode?: string;
+    quantity?: number;
+    costEach?: number;
     swipe: string;
     status?: number;
     onlineOrderId?: string;
   }) => ipcRenderer.invoke("order:create", payload),
+  getProductMappings: () => ipcRenderer.invoke("product:getMappings"),
+  saveProductMapping: (
+    mapping: import("@/shared/types").ProductMappingPayload,
+  ) => ipcRenderer.invoke("product:saveMapping", mapping),
+  deleteProductMapping: (prodnum: number) =>
+    ipcRenderer.invoke("product:deleteMapping", prodnum),
   getOnlineOrderStatus: (orderId: string) =>
     ipcRenderer.invoke("order:getOnlineStatus", orderId),
   returnLocalOrder: (orderId: string) =>

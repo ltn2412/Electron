@@ -86,21 +86,22 @@ export default function PageExpiredOrders(): React.JSX.Element {
 
       const swipe = localStorage.getItem("employeeSwipe") || "";
 
-      // Insert bills for each service
-      for (const svc of services) {
-        const createRes = await window.api.createOrder({
+      // One bill for the order, one line per service
+      const createRes = await window.api.createOrder({
+        items: services.map((svc) => ({
           refCode: `_F:POS_AUDIO_${svc.serviceCode}`,
           quantity: svc.quantity,
           costEach: svc.unitPrice,
-          swipe: swipe,
-          status: 3, // 3 for Expired
-        });
-        if (!createRes.success) {
-          throw new Error(`Internal billing error: ${createRes.error}`);
-        }
-        if ((createRes as any).data?.transact) {
-          createdTransactIds.push((createRes as any).data.transact);
-        }
+        })),
+        swipe: swipe,
+        status: 3, // 3 for Expired
+        onlineOrderId: selectedOrder.orderNo,
+      });
+      if (!createRes.success) {
+        throw new Error(`Internal billing error: ${createRes.error}`);
+      }
+      if ((createRes as any).data?.transact) {
+        createdTransactIds.push((createRes as any).data.transact);
       }
 
       // 2. Call HoangVan API to confirm expired order

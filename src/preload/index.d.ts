@@ -1,6 +1,9 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
 import {
+  OrderItemPayload,
   POSHEADER,
+  ProductMapping,
+  ProductMappingPayload,
   ProductPOSAudio,
   TransactionPOSAudioPayload,
 } from "@/shared/types";
@@ -35,6 +38,11 @@ declare global {
         data: TransactionPOSAudioPayload,
       ) => Promise<ApiResponse<void>>;
       resetProduct: (products: ProductPOSAudio[]) => Promise<ApiResponse<void>>;
+      getProductMappings: () => Promise<ApiResponse<ProductMapping[]>>;
+      saveProductMapping: (
+        mapping: ProductMappingPayload,
+      ) => Promise<ApiResponse<void>>;
+      deleteProductMapping: (prodnum: number) => Promise<ApiResponse<void>>;
       getHoangVanSlots: (
         date: string,
       ) => Promise<ApiResponse<import("@/shared/types").HoangVanSlot[]>>;
@@ -49,9 +57,10 @@ declare global {
         transact: number;
       }) => Promise<{ success: boolean; error?: string }>;
       createOrder: (payload: {
-        refCode: string;
-        quantity: number;
-        costEach: number;
+        items?: OrderItemPayload[];
+        refCode?: string;
+        quantity?: number;
+        costEach?: number;
         swipe: string;
         status?: number;
         onlineOrderId?: string;

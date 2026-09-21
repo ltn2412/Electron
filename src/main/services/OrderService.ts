@@ -1,5 +1,7 @@
 import { getConnection } from "@/main/config/database";
+import { skipSelfCountdownSql } from "@/main/config/schema";
 import { hvLogger } from "@/main/utils/logger";
+import { OrderItemPayload } from "@/shared/types";
 import type { Connection } from "odbc";
 
 interface EmpResult {
@@ -49,6 +51,75 @@ interface RecPosResult {
 }
 
 export class OrderService {
+  /**
+   * How a product draws on stock: a combo (or a product mapped onto another
+   * one, like an unlimited foreign-language ticket) spends `linkQty` units of
+   * `linkNum` instead of its own.
+   */
+  private static async getStockLink(
+    connection: Connection,
+    prodnum: number,
+  ): Promise<{
+    linkNum: number;
+    linkQty: number;
+    isPrimary: number;
+    skipSelfCountdown: boolean;
+  }> {
+    const rows = (await connection.query(
+      `SELECT PRODNUMLINK, ISPRIMARY, QUANTITY, ${skipSelfCountdownSql()} AS SKIPSELFCOUNTDOWN
+       FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`,
+      [prodnum],
+    )) as {
+      PRODNUMLINK: number | null;
+      ISPRIMARY: number;
+      QUANTITY: number | null;
+      SKIPSELFCOUNTDOWN: number;
+    }[];
+
+    if (!rows || rows.length === 0)
+      return {
+        linkNum: prodnum,
+        linkQty: 1,
+        isPrimary: 1,
+        skipSelfCountdown: false,
+      };
+
+    const row = rows[0];
+    return {
+      linkNum: row.PRODNUMLINK || prodnum,
+      linkQty: row.QUANTITY || 1,
+      isPrimary: row.ISPRIMARY,
+      skipSelfCountdown: row.SKIPSELFCOUNTDOWN === 1,
+    };
+  }
+
+  /** Positive deltas give stock back, negative ones take it out. */
+  private static async applyStockChanges(
+    connection: Connection,
+    countdownChanges: Map<number, number>,
+    storageChanges: Map<number, number>,
+  ): Promise<void> {
+    for (const [prodnum, delta] of countdownChanges.entries()) {
+      if (delta === 0) continue;
+      const sql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + ? WHERE PRODNUM = ?`;
+      hvLogger.info("Executed Database Query", {
+        query: sql,
+        params: [delta, prodnum],
+      });
+      await connection.query(sql, [delta, prodnum]);
+    }
+
+    for (const [prodnum, delta] of storageChanges.entries()) {
+      if (delta === 0) continue;
+      const sql = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + ?, OUT = OUT - ? WHERE PRODNUM = ?`;
+      hvLogger.info("Executed Database Query", {
+        query: sql,
+        params: [delta, delta, prodnum],
+      });
+      await connection.query(sql, [delta, delta, prodnum]);
+    }
+  }
+
   public static async deleteOrder(
     transact: number,
   ): Promise<{ success: boolean; error?: string }> {
@@ -69,52 +140,90 @@ export class OrderService {
       // 2. Revert PRODUCT COUNTDOWN and STORAGE/OUT
       if (!isExpired) {
         const tdSql = `SELECT PRODNUM, QuantityOut FROM DBA.TransactionDetailPOSAudio WHERE Transact = ?`;
-        const tdResult = await connection.query(tdSql, [transact]);
-        for (const td of tdResult as any) {
-          if (td.QuantityOut > 0) {
-            const prodLinkQuery = `SELECT PRODNUMLINK, ISPRIMARY, QUANTITY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
-            const prodLinkResult = await connection.query(prodLinkQuery, [
-              td.PRODNUM,
-            ]);
-            if (prodLinkResult && (prodLinkResult as any).length > 0) {
-              const row = (prodLinkResult as any)[0];
-              const linkNum = row.PRODNUMLINK || td.PRODNUM;
-              const isPrimary = row.ISPRIMARY;
-              const linkQty = row.QUANTITY || 1;
-              const outQty = td.QuantityOut * linkQty;
+        const tdResult = (await connection.query(tdSql, [transact])) as {
+          PRODNUM: number;
+          QuantityOut: number;
+        }[];
 
-              if (isPrimary === 1) {
-                const queryProduct = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN + ? WHERE PRODNUM = ?`;
-                hvLogger.info("Executed Database Query", { query: queryProduct, params: [outQty, linkNum] });
-                await connection.query(queryProduct, [outQty, linkNum]);
-              }
-              const queryStorage = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE + ?, OUT = OUT - ? WHERE PRODNUM = ?`;
-              hvLogger.info("Executed Database Query", { query: queryStorage, params: [outQty, outQty, linkNum] });
-              await connection.query(queryStorage, [outQty, outQty, linkNum]);
+        // Mirror of what createOrder took out, so a rolled back bill leaves
+        // the stock exactly where it was.
+        const countdownChanges = new Map<number, number>();
+        const storageChanges = new Map<number, number>();
+
+        for (const td of tdResult) {
+          if (td.QuantityOut > 0) {
+            const { linkNum, linkQty, skipSelfCountdown } =
+              await OrderService.getStockLink(connection, td.PRODNUM);
+            const outQty = td.QuantityOut * linkQty;
+
+            const countdownRow = (await connection.query(
+              `SELECT ISNULL(COUNTDOWN, 0) AS COUNTDOWN FROM DBA.PRODUCT WHERE PRODNUM = ?`,
+              [td.PRODNUM],
+            )) as { COUNTDOWN: number }[];
+            const isUnlimited =
+              skipSelfCountdown ||
+              (countdownRow.length > 0 && countdownRow[0].COUNTDOWN === 0);
+
+            if (!isUnlimited) {
+              countdownChanges.set(
+                td.PRODNUM,
+                (countdownChanges.get(td.PRODNUM) || 0) + td.QuantityOut,
+              );
             }
+            if (linkNum !== td.PRODNUM) {
+              countdownChanges.set(
+                linkNum,
+                (countdownChanges.get(linkNum) || 0) + outQty,
+              );
+            }
+            storageChanges.set(
+              linkNum,
+              (storageChanges.get(linkNum) || 0) + outQty,
+            );
           }
         }
+
+        await OrderService.applyStockChanges(
+          connection,
+          countdownChanges,
+          storageChanges,
+        );
       }
 
       // 3. Mark as Void instead of deleting
       const q1 = `UPDATE DBA.POSHEADER SET NETTOTAL=0, FINALTOTAL=0 WHERE TRANSACT=?`;
-      hvLogger.info("Executed Database Query", { query: q1, params: [transact] });
+      hvLogger.info("Executed Database Query", {
+        query: q1,
+        params: [transact],
+      });
       await connection.query(q1, [transact]);
 
       const q2 = `UPDATE DBA.POSDETAIL SET PRODTYPE=101 WHERE TRANSACT=?`;
-      hvLogger.info("Executed Database Query", { query: q2, params: [transact] });
+      hvLogger.info("Executed Database Query", {
+        query: q2,
+        params: [transact],
+      });
       await connection.query(q2, [transact]);
 
       const q3 = `UPDATE DBA.Howpaid SET TENDER=0 WHERE TRANSACT=?`;
-      hvLogger.info("Executed Database Query", { query: q3, params: [transact] });
+      hvLogger.info("Executed Database Query", {
+        query: q3,
+        params: [transact],
+      });
       await connection.query(q3, [transact]);
 
       const q4 = `UPDATE DBA.XMLTransHeaders SET SyncCloud=1, NetTotal=0, FinalTotal=0 WHERE TransNumber=?`;
-      hvLogger.info("Executed Database Query", { query: q4, params: [transact] });
+      hvLogger.info("Executed Database Query", {
+        query: q4,
+        params: [transact],
+      });
       await connection.query(q4, [transact]);
 
       const q5 = `UPDATE DBA.XMLTransItems SET SyncCloud=1, TypeOfProd=101 WHERE TransNumber=?`;
-      hvLogger.info("Executed Database Query", { query: q5, params: [transact] });
+      hvLogger.info("Executed Database Query", {
+        query: q5,
+        params: [transact],
+      });
       await connection.query(q5, [transact]);
 
       await connection.commit();
@@ -134,9 +243,7 @@ export class OrderService {
   }
 
   public static async createOrder(
-    refCode: string,
-    quantity: number,
-    costEach: number,
+    items: OrderItemPayload[],
     swipe: string,
     status: number = 1,
     onlineOrderId?: string,
@@ -146,6 +253,9 @@ export class OrderService {
     message?: string;
     error?: string;
   }> {
+    if (!items || items.length === 0)
+      throw new Error("The order has no service to bill.");
+
     const connection = await getConnection();
 
     try {
@@ -164,27 +274,48 @@ export class OrderService {
       const WHOSTART = empRow.EmpNum;
       const PUNCHINDEX = empRow.PunchIndex;
 
-      const prodResult = await connection.query(
-        `
-        SELECT Product.ProdNum, Product.ProdType, Product.CountDown, Product.Descript, ISNULL(Product.PrepTemp, 0) AS PrepTemp,
-               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.PRINTLOC ELSE PRODUCT.PRINTLOC END) AS PrintLoc,
-               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX1 ELSE PRODUCT.TAX1 END) AS Tax1,
-               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX2 ELSE PRODUCT.TAX2 END) AS Tax2,
-               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX3 ELSE PRODUCT.TAX3 END) AS Tax3,
-               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX4 ELSE PRODUCT.TAX4 END) AS Tax4,
-               (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX5 ELSE PRODUCT.TAX5 END) AS Tax5
-        FROM dba.Product
-        LEFT JOIN dba.ReportCat ON (Product.ReportNo = ReportCat.ReportNo)
-        WHERE Product.IsActive = 1 AND Product.RefCode = ?
-      `,
-        [refCode],
-      );
-      if (prodResult.length === 0)
-        throw new Error(`Product not found for refCode: ${refCode}`);
+      // One order can carry several services (audio guide + group combo...):
+      // they all belong on the same bill, one POSDETAIL line each.
+      const lines: {
+        prodnum: number;
+        quantity: number;
+        costEach: number;
+        product: ProdResult;
+        lineDes: string;
+      }[] = [];
 
-      const product = (prodResult as unknown as ProdResult[])[0];
-      const PRODNUM = product.ProdNum;
-      const LineDes = product.Descript;
+      for (const item of items) {
+        const quantity = Number(item.quantity) || 0;
+        if (quantity <= 0)
+          throw new Error(`Invalid quantity for refCode: ${item.refCode}`);
+
+        const prodResult = await connection.query(
+          `
+          SELECT Product.ProdNum, Product.ProdType, Product.CountDown, Product.Descript, ISNULL(Product.PrepTemp, 0) AS PrepTemp,
+                 (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.PRINTLOC ELSE PRODUCT.PRINTLOC END) AS PrintLoc,
+                 (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX1 ELSE PRODUCT.TAX1 END) AS Tax1,
+                 (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX2 ELSE PRODUCT.TAX2 END) AS Tax2,
+                 (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX3 ELSE PRODUCT.TAX3 END) AS Tax3,
+                 (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX4 ELSE PRODUCT.TAX4 END) AS Tax4,
+                 (CASE WHEN Product.USEITEMCAT = 1 THEN ReportCat.TAX5 ELSE PRODUCT.TAX5 END) AS Tax5
+          FROM dba.Product
+          LEFT JOIN dba.ReportCat ON (Product.ReportNo = ReportCat.ReportNo)
+          WHERE Product.IsActive = 1 AND Product.RefCode = ?
+        `,
+          [item.refCode],
+        );
+        if (prodResult.length === 0)
+          throw new Error(`Product not found for refCode: ${item.refCode}`);
+
+        const product = (prodResult as unknown as ProdResult[])[0];
+        lines.push({
+          prodnum: product.ProdNum,
+          quantity,
+          costEach: Number(item.costEach) || 0,
+          product,
+          lineDes: product.Descript,
+        });
+      }
 
       const stationResult = await connection.query(
         `
@@ -236,43 +367,55 @@ export class OrderService {
         }
       };
 
-      const finalTotalAmount = costEach * quantity;
-      let netTotalAmount = finalTotalAmount;
+      // Tax is worked out per line - two services can sit in different tax
+      // categories - then summed onto the header.
+      const lineNets: number[] = [];
+      let finalTotalAmount = 0;
+      let netTotalAmount = 0;
 
-      const t1 = calcTax(
-        sysInfo.TaxRate1,
-        finalTotalAmount,
-        product.Tax1 === 1,
-      );
-      const t2 = calcTax(
-        sysInfo.TaxRate2,
-        finalTotalAmount,
-        product.Tax2 === 1,
-      );
-      const t3 = calcTax(
-        sysInfo.TaxRate3,
-        finalTotalAmount,
-        product.Tax3 === 1,
-      );
-      const t4 = calcTax(
-        sysInfo.TaxRate4,
-        finalTotalAmount,
-        product.Tax4 === 1,
-      );
-      const t5 = calcTax(
-        sysInfo.TaxRate5,
-        finalTotalAmount,
-        product.Tax5 === 1,
-      );
+      lines.forEach((line) => {
+        const lineTotal = line.costEach * line.quantity;
 
-      if (useVat) netTotalAmount = finalTotalAmount - (t1 + t2 + t3 + t4 + t5);
-      else netTotalAmount = finalTotalAmount;
+        const t1 = calcTax(
+          sysInfo.TaxRate1,
+          lineTotal,
+          line.product.Tax1 === 1,
+        );
+        const t2 = calcTax(
+          sysInfo.TaxRate2,
+          lineTotal,
+          line.product.Tax2 === 1,
+        );
+        const t3 = calcTax(
+          sysInfo.TaxRate3,
+          lineTotal,
+          line.product.Tax3 === 1,
+        );
+        const t4 = calcTax(
+          sysInfo.TaxRate4,
+          lineTotal,
+          line.product.Tax4 === 1,
+        );
+        const t5 = calcTax(
+          sysInfo.TaxRate5,
+          lineTotal,
+          line.product.Tax5 === 1,
+        );
 
-      tax1 = t1;
-      tax2 = t2;
-      tax3 = t3;
-      tax4 = t4;
-      tax5 = t5;
+        tax1 += t1;
+        tax2 += t2;
+        tax3 += t3;
+        tax4 += t4;
+        tax5 += t5;
+
+        const lineNet = useVat
+          ? lineTotal - (t1 + t2 + t3 + t4 + t5)
+          : lineTotal;
+        lineNets.push(lineNet);
+        finalTotalAmount += lineTotal;
+        netTotalAmount += lineNet;
+      });
+
       const FINALTOTAL = useVat
         ? finalTotalAmount
         : netTotalAmount + tax1 + tax2 + tax3 + tax4 + tax5;
@@ -330,7 +473,7 @@ export class OrderService {
         REVCENTER,
         PUNCHINDEX,
         STATNUM,
-        refCode,
+        items[0].refCode,
       ] as (string | number)[];
       hvLogger.info("Executed Database Query", {
         query: posHeaderSql,
@@ -343,22 +486,25 @@ export class OrderService {
         [TRANSACT],
       );
 
+      // One id per line, taken in a single block so the counter is only
+      // touched once.
       const nextDetailRes = await connection.query(
         `SELECT MAX(NEXTNUM) as NEXTNUM FROM DBA.AUTOINCINDEX WITH (XLOCK) WHERE INCNAME = 'GETNEXT_POSDETAIL'`,
       );
-      const UNIQUEID =
+      const firstUniqueId =
         (nextDetailRes as unknown as NextNumResult[])[0].NEXTNUM + 1;
 
       await connection.query(
         `UPDATE DBA.AUTOINCINDEX SET NEXTNUM = ? WHERE INCNAME = 'GETNEXT_POSDETAIL'`,
-        [UNIQUEID],
+        [firstUniqueId + lines.length - 1],
       );
 
       const recPosRes = await connection.query(
         `SELECT ISNULL(MAX(RECPOS), -1) as RECPOS FROM DBA.POSDETAIL WHERE TRANSACT = ?`,
         [TRANSACT],
       );
-      const RECPOS = (recPosRes as unknown as RecPosResult[])[0].RECPOS + 1;
+      const firstRecPos =
+        (recPosRes as unknown as RecPosResult[])[0].RECPOS + 1;
 
       const posDetailSql = `
         INSERT INTO DBA.POSDETAIL (
@@ -367,127 +513,137 @@ export class OrderService {
           ?, ?, ?, ?, ?, ?, ?, GETDATE(), ?, 0, 0, 0, 32, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0, ?, 1, ?, ?, ?, 0, ?, ?, NULL, 1, 0, GETDATE()
         )
       `;
-      const posDetailParams = [
-        UNIQUEID,
-        TRANSACT,
-        PRODNUM,
-        WHOSTART,
-        WHOSTART,
-        costEach,
-        quantity,
-        product.PrintLoc,
-        RECPOS,
-        product.ProdType,
-        product.Tax1,
-        product.Tax2,
-        product.Tax3,
-        product.Tax4,
-        product.Tax5,
-        status === 3 ? 0 : 1,
-        STATNUM,
-        OPENDATE,
-        LineDes,
-        REVCENTER,
-        UNIQUEID,
-        costEach,
-        useVat ? netTotalAmount / quantity : costEach,
-      ] as (string | number)[];
-      hvLogger.info("Executed Database Query", {
-        query: posDetailSql,
-        params: posDetailParams,
-      });
-      await connection.query(posDetailSql, posDetailParams);
 
-      if (status === 1) {
-        const sql = `
+      for (let idx = 0; idx < lines.length; idx++) {
+        const line = lines[idx];
+        const UNIQUEID = firstUniqueId + idx;
+        const RECPOS = firstRecPos + idx;
+
+        const posDetailParams = [
+          UNIQUEID,
+          TRANSACT,
+          line.prodnum,
+          WHOSTART,
+          WHOSTART,
+          line.costEach,
+          line.quantity,
+          line.product.PrintLoc,
+          RECPOS,
+          line.product.ProdType,
+          line.product.Tax1,
+          line.product.Tax2,
+          line.product.Tax3,
+          line.product.Tax4,
+          line.product.Tax5,
+          status === 3 ? 0 : 1,
+          STATNUM,
+          OPENDATE,
+          line.lineDes,
+          REVCENTER,
+          UNIQUEID,
+          line.costEach,
+          useVat ? lineNets[idx] / line.quantity : line.costEach,
+        ] as (string | number)[];
+        hvLogger.info("Executed Database Query", {
+          query: posDetailSql,
+          params: posDetailParams,
+        });
+        await connection.query(posDetailSql, posDetailParams);
+      }
+
+      const tpaSql =
+        status === 1
+          ? `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
           VALUES (?, '', ?, GETDATE(), NULL, ?)
-        `;
-        hvLogger.info("Executed Database Query", {
-          query: sql,
-          params: [TRANSACT, status, onlineOrderId || null] as (
-            | string
-            | number
-            | null
-          )[],
-        });
-        await connection.query(sql, [
-          TRANSACT,
-          status,
-          onlineOrderId || null,
-        ] as (string | number | null)[] as (string | number)[]);
-      } else {
-        const sql = `
+        `
+          : `
           INSERT INTO DBA.TransactionPOSAudio (Transact, PhoneNumber, Status, DateOut, DateReturn, OnlineOrderTransaction)
           VALUES (?, '', ?, NULL, GETDATE(), ?)
         `;
-        hvLogger.info("Executed Database Query", {
-          query: sql,
-          params: [TRANSACT, status, onlineOrderId || null] as (
-            | string
-            | number
-            | null
-          )[],
-        });
-        await connection.query(sql, [
-          TRANSACT,
-          status,
-          onlineOrderId || null,
-        ] as (string | number | null)[] as (string | number)[]);
+      hvLogger.info("Executed Database Query", {
+        query: tpaSql,
+        params: [TRANSACT, status, onlineOrderId || null] as (
+          | string
+          | number
+          | null
+        )[],
+      });
+      await connection.query(tpaSql, [
+        TRANSACT,
+        status,
+        onlineOrderId || null,
+      ] as (string | number | null)[] as (string | number)[]);
+
+      // TransactionDetailPOSAudio holds one row per product, so two lines of
+      // the same product are handed over as a single quantity.
+      const quantityByProdnum = new Map<number, number>();
+      const countdownByProdnum = new Map<number, number>();
+      for (const line of lines) {
+        quantityByProdnum.set(
+          line.prodnum,
+          (quantityByProdnum.get(line.prodnum) || 0) + line.quantity,
+        );
+        countdownByProdnum.set(line.prodnum, line.product.CountDown);
       }
 
       const tdSql = `
         INSERT INTO DBA.TransactionDetailPOSAudio (Transact, PRODNUM, QuantityOut, QuantityReturn)
         VALUES (?, ?, ?, ?)
       `;
-      const tdParams = [
-        TRANSACT,
-        PRODNUM,
-        quantity,
-        status === 2 || status === 3 ? quantity : 0,
-      ];
-      hvLogger.info("Executed Database Query", {
-        query: tdSql,
-        params: tdParams,
-      });
-      await connection.query(tdSql, tdParams);
+      for (const [prodnum, quantity] of quantityByProdnum.entries()) {
+        const tdParams = [
+          TRANSACT,
+          prodnum,
+          quantity,
+          status === 2 || status === 3 ? quantity : 0,
+        ];
+        hvLogger.info("Executed Database Query", {
+          query: tdSql,
+          params: tdParams,
+        });
+        await connection.query(tdSql, tdParams);
+      }
 
       if (status === 1) {
-        const prodLinkQuery = `SELECT PRODNUMLINK, QUANTITY, ISPRIMARY FROM DBA.ProductPOSAudio WHERE PRODNUM = ?`;
-        const prodLinkResult = await connection.query(prodLinkQuery, [PRODNUM]);
-        let linkNum = PRODNUM;
-        let linkQty = 1;
-        let isPrimary = 1;
-        if (prodLinkResult && (prodLinkResult as unknown[]).length > 0) {
-          const row = (
-            prodLinkResult as {
-              PRODNUMLINK: number;
-              QUANTITY?: number;
-              ISPRIMARY: number;
-            }[]
-          )[0];
-          linkNum = row.PRODNUMLINK;
-          linkQty = row.QUANTITY || 1;
-          isPrimary = row.ISPRIMARY;
+        const countdownChanges = new Map<number, number>();
+        const storageChanges = new Map<number, number>();
+
+        for (const [prodnum, quantity] of quantityByProdnum.entries()) {
+          const { linkNum, linkQty, skipSelfCountdown } =
+            await OrderService.getStockLink(connection, prodnum);
+          const outQty = quantity * linkQty;
+
+          // This bill was written by us, not by the POS engine, so nothing has
+          // deducted the product's own countdown yet - unless it is sold as
+          // unlimited and only borrows from the product it is mapped to. A
+          // countdown of 0 is what the POS reads as unlimited, so it is left
+          // alone even when no mapping has been set up yet.
+          const isUnlimited =
+            skipSelfCountdown || countdownByProdnum.get(prodnum) === 0;
+          if (!isUnlimited) {
+            countdownChanges.set(
+              prodnum,
+              (countdownChanges.get(prodnum) || 0) - quantity,
+            );
+          }
+          if (linkNum !== prodnum) {
+            countdownChanges.set(
+              linkNum,
+              (countdownChanges.get(linkNum) || 0) - outQty,
+            );
+          }
+          storageChanges.set(
+            linkNum,
+            (storageChanges.get(linkNum) || 0) - outQty,
+          );
         }
 
-        const outQty = quantity * linkQty;
-
-        if (isPrimary === 1) {
-          const updateProductSql = `UPDATE DBA.PRODUCT SET COUNTDOWN = COUNTDOWN - ? WHERE PRODNUM = ?`;
-          hvLogger.info("Executed Database Query", {
-            query: updateProductSql,
-            params: [outQty, linkNum],
-          });
-          await connection.query(updateProductSql, [outQty, linkNum]);
-        }
-
-        const updateStorageSql = `UPDATE DBA.ProductPOSAudio SET STORAGE = STORAGE - ?, OUT = OUT + ? WHERE PRODNUM = ?`;
-        hvLogger.info("Executed Database Query", {
-          query: updateStorageSql,
-          params: [outQty, outQty, linkNum],
-        });
-        await connection.query(updateStorageSql, [outQty, outQty, linkNum]);
+        await OrderService.applyStockChanges(
+          connection,
+          countdownChanges,
+          storageChanges,
+        );
       }
 
       const methodRes = await connection.query(
