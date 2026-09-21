@@ -60,6 +60,7 @@ export class OrderService {
     connection: Connection,
     prodnum: number,
   ): Promise<{
+    hasRow: boolean;
     linkNum: number;
     linkQty: number;
     isPrimary: number;
@@ -78,14 +79,16 @@ export class OrderService {
 
     if (!rows || rows.length === 0)
       return {
+        hasRow: false,
         linkNum: prodnum,
         linkQty: 1,
-        isPrimary: 1,
+        isPrimary: 0,
         skipSelfCountdown: false,
       };
 
     const row = rows[0];
     return {
+      hasRow: true,
       linkNum: row.PRODNUMLINK || prodnum,
       linkQty: row.QUANTITY || 1,
       isPrimary: row.ISPRIMARY,
@@ -152,25 +155,13 @@ export class OrderService {
 
         for (const td of tdResult) {
           if (td.QuantityOut > 0) {
-            const { linkNum, linkQty, skipSelfCountdown } =
+            const { hasRow, linkNum, linkQty, isPrimary } =
               await OrderService.getStockLink(connection, td.PRODNUM);
+            if (!hasRow) continue;
+
             const outQty = td.QuantityOut * linkQty;
 
-            const countdownRow = (await connection.query(
-              `SELECT ISNULL(COUNTDOWN, 0) AS COUNTDOWN FROM DBA.PRODUCT WHERE PRODNUM = ?`,
-              [td.PRODNUM],
-            )) as { COUNTDOWN: number }[];
-            const isUnlimited =
-              skipSelfCountdown ||
-              (countdownRow.length > 0 && countdownRow[0].COUNTDOWN === 0);
-
-            if (!isUnlimited) {
-              countdownChanges.set(
-                td.PRODNUM,
-                (countdownChanges.get(td.PRODNUM) || 0) + td.QuantityOut,
-              );
-            }
-            if (linkNum !== td.PRODNUM) {
+            if (isPrimary === 1 || linkNum !== td.PRODNUM) {
               countdownChanges.set(
                 linkNum,
                 (countdownChanges.get(linkNum) || 0) + outQty,
@@ -578,13 +569,11 @@ export class OrderService {
       // TransactionDetailPOSAudio holds one row per product, so two lines of
       // the same product are handed over as a single quantity.
       const quantityByProdnum = new Map<number, number>();
-      const countdownByProdnum = new Map<number, number>();
       for (const line of lines) {
         quantityByProdnum.set(
           line.prodnum,
           (quantityByProdnum.get(line.prodnum) || 0) + line.quantity,
         );
-        countdownByProdnum.set(line.prodnum, line.product.CountDown);
       }
 
       const tdSql = `
@@ -610,24 +599,15 @@ export class OrderService {
         const storageChanges = new Map<number, number>();
 
         for (const [prodnum, quantity] of quantityByProdnum.entries()) {
-          const { linkNum, linkQty, skipSelfCountdown } =
+          const { hasRow, linkNum, linkQty, isPrimary } =
             await OrderService.getStockLink(connection, prodnum);
+          if (!hasRow) continue;
+
           const outQty = quantity * linkQty;
 
-          // This bill was written by us, not by the POS engine, so nothing has
-          // deducted the product's own countdown yet - unless it is sold as
-          // unlimited and only borrows from the product it is mapped to. A
-          // countdown of 0 is what the POS reads as unlimited, so it is left
-          // alone even when no mapping has been set up yet.
-          const isUnlimited =
-            skipSelfCountdown || countdownByProdnum.get(prodnum) === 0;
-          if (!isUnlimited) {
-            countdownChanges.set(
-              prodnum,
-              (countdownChanges.get(prodnum) || 0) - quantity,
-            );
-          }
-          if (linkNum !== prodnum) {
+          // A product holding its own stock deducts itself; a mapped one (an
+          // unlimited ticket, a combo) deducts the product it points at.
+          if (isPrimary === 1 || linkNum !== prodnum) {
             countdownChanges.set(
               linkNum,
               (countdownChanges.get(linkNum) || 0) - outQty,
